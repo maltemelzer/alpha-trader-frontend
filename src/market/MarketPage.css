@@ -45,3 +45,69 @@
 .market .bnk-card__action .bnk-seg {
   min-width: 150px;
 }
+
+/* Real estate and warrant views in the results area (RealEstateView, WarrantMarket) */
+.estate,
+.warrant-market {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.estate__tiles {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: var(--space-3) var(--space-4) 0;
+}
+
+.estate__note {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.estate__chart {
+  flex: none;
+  height: 240px;
+  padding: 0 var(--space-4);
+}
+
+.warrant-market__chart {
+  flex: none;
+  padding: 0 var(--space-4);
+}
+
+.estate__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+}
+
+.estate__title {
+  margin: 0;
+  font: 600 13px/20px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.estate__title--list {
+  padding: 0 var(--space-4);
+}
+
+.estate .bnk-estate {
+  margin: 0 var(--space-4);
+}
+
+@media (max-width: 719px) {
+  .estate__tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.estate__tiles .bnk-stat__hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

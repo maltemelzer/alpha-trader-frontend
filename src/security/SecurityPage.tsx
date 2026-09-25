@@ -15,6 +15,7 @@ import {
   usePriceSpread,
   useShareholders,
   useTrades,
+  useWarrant,
 } from '../api/queries';
 import { toSpread, type ListingProfile, type OrderCheck } from '../api/types';
 import { Plot } from '../charts/Plot';
@@ -29,11 +30,14 @@ import {
   EtfTrackingPanel,
   EtfUnitsPanel,
   IndexMembersPanel,
+  IndexMembersView,
   IndexWeightsPanel,
   useBondOf,
 } from './ClassPanels';
 import { candles, depthChart, holdersBars, priceLine, tradesChart } from './charts';
 import { Panel } from './Panel';
+import { WarrantPanel, WarrantTabs, WithWarrants } from './WarrantPanels';
+import { ratioText, warrantEnd } from './warrants';
 import './SecurityPage.css';
 
 type Side = 'BUY' | 'SELL';
@@ -241,6 +245,7 @@ const when = (ms: number) =>
 function useClassFacts(p: ListingProfile, cls: AssetClass, compact: boolean, sideFacts: boolean): Facts {
   const bondInfo = useBondOf(p);
   const index = useIndexDetails(p.securityIdentifier, cls === 'index');
+  const warrant = useWarrant(cls === 'warrant' ? p.securityIdentifier : undefined);
   const f: Facts = [];
   const c = p.company;
   switch (cls) {
@@ -277,6 +282,21 @@ function useClassFacts(p: ListingProfile, cls: AssetClass, compact: boolean, sid
       if (p.outstandingShares) f.push({ label: 'Im Umlauf', value: DS.format.compact(p.outstandingShares, 1e6) ?? String(p.outstandingShares) });
       if (!compact) f.push({ label: 'Schürfen', value: <a href="/miner">Miner</a> });
       break;
+    case 'warrant': {
+      const w = warrant.data;
+      if (w) {
+        const u = w.underlying;
+        if (!compact) f.push({ label: 'Typ', value: w.type === 'PUT' ? 'Put' : 'Call' });
+        // Phone: the underlying is linked in the view „Basiswert“ (a link in the facts is too small to tap).
+        if (!compact && u?.securityIdentifier) f.push({ label: 'Basiswert', value: <a href={`/wertpapier/${u.securityIdentifier}`}>{u.name}</a> });
+        if (w.underlyingValue != null) f.push({ label: 'Referenzkurs', value: w.underlyingValue, compact: false });
+        if (w.underlyingCapValue != null) f.push({ label: 'Cap', value: w.underlyingCapValue, compact: false });
+        const end = warrantEnd(w);
+        if (end) f.push({ label: 'Fällig', value: when(end) });
+        else if (!compact && w.ratio != null) f.push({ label: 'Bezugsverhältnis', value: ratioText(w.ratio) });
+      }
+      break;
+    }
     case 'building': {
       const size = p.building?.size;
       if (size) f.push({ label: 'Fläche', value: `${size.toLocaleString('de-DE')} m²` });
@@ -333,11 +353,17 @@ function ClassPanel({ asin, profile, cls }: { asin: string; profile: ListingProf
     case 'repo':
       return <BondPanel profile={profile} />;
     case 'index':
-      return <IndexMembersPanel asin={asin} />;
+      return (
+        <WithWarrants asin={asin} title="Mitglieder" className="panel--class">
+          <IndexMembersView asin={asin} />
+        </WithWarrants>
+      );
     case 'etf':
       return <EtfTrackingPanel profile={profile} />;
     case 'building':
       return <BuildingPanel profile={profile} />;
+    case 'warrant':
+      return <WarrantPanel profile={profile} />;
     default:
       return <HoldersPanel asin={asin} />;
   }
@@ -496,9 +522,9 @@ function HoldersPanel({ asin }: { asin: string }) {
   const holders = useShareholders(asin);
   const n = holders.data?.length;
   return (
-    <Panel title={n ? `Anteilseigner · ${n.toLocaleString('de-DE')}` : 'Anteilseigner'} className="panel--holders">
+    <WithWarrants asin={asin} title={n ? `Anteilseigner · ${n.toLocaleString('de-DE')}` : 'Anteilseigner'} tabLabel="Eigner" className="panel--holders">
       <HoldersView asin={asin} />
-    </Panel>
+    </WithWarrants>
   );
 }
 
@@ -527,6 +553,8 @@ function phoneViews(cls: AssetClass) {
       return [price, { value: 'tracking', label: 'vs. Index' }, { value: 'book', label: 'Orderbuch' }, { value: 'units', label: 'Zeichnen' }];
     case 'building':
       return [price, { value: 'compare', label: 'Vergleich' }, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }];
+    case 'warrant':
+      return [price, { value: 'basis', label: 'Basiswert' }, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }];
     default:
       return [price, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }, { value: 'holders', label: 'Eigner' }];
   }
@@ -543,12 +571,21 @@ function PhonePanels({ asin, profile, cls, onPick }: { asin: string; profile: Li
         {view === 'price' && <PricePanel asin={asin} profile={profile} bare />}
         {view === 'book' && <BookView asin={asin} profile={profile} onPick={onPick} />}
         {view === 'trades' && <TradesView asin={asin} type={profile.type} />}
-        {view === 'holders' && <HoldersView asin={asin} />}
+        {view === 'holders' && (
+          <WarrantTabs asin={asin} label="Eigner">
+            <HoldersView asin={asin} />
+          </WarrantTabs>
+        )}
         {view === 'yield' && <BondPanel profile={profile} bare />}
         {view === 'weights' && <IndexWeightsPanel asin={asin} bare />}
-        {view === 'members' && <IndexMembersPanel asin={asin} bare />}
+        {view === 'members' && (
+          <WarrantTabs asin={asin} label="Mitglieder">
+            <IndexMembersPanel asin={asin} bare />
+          </WarrantTabs>
+        )}
         {view === 'tracking' && <EtfTrackingPanel profile={profile} bare />}
         {view === 'compare' && <BuildingPanel profile={profile} bare />}
+        {view === 'basis' && <WarrantPanel profile={profile} bare />}
         {view === 'units' && (
           <div>
             <EtfUnitsPanel profile={profile} onDone={(ok, text) => setNote({ ok, text })} />

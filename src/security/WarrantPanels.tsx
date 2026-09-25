@@ -1,0 +1,179 @@
+// Warrants on the securities page: the warrant's own panel and the list of warrants on an underlying.
+import { useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router';
+import { DS } from '../ds';
+import { useDailyHistory, useListingProfile, useWarrant, useWarrantsOn } from '../api/queries';
+import type { ListingProfile } from '../api/types';
+import { Plot } from '../charts/Plot';
+import { span } from '../lib/format';
+import { useNow } from '../lib/useNow';
+import { useParamState } from '../lib/useParamState';
+import { recentPrices } from './derive';
+import { Panel } from './Panel';
+import { corridorChart, corridorHeight, warrantChart } from './warrantCharts';
+import { callPutCount, corridors, mergeWarrants, toWarrantView, warrantEnd, warrantPosition } from './warrants';
+
+const DAY = 86_400_000;
+type Theme = Parameters<typeof warrantChart>[0];
+const signed = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+
+/** „Wo steht der Basiswert?“ – the underlying of 3 days against reference price and cap, until maturity. */
+export function WarrantPanel({ profile, bare = false }: { profile: ListingProfile; bare?: boolean }) {
+  const warrant = useWarrant(profile.securityIdentifier);
+  const w = warrant.data;
+  const uAsin = w?.underlying?.securityIdentifier ?? '';
+  const uProfile = useListingProfile(uAsin);
+  const uHistory = useDailyHistory(uAsin);
+  const now = useNow();
+  const prices = useMemo(
+    () => recentPrices(uHistory.data, uProfile.data?.prices14d, 3 * DAY, now),
+    [uHistory.data, uProfile.data, now],
+  );
+  const spot = uProfile.data?.lastPrice?.value;
+  const pos = w ? warrantPosition(w, spot) : undefined;
+  const end = w ? warrantEnd(w) : undefined;
+  const name = w?.underlying?.name ?? 'Basiswert';
+  const figure = useCallback(
+    (t: Theme, width: number) => warrantChart(t, width, prices, w?.underlyingValue, w?.underlyingCapValue, end, name),
+    [prices, w, end, name],
+  );
+  return (
+    <Panel title={bare ? undefined : 'Basiswert gegen Referenzkurs'} className="panel--class">
+      {warrant.isLoading || uProfile.isLoading ? (
+        <DS.Skeleton variant="block" />
+      ) : !w ? (
+        <DS.EmptyState compact title="Keine Angaben zum Optionsschein">
+          Die API kennt diesen Schein nicht (mehr) – vielleicht ist er schon fällig.
+        </DS.EmptyState>
+      ) : (
+        <div className="class__stack">
+          <p className="class__note">
+            {w.type === 'PUT' ? 'Put' : 'Call'} auf <a href={`/wertpapier/${uAsin}`}>{name}</a>
+            {pos && (
+              <>
+                {' · '}Basiswert <b>{signed(pos.toStrike)}</b> zum Referenzkurs
+                {pos.toCap != null && (
+                  <>
+                    {' · '}Cap <b>{signed(pos.toCap)}</b> entfernt
+                  </>
+                )}
+                {pos.beyondCap ? ' – Cap erreicht' : ''}
+              </>
+            )}
+            {end ? ` · ${end > now ? `fällig in ${span(end - now)}` : 'fällig'}` : ''}
+          </p>
+          <div className="class__chart">
+            {prices.length ? (
+              <Plot aria-label={`Kurs von ${name} mit Referenzkurs und Cap des Optionsscheins`} figure={figure} />
+            ) : (
+              <DS.EmptyState compact title="Keine Kurse des Basiswerts" />
+            )}
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+/** Running warrants on an underlying, next to expire first. */
+export function useWarrantsOf(asin: string, enabled = true) {
+  const q = useWarrantsOn(asin, enabled);
+  const now = q.dataUpdatedAt;
+  const list = useMemo(() => mergeWarrants([q.data?.content], now), [q.data, now]);
+  return { ...q, list };
+}
+
+export function WarrantsOnView({ asin }: { asin: string }) {
+  const navigate = useNavigate();
+  const { list, isLoading } = useWarrantsOf(asin);
+  const profile = useListingProfile(asin);
+  const spot = profile.data?.lastPrice?.value;
+  const rows = useMemo(() => list.map(toWarrantView), [list]);
+  const bars = useMemo(() => corridors(list, () => spot), [list, spot]);
+  const figure = useCallback((t: Theme, width: number) => corridorChart(t, width, bars), [bars]);
+  if (isLoading) return <DS.Skeleton variant="rows" />;
+  const { calls, puts } = callPutCount(list);
+  return (
+    <div className="scroll class__list warrants">
+      {rows.length > 0 && (
+        <p className="class__note warrants__note">
+          {calls.toLocaleString('de-DE')} Calls · {puts.toLocaleString('de-DE')} Puts · Balken von Referenzkurs bis Cap, gemessen am Kurs jetzt
+        </p>
+      )}
+      {bars.length > 0 && (
+        <div className="warrants__chart" style={{ height: corridorHeight(bars.length) }}>
+          <Plot
+            aria-label="Optionsscheine als Spanne von Referenzkurs bis Cap, in Prozent vom aktuellen Kurs"
+            figure={figure}
+            onPointClick={(p) => p.customdata?.[0] && navigate(`/wertpapier/${p.customdata[0]}`)}
+          />
+        </div>
+      )}
+      <DS.WarrantList
+        warrants={rows}
+        density="sm"
+        issuerHref={(c) => (c.securityIdentifier ? `/unternehmen/${c.securityIdentifier}` : '#')}
+      />
+    </div>
+  );
+}
+
+const WARRANT_TAB = 'scheine';
+
+/**
+ * A class panel that gets a second tab „Optionsscheine“ when warrants on this security run
+ * (?karte=scheine). Without warrants it is the plain panel.
+ */
+export function WithWarrants({
+  asin,
+  title,
+  tabLabel,
+  className,
+  children,
+}: {
+  asin: string;
+  title: string;
+  /** Short label of the first tab (default: the title) */
+  tabLabel?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const { list } = useWarrantsOf(asin);
+  const tabs = useMemo(
+    () => [
+      { value: 'main', label: tabLabel ?? title },
+      { value: WARRANT_TAB, label: `Scheine · ${list.length.toLocaleString('de-DE')}` },
+    ],
+    [title, tabLabel, list.length],
+  );
+  const [tab, setTab] = useParamState('karte', 'main', tabs);
+  if (!list.length) return <Panel title={title} className={className}>{children}</Panel>;
+  return (
+    <Panel
+      className={className}
+      action={<DS.SegmentedControl size="sm" aria-label="Inhalt der Karte" options={tabs} value={tab} onChange={setTab} />}
+    >
+      {tab === WARRANT_TAB ? <WarrantsOnView asin={asin} /> : children}
+    </Panel>
+  );
+}
+
+/** Phone: the same switch without a card – a small segmented control above the view. */
+export function WarrantTabs({ asin, label, children }: { asin: string; label: string; children: React.ReactNode }) {
+  const { list } = useWarrantsOf(asin);
+  const tabs = useMemo(
+    () => [
+      { value: 'main', label },
+      { value: WARRANT_TAB, label: `Optionsscheine · ${list.length.toLocaleString('de-DE')}` },
+    ],
+    [label, list.length],
+  );
+  const [tab, setTab] = useParamState('karte', 'main', tabs);
+  if (!list.length) return <>{children}</>;
+  return (
+    <div className="warrants__tabs">
+      <DS.SegmentedControl size="sm" fullWidth aria-label="Inhalt" options={tabs} value={tab} onChange={setTab} />
+      <div className="warrants__tab">{tab === WARRANT_TAB ? <WarrantsOnView asin={asin} /> : children}</div>
+    </div>
+  );
+}

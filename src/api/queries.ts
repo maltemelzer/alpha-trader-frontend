@@ -23,6 +23,7 @@ import type {
 import { useEffect } from 'react';
 import type { ApiMessage } from '../lib/messages';
 import { mergeTrades } from '../app/tape';
+import { NOTE_TYPE, referrerOf, type NoteRequest, type UserChange } from '../me/account';
 import type {
   AchievementItem,
   AllianceMembership,
@@ -1720,4 +1721,201 @@ function pageableSerializer(q: Record<string, unknown>) {
     }
   }
   return out.toString();
+}
+
+// ---------- Account, real estate, warrants ----------
+
+type Schemas = import('./schema').components['schemas'];
+export type UserPreferenceView = Schemas['UserPreferenceView'];
+export type PremiumOrderEventView = Schemas['PremiumOrderEventView'];
+export type OnlineTrackingView = Schemas['OnlineTrackingView'];
+export type WarrantApiView = Schemas['WarrantView'];
+
+/** Language of the account (server texts, e-mails): GET /api/locale answers `{ message: "de-DE" }`. */
+export function useMyLocale() {
+  return useQuery({
+    queryKey: ['account', 'locale'],
+    queryFn: async () => (await unwrap<{ message?: string | null }>(api.GET('/api/locale'))).message ?? null,
+    staleTime: Infinity,
+  });
+}
+
+/** Online time in minutes since registration and the last activity. */
+export function useOnlineTracking() {
+  return useQuery({
+    queryKey: ['account', 'onlinetracking'],
+    queryFn: () => unwrap<OnlineTrackingView>(api.GET('/api/v2/my/onlinetracking')),
+    staleTime: SLOW,
+  });
+}
+
+/** Personal notes: user preferences of type NOTE – the only kind the original game writes. */
+export function useNotes() {
+  return useQuery({
+    queryKey: ['account', 'notes'],
+    queryFn: () => getPage<UserPreferenceView>('/api/v2/userpreferences', { type: NOTE_TYPE, pageable: { page: 0, size: 200 } }),
+    staleTime: SLOW,
+  });
+}
+
+/** Payment events of the gold access (payment provider), newest first. */
+export function usePremiumOrderEvents() {
+  return useQuery({
+    queryKey: ['account', 'premiumorderevents'],
+    queryFn: () => getPage<PremiumOrderEventView>('/api/v2/premiumorderevents', { pageable: { page: 0, size: 50 } }),
+    staleTime: SLOW,
+  });
+}
+
+/** Players who registered with the own referral code, newest first. */
+export function useReferredUsers() {
+  return useQuery({
+    queryKey: ['account', 'referredusers'],
+    queryFn: () => getPage<UsernameView>('/api/v2/my/referredusers', { pageable: { page: 0, size: 200 } }),
+    staleTime: SLOW,
+  });
+}
+
+/** Who referred the player; the API answers `{ code, message: null }` when nobody did. */
+export function useReferrer() {
+  return useQuery({
+    queryKey: ['account', 'referrer'],
+    queryFn: async () => referrerOf(await unwrap<unknown>(api.GET('/api/v2/my/referrer'))),
+    staleTime: SLOW,
+  });
+}
+
+/** Players that may still be entered as referrer (they must be older than the player). */
+export function usePossibleReferrers(namePart: string) {
+  const q = namePart.trim();
+  return useQuery({
+    queryKey: ['account', 'possiblereferrers', q],
+    enabled: q.length >= 2,
+    queryFn: () => getPage<UsernameView>(`/api/v2/my/possibleferrers/${encodeURIComponent(q)}`, { pageable: { page: 0, size: 20 } }),
+    staleTime: SLOW,
+  });
+}
+
+/** Checks a gold voucher code without redeeming it (GET – the original game redeems with PATCH). */
+export function usePremiumLicense(code: string) {
+  const c = code.trim();
+  return useQuery({
+    queryKey: ['account', 'premiumlicense', c],
+    enabled: c.length >= 4,
+    retry: false,
+    queryFn: () => unwrap<Record<string, unknown>>(api.GET('/api/v2/premiumlicenses/{licCode}', { params: { path: { licCode: c } } })),
+  });
+}
+
+/** Write actions of the settings page – each one sits behind an explicit confirmation in the UI. */
+export function useAccountActions() {
+  const qc = useQueryClient();
+  const refresh = (...keys: (readonly unknown[])[]) => () => keys.forEach((queryKey) => void qc.invalidateQueries({ queryKey }));
+  return {
+    /** PATCH /api/v2/my/user – one field at a time (the server sends a notice by e-mail). */
+    changeUser: useMutation({
+      mutationFn: (query: UserChange) => unwrap(api.PATCH('/api/v2/my/user', { params: { query } })),
+      onSuccess: refresh(['me']),
+    }),
+    setLocale: useMutation({
+      mutationFn: (locale: string) => unwrap(api.PUT('/api/locale', { params: { query: { locale } } })),
+      onSuccess: refresh(['account', 'locale'], ['me']),
+    }),
+    /** Saves a note the way the original game does: empty text deletes, a known id edits, else creates. */
+    saveNote: useMutation({
+      mutationFn: (r: NoteRequest) =>
+        r.method === 'DELETE'
+          ? unwrap(api.DELETE('/api/v2/userpreferences/{prefId}', { params: { path: { prefId: r.id } } }))
+          : r.method === 'PUT'
+            ? unwrap(api.PUT('/api/v2/userpreferences/{prefId}', { params: { path: { prefId: r.id }, query: r.query } }))
+            : unwrap(api.POST('/api/v2/userpreferences', { params: { query: r.query } })),
+      onSuccess: refresh(['account', 'notes']),
+    }),
+    setReferrer: useMutation({
+      mutationFn: (refId: string) => unwrap(api.PATCH('/api/v2/my/referrer/{refId}', { params: { path: { refId } } })),
+      onSuccess: refresh(['account', 'referrer']),
+    }),
+    redeemLicense: useMutation({
+      mutationFn: (licCode: string) => unwrap<{ days?: number }>(api.PATCH('/api/v2/premiumlicenses/{licCode}', { params: { path: { licCode } } })),
+      onSuccess: refresh(['me'], ['account', 'premiumorderevents']),
+    }),
+    /** Subscription management (§ 312k BGB): a code goes to the e-mail address; with it the status can be read. */
+    sendSubscriptionCode: useMutation({
+      mutationFn: (email: string) => unwrap(api.POST('/api/v2/subscriptions/verify-email', { body: email })),
+    }),
+    subscriptionStatus: useMutation({
+      mutationFn: (query: { email: string; code: string }) =>
+        unwrap<Record<string, unknown>>(api.GET('/api/v2/subscriptions/status', { params: { query } })),
+    }),
+    cancelSubscription: useMutation({
+      mutationFn: (body: string) => unwrap(api.POST('/api/v2/subscriptions/cancel', { body })),
+      onSuccess: refresh(['me']),
+    }),
+    /** Without token the server mails a confirmation link; with the token from that link it deletes the account. */
+    deleteAccount: useMutation({
+      mutationFn: (deletionToken?: string) =>
+        unwrap(api.DELETE('/api/v2/my/user', { params: { query: deletionToken ? { deletionToken } : {} } })),
+    }),
+  };
+}
+
+/** Recently traded buildings of all sizes with spread and last price (~360 within about a day). */
+export function useTradedBuildings(enabled = true) {
+  return useQuery({
+    queryKey: ['buildings', 'traded'],
+    enabled,
+    queryFn: () => getPage<MarketRow>('/api/v2/mostfrequentlytradedsecurities', { type: 'BUILDING', pageable: { page: 0, size: 500 } }),
+    refetchInterval: SLOW,
+  });
+}
+
+/**
+ * Warrants on one underlying. `/api/v2/warrants` answers 500 without `underlyingAsin`, so there is
+ * no list of all warrants – the market asks per underlying.
+ */
+function fetchWarrants(underlyingAsin: string) {
+  return getPage<WarrantApiView>('/api/v2/warrants', { underlyingAsin, pageable: { page: 0, size: 100 } });
+}
+
+export function useWarrantsOn(underlyingAsin: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['warrants', 'on', underlyingAsin],
+    enabled: enabled && !!underlyingAsin,
+    queryFn: () => fetchWarrants(underlyingAsin!),
+    staleTime: SLOW,
+  });
+}
+
+/** Warrants on several underlyings at once (market view); single failures are counted, not thrown. */
+export function useWarrantsOnMany(underlyingAsins: string[], enabled = true) {
+  return useQueries({
+    queries: underlyingAsins.map((asin) => ({
+      queryKey: ['warrants', 'on', asin],
+      enabled,
+      queryFn: () => fetchWarrants(asin),
+      staleTime: SLOW,
+      retry: false,
+    })),
+    combine: combineWarrants,
+  });
+}
+
+function combineWarrants(rs: UseQueryResult<Page<WarrantApiView>>[]) {
+  return {
+    pages: rs.map((r) => r.data?.content),
+    isLoading: rs.some((r) => r.isLoading),
+    failed: rs.filter((r) => r.isError).length,
+    updatedAt: rs.reduce((m, r) => Math.max(m, r.dataUpdatedAt), 0),
+  };
+}
+
+/** One warrant by its own ASIN – `?asin=` answers with the single warrant, not with a page. */
+export function useWarrant(asin: string | undefined) {
+  return useQuery({
+    queryKey: ['warrants', 'asin', asin],
+    enabled: !!asin,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryFn: () => unwrap<WarrantApiView>((api.GET as any)('/api/v2/warrants', { params: { query: { asin } } })),
+    staleTime: SLOW,
+  });
 }

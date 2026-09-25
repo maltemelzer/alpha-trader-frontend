@@ -205,14 +205,19 @@ export function IndexMembersPanel({ asin, bare = false }: { asin: string; bare?:
   const members = index.data?.members ?? [];
   return (
     <Panel title={bare ? undefined : `Mitglieder${members.length ? ` · ${members.length.toLocaleString('de-DE')}` : ''}`} className="panel--class">
-      {index.isLoading ? (
-        <DS.Skeleton variant="rows" />
-      ) : (
-        <div className="scroll class__list">
-          <DS.IndexMembers members={members} density="sm" hrefFor={(m) => `/wertpapier/${m.listing.securityIdentifier}`} />
-        </div>
-      )}
+      <IndexMembersView asin={asin} />
     </Panel>
+  );
+}
+
+/** The member list without its card (for a panel with tabs). */
+export function IndexMembersView({ asin }: { asin: string }) {
+  const index = useIndexDetails(asin);
+  if (index.isLoading) return <DS.Skeleton variant="rows" />;
+  return (
+    <div className="scroll class__list">
+      <DS.IndexMembers members={index.data?.members ?? []} density="sm" hrefFor={(m) => `/wertpapier/${m.listing.securityIdentifier}`} />
+    </div>
   );
 }
 
