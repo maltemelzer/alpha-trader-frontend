@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import {
   useBigMovers,
+  useBiggestTraded,
   useBond,
   useBondList,
   useIndexes,
@@ -10,15 +11,16 @@ import {
   useMinimalStats,
   useMostTraded,
   useSpreadSearch,
+  useTradingMatrix,
   type MarketRow,
 } from '../api/queries';
-import { Plot } from '../charts/Plot';
+import { Plot, type PlotPoint } from '../charts/Plot';
 import { short } from '../lib/format';
 import { useDebounced } from '../lib/useDebounced';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
-import { activityChart, moversChart } from './charts';
-import { applyFilter, bondRows, byYield, movers, tickerItems, toResult, tradeCounts, uniqueRows } from './derive';
+import { heatmapChart, moversChart, volumeChart } from './charts';
+import { applyFilter, bondRows, byYield, heatTiles, movers, tickerItems, toResult, TYPE_LABEL, uniqueRows, volumeRows } from './derive';
 import { ratePct } from '../lib/format';
 import type { MarketFilterValue, MarketResult, MarketResultColumn } from '../../vendor/bankiersgruen';
 import './MarketPage.css';
@@ -146,15 +148,29 @@ export function MarketPage() {
     return out;
   }, [found.data, winners.data, losers.data, mostTraded.data, source.rows]);
   const ticker = useMemo(() => tickerItems(trades.data ?? [], names), [trades.data, names]);
-  const active = useMemo(
-    () =>
-      tradeCounts(trades.data ?? [])
-        .slice(0, 8)
-        .map((r) => ({ ...r, name: names[r.asin]?.name ?? r.asin })),
-    [trades.data, names],
+
+  // Market overview: heatmap of the top 100, biggest 24 h volumes of the chosen type.
+  const matrix = useTradingMatrix();
+  const tiles = useMemo(() => heatTiles(matrix.data ?? []), [matrix.data]);
+  const biggest = useBiggestTraded(type, 10);
+  const volumes = useMemo(() => volumeRows(biggest.data?.content ?? [], 8), [biggest.data]);
+  const navigate = useNavigate();
+  const openPoint = useCallback(
+    (p: PlotPoint) => {
+      const asin = Array.isArray(p.customdata) ? p.customdata[0] : p.customdata;
+      if (typeof asin === 'string' && asin) navigate(href(asin));
+    },
+    [navigate],
+  );
+  const heatFigure = useCallback((t: Parameters<typeof heatmapChart>[0], w: number) => heatmapChart(t, w, tiles), [tiles]);
+  const moverFigure = useCallback((t: Parameters<typeof moversChart>[0], w: number) => moversChart(t, w, moverRows), [moverRows]);
+  const volumeFigure = useCallback(
+    (t: Parameters<typeof volumeChart>[0], w: number) => volumeChart(t, w, volumes, !type),
+    [volumes, type],
   );
 
-  const [chart, setChart] = useState('bewegung');
+  // Views live in the URL: ?ansicht=suche|heatmap|bewegung|live (wide: suche|heatmap), ?diagramm=umsatz.
+  const chart = params.get('diagramm') === 'umsatz' ? 'umsatz' : 'bewegung';
   const view = params.get('ansicht') ?? 'suche';
 
   const searchPanel = (
@@ -203,32 +219,61 @@ export function MarketPage() {
   const charts = (
     <DS.Card
       className="panel"
-      title={chart === 'bewegung' ? 'Bewegung' : 'Umsatz'}
+      title={chart === 'bewegung' ? 'Bewegung' : 'Umsatz 24 h'}
       action={
         <DS.SegmentedControl
           size="sm"
           aria-label="Diagramm"
           value={chart}
-          onChange={setChart}
+          onChange={(v) => setParam({ diagramm: v === 'umsatz' ? v : null })}
           options={[
             { value: 'bewegung', label: 'Kurs' },
             { value: 'umsatz', label: 'Umsatz' },
           ]}
         />
       }
-      footer={chart === 'bewegung' ? 'Aktien mit den größten Kursbewegungen.' : 'Umsatz in den letzten ~1.000 Trades.'}
+      footer={
+        chart === 'bewegung'
+          ? 'Aktien mit den größten Kursbewegungen.'
+          : `${type ? (TYPE_LABEL[type] ?? type) : 'Alle Arten'} mit dem größten Umsatz in 24 h.`
+      }
     >
       <div className="panel__fill market__chart">
         {chart === 'bewegung' ? (
           moverRows.length ? (
-            <Plot aria-label="Gewinner und Verlierer" figure={(t, w) => moversChart(t, w, moverRows)} />
+            <Plot aria-label="Gewinner und Verlierer; ein Balken öffnet das Wertpapier" figure={moverFigure} onPointClick={openPoint} />
           ) : (
             <DS.Loading rows={5} />
           )
-        ) : active.length ? (
-          <Plot aria-label="Größte Umsätze" figure={(t, w) => activityChart(t, w, active)} />
-        ) : (
+        ) : biggest.isLoading ? (
           <DS.Loading rows={5} />
+        ) : volumes.length ? (
+          <Plot aria-label="Größte Umsätze in 24 Stunden; ein Balken öffnet das Wertpapier" figure={volumeFigure} onPointClick={openPoint} />
+        ) : (
+          <DS.EmptyState compact title="Keine Umsätze">In den letzten 24 Stunden wurde hier nichts gehandelt.</DS.EmptyState>
+        )}
+      </div>
+    </DS.Card>
+  );
+
+  const heat = (
+    <DS.Card
+      className="panel market__heat"
+      title="Heatmap"
+      action={<span className="market__heat-note">Top 100 nach Umsatz 24 h</span>}
+      footer={<HeatLegend />}
+    >
+      <div className="panel__fill market__chart">
+        {matrix.error ? (
+          <DS.Banner variant="error">Heatmap nicht geladen: {matrix.error.message}</DS.Banner>
+        ) : tiles.length ? (
+          <Plot
+            aria-label="Heatmap der 100 umsatzstärksten Wertpapiere: Fläche nach Umsatz, Farbe nach Kursveränderung in 24 Stunden; eine Kachel öffnet das Wertpapier"
+            figure={heatFigure}
+            onPointClick={openPoint}
+          />
+        ) : (
+          <DS.Loading rows={8} label="Heatmap wird geladen" />
         )}
       </div>
     </DS.Card>
@@ -256,6 +301,20 @@ export function MarketPage() {
             </>
           ) : undefined
         }
+        tabs={
+          isWide ? (
+            <DS.Tabs
+              size="sm"
+              aria-label="Ansicht"
+              value={view === 'heatmap' ? 'heatmap' : 'suche'}
+              onChange={(v) => setParam({ ansicht: v === 'heatmap' ? v : null })}
+              items={[
+                { value: 'suche', label: 'Wertpapiere' },
+                { value: 'heatmap', label: 'Heatmap' },
+              ]}
+            />
+          ) : undefined
+        }
         aside={
           s && !isPhone ? (
             <DS.MarketPulse
@@ -272,7 +331,7 @@ export function MarketPage() {
       />
       {isWide ? (
         <div className="page__body market__body">
-          {searchPanel}
+          {view === 'heatmap' ? heat : searchPanel}
           <div className="page__col market__side">
             {charts}
             {live}
@@ -287,13 +346,42 @@ export function MarketPage() {
             onChange={(v) => setParam({ ansicht: v === 'suche' ? null : v })}
             options={[
               { value: 'suche', label: 'Suche' },
-              { value: 'bewegung', label: 'Bewegung' },
+              { value: 'heatmap', label: 'Heatmap' },
+              { value: 'bewegung', label: 'Charts' },
               { value: 'live', label: 'Live' },
             ]}
           />
-          {view === 'bewegung' ? charts : view === 'live' ? live : searchPanel}
+          {view === 'heatmap' ? heat : view === 'bewegung' ? charts : view === 'live' ? live : searchPanel}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Colour key of the heatmap: the same mixes as the tiles (tint + up to 42 % gain/loss), via CSS tokens. */
+function HeatLegend() {
+  const steps: [string, string][] = [
+    ['loss', '42%'],
+    ['loss', '21%'],
+    ['', ''],
+    ['gain', '21%'],
+    ['gain', '42%'],
+  ];
+  return (
+    <div className="market__legend">
+      <span>▼ −10 %</span>
+      <span className="market__legend-scale" aria-hidden="true">
+        {steps.map(([k, p], i) => (
+          <i
+            key={i}
+            style={{
+              background: k ? `color-mix(in srgb, var(--${k}) ${p}, var(--${k}-tint))` : 'var(--bg-raised)',
+            }}
+          />
+        ))}
+      </span>
+      <span>▲ +10 %</span>
+      <span className="market__legend-note">Fläche nach Umsatz</span>
     </div>
   );
 }

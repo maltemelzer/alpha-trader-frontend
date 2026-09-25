@@ -1,4 +1,4 @@
-import { alpha, changeText, clip, euro, short, ratePct, span } from './format';
+import { alpha, changeText, clip, euro, mix, short, ratePct, span } from './format';
 
 describe('span', () => {
   it('reads like the game', () => {
@@ -39,5 +39,15 @@ describe('format', () => {
   it('alpha and clip', () => {
     expect(alpha('#578ED4', 0.16)).toBe('rgba(87,142,212,0.16)');
     expect(clip('Hanse Beteiligungs AG')).toBe('Hanse Bete…');
+  });
+});
+
+describe('mix', () => {
+  it('mixes two hex colours like color-mix in srgb', () => {
+    expect(mix('#000000', '#FFFFFF', 0)).toBe('rgb(0,0,0)');
+    expect(mix('#000000', '#FFFFFF', 0.5)).toBe('rgb(128,128,128)');
+    expect(mix('#102030', '#305070', 0.42)).toBe('rgb(29,52,75)');
+    expect(mix('#000000', '#FFFFFF', 2)).toBe('rgb(255,255,255)');
+    expect(mix('red', '#FFFFFF', 0.5)).toBe('#FFFFFF');
   });
 });

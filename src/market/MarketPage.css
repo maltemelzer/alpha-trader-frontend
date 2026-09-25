@@ -8,7 +8,8 @@
 }
 
 .market__side {
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  /* the chart card gets a little more than the ticker, so ten bars still fit at 1280×720 */
+  grid-template-rows: minmax(0, 1.25fr) minmax(0, 1fr);
 }
 
 .market__filter {
@@ -27,7 +28,9 @@
 
 .market__chart {
   padding: 0;
-  min-height: 160px;
+  min-height: 120px;
+  /* the loading skeleton must not push the card (and the page) taller */
+  overflow: hidden;
 }
 
 .market .bnk-ph__aside {
@@ -44,4 +47,36 @@
 
 .market .bnk-card__action .bnk-seg {
   min-width: 150px;
+}
+
+.market__heat-note {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.market__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.market__legend-scale {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.market__legend-scale i {
+  display: block;
+  width: 22px;
+  height: 12px;
+}
+
+.market__legend-note {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  color: var(--text-muted);
 }

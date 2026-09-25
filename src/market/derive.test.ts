@@ -1,4 +1,19 @@
-import { applyFilter, bondRows, byYield, matchesSearch, movers, tickerItems, tradeCounts, typeMatches, uniqueRows } from './derive';
+import {
+  applyFilter,
+  bondRows,
+  byYield,
+  displayName,
+  heatShare,
+  heatTiles,
+  matchesSearch,
+  movers,
+  tickerItems,
+  tileArea,
+  typeMatches,
+  uniqueRows,
+  volumeRows,
+  wrapLabel,
+} from './derive';
 import type { MarketRow } from '../api/queries';
 
 const row = (asin: string, type: string, change: number, last = true): MarketRow => ({
@@ -31,21 +46,6 @@ describe('tickerItems', () => {
     expect(items.map((i) => [i.id, i.listing.name])).toEqual([
       ['2', 'STY'],
       ['1', 'X AG'],
-    ]);
-  });
-});
-
-describe('tradeCounts', () => {
-  it('counts trades and sums volume per security', () => {
-    expect(
-      tradeCounts([
-        { securityIdentifier: 'A', volume: 5 },
-        { securityIdentifier: 'B', volume: 50 },
-        { securityIdentifier: 'A', volume: 10 },
-      ]),
-    ).toEqual([
-      { asin: 'B', count: 1, volume: 50 },
-      { asin: 'A', count: 2, volume: 15 },
     ]);
   });
 });
@@ -119,5 +119,56 @@ describe('byYield', () => {
     const rows = bondRows([bond('LONG', 240, 100), bond('DAY', 24, 100), bond('SOON', 0.2, 100), bond('NOASK', 24, null)], now);
     expect(rows.find((r) => r.listing.securityIdentifier === 'DAY')!.yieldPerDay).toBeCloseTo(2, 6);
     expect(byYield(rows, now).map((r) => r.listing.securityIdentifier)).toEqual(['DAY', 'LONG', 'SOON', 'NOASK']);
+  });
+});
+
+describe('market overview', () => {
+  it('names buildings in German', () => {
+    expect(displayName('Building 1200 20/09/2026')).toBe('Gebäude 1200 (20.09.)');
+    expect(displayName('Nexus Realty Holding ')).toBe('Nexus Realty Holding');
+  });
+
+  it('wraps tile labels into two lines', () => {
+    expect(wrapLabel('Prime Reserve Bank', 12)).toBe('Prime<br>Reserve Bank');
+    expect(wrapLabel('Iftar', 12)).toBe('Iftar');
+    expect(wrapLabel('International Share and Bonds Holder AG', 14)).toBe('International<br>Share and Bon…');
+    expect(wrapLabel('GYPHzZqDFpRToeCwQZtn Inc.', 12)).toBe('GYPHzZqDFpR…<br>Inc.');
+  });
+
+  it('builds heat tiles with the 24 h change, largest volume first', () => {
+    const tiles = heatTiles([
+      { securityIdentifier: 'STA', name: 'A', lastPrice: 110, previousPrice: 100, volume24h: 5 },
+      { securityIdentifier: 'STB', name: 'B', lastPrice: 2, previousPrice: 0, volume24h: 50 },
+      { securityIdentifier: 'STC', name: 'C', lastPrice: 1, previousPrice: 1, volume24h: 0 },
+    ]);
+    expect(tiles.map((t) => t.asin)).toEqual(['STB', 'STA']);
+    expect(tiles[0].change).toBeNull();
+    expect(tiles[1].change).toBeCloseTo(10);
+  });
+
+  it('keeps the order of volumes but compresses the area', () => {
+    expect(tileArea(10_000)).toBe(10);
+    expect(tileArea(1e12) / tileArea(1e4)).toBe(100);
+    expect(tileArea(-1)).toBe(0);
+  });
+
+  it('mixes at most 42 % of gain/loss, nothing for unchanged', () => {
+    expect(heatShare(null)).toBe(0);
+    expect(heatShare(0.001)).toBe(0);
+    expect(heatShare(5)).toBeCloseTo(0.21);
+    expect(heatShare(-5)).toBeCloseTo(0.21);
+    expect(heatShare(300)).toBe(0.42);
+  });
+
+  it('turns biggest traded securities into bar rows', () => {
+    const rows = volumeRows([
+      { listing: { securityIdentifier: 'STA', name: 'A', type: 'STOCK' }, volume: 10 },
+      { listing: { securityIdentifier: 'BDB', name: 'Building 500 01/10/2026', type: 'BUILDING' }, volume: 30 },
+      { listing: { securityIdentifier: 'STZ', name: 'Z', type: 'STOCK' }, volume: 0 },
+    ]);
+    expect(rows).toEqual([
+      { asin: 'BDB', name: 'Gebäude 500 (01.10.)', type: 'BUILDING', volume: 30 },
+      { asin: 'STA', name: 'A', type: 'STOCK', volume: 10 },
+    ]);
   });
 });
