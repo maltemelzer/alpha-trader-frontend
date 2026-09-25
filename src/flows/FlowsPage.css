@@ -1,0 +1,382 @@
+.fl__body {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.fl__body--konto {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.fl__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.fl__grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  gap: var(--space-4);
+}
+
+/* Room for the grouping switch to the right of the tab list */
+.fl__tabs {
+  position: relative;
+}
+
+.fl__tabaction {
+  position: absolute;
+  top: 2px;
+  right: var(--space-4);
+}
+
+.fl__tabs .bnk-tabs__list {
+  padding-right: 200px;
+}
+
+.fl__pane {
+  height: 100%;
+  box-sizing: border-box;
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+}
+
+.fl__pane > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.fl__list {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.fl__stack {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fl__stack > * {
+  flex: none;
+}
+
+.fl__stack > .fl__chart {
+  flex: 1;
+  min-height: 160px;
+  position: relative;
+}
+
+.fl__split {
+  height: 64px;
+  position: relative;
+}
+
+.fl__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 17px;
+  list-style: none;
+}
+
+.fl__none {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.fl__h {
+  margin: 0 0 var(--space-1);
+  font: 600 12px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.fl__legend {
+  display: flex;
+  justify-content: space-between;
+  font: 600 11px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.fl__legend--net {
+  justify-content: flex-start;
+  gap: var(--space-4);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.fl-dot::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.fl-dot--buy::before {
+  background: var(--chart-2);
+}
+
+.fl-dot--sell::before {
+  background: var(--chart-3);
+}
+
+.fl__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.fl-keys {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.fl-key::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.fl-key--company::before {
+  background: var(--chart-1);
+}
+
+.fl-key--player::before {
+  background: var(--chart-2);
+}
+
+.fl-key--fund::before {
+  background: var(--chart-4);
+}
+
+.fl-key--rest::before {
+  background: var(--line-strong);
+}
+
+/* Filter bar */
+.fl-konto {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  font-size: 14px;
+}
+
+.fl-konto__label {
+  color: var(--text-secondary);
+}
+
+.fl-konto__name {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.fl-konto a {
+  color: var(--text-primary);
+}
+
+.fl-konto .bnk-btn {
+  margin-left: auto;
+}
+
+/* Account names as filter buttons */
+.fl-acc {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.fl-acc:hover,
+.fl-acc:focus-visible {
+  text-decoration-color: var(--brass);
+}
+
+.fl-acc--active {
+  font-weight: 600;
+}
+
+.fl-sec {
+  color: var(--text-primary);
+}
+
+/* Pairs */
+.fl-pairs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.fl-pair__names {
+  display: grid;
+  grid-template-columns: minmax(0, auto) auto minmax(0, auto);
+  justify-content: start;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 14px;
+}
+
+.fl-pair__sep {
+  color: var(--text-muted);
+}
+
+.fl-pair__bar {
+  display: flex;
+  height: 6px;
+  margin: var(--space-1) 0;
+  background: var(--line);
+}
+
+.fl-pair__ab {
+  background: var(--text-secondary);
+}
+
+.fl-pair__ba {
+  background: var(--text-disabled);
+  border-left: 2px solid var(--bg-card);
+}
+
+.fl-pair__meta,
+.fl-rows__meta {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.fl .num {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+/* Unusual activity */
+.fl-unusual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fl-unusual section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fl-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 14px;
+}
+
+.fl-rows li > div:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl .bnk-statgrp .bnk-stat__hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-height: 800px) {
+  .fl__split {
+    height: 52px;
+  }
+}
+
+/* Chat sidebar docked: the grid gets narrower (see CLAUDE.md, shifted widths) */
+@media (max-width: 1239.98px) {
+  .fl__grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
+  }
+}
+
+@media (max-width: 719.98px) {
+  .fl__body {
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  .fl__body:has(> .fl-konto) {
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+  }
+  .fl__controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    align-items: center;
+  }
+  .fl__pad {
+    padding: var(--space-3);
+  }
+  /* Six views: narrower tabs so all fit at 360–390 px */
+  .fl--phone .bnk-tabs__tab {
+    padding: 0 var(--space-2);
+  }
+  .fl-acc {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .fl-konto .bnk-btn {
+    margin-left: 0;
+  }
+  /* Links inside meta lines: 44 px tap height without moving the line */
+  .fl-sec {
+    display: inline-block;
+    padding: 14px 0;
+    margin: -14px 0;
+  }
+  .fl-konto a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
