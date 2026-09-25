@@ -56,7 +56,8 @@ export function OrganisationPage() {
   const summaryView = portfolio.data ? (
     <DS.PortfolioSummary portfolio={portfolio.data as PortfolioView} label="Buchwert" as="p" />
   ) : (
-    <DS.Loading rows={2} />
+    // Same height as the summary, so the cards below do not jump when it arrives.
+    <DS.Skeleton variant="block" height={225} />
   );
 
   const tabs = {

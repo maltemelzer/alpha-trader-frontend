@@ -44,7 +44,7 @@
 
 .hs__controls > .bnk-seg {
   flex: 0 0 auto;
-  min-width: 320px;
+  min-width: 360px;
 }
 
 @media (max-width: 719.98px) {

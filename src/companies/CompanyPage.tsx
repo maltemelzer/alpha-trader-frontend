@@ -5,10 +5,12 @@ import {
   useCompanyAchievements,
   useClaimCompanyAchievements,
   useCompanyByAsin,
+  useMainInterestRate,
   useCompanyHistory,
   useCompanyNews,
   useCompanyPolls,
   useUnclaimedCompanyAchievements,
+  type CompanyProfile,
 } from '../api/queries';
 import { Plot } from '../charts/Plot';
 import { useInternalLinks } from '../lib/useInternalLinks';
@@ -17,6 +19,7 @@ import { toPost } from '../news/derive';
 import { achievementItems } from '../players/derive';
 import { developmentChart } from './charts';
 import { ManagePanel } from './ManagePanel';
+import { reserveIncome } from '../centralbank/derive';
 import './CompanyPage.css';
 
 /**
@@ -102,6 +105,15 @@ export function CompanyPage() {
         </div>
       ),
     },
+    ...(caps?.bank
+      ? [
+          {
+            value: 'bank',
+            label: 'Bank',
+            content: <BankFacts caps={caps} isCeo={isCeo} asin={asin} />,
+          },
+        ]
+      : []),
     {
       value: 'erfolge',
       label: 'Erfolge',
@@ -149,7 +161,7 @@ export function CompanyPage() {
                   CEO <a href={`/spieler/${encodeURIComponent(c.ceo.username)}`}>{c.ceo.username}</a>
                 </span>,
               ]
-            : ['Kein CEO']),
+            : [c ? 'Kein CEO' : '\u00a0']),
           ...(c?.ceoEmploymentAgreement?.dailyWage != null ? [`Gehalt ${DS.format.money(c.ceoEmploymentAgreement.dailyWage, '€', 2, 'auto')} je Tag`] : []),
         ]}
         tags={[
@@ -163,7 +175,7 @@ export function CompanyPage() {
           </DS.Button>
         }
         stats={[
-          { label: 'Kurs', value: c?.lastPrice ? c.lastPrice.value : '–', sub: c?.marketCap ? `Marktkap. ${DS.format.money(c.marketCap, '€', 2, true)}` : undefined },
+          { label: 'Kurs', value: c?.lastPrice ? c.lastPrice.value : '–', sub: c?.marketCap ? `Marktkap. ${DS.format.money(c.marketCap, '€', 2, true)}` : '\u00a0' },
           { label: 'Buchwert', value: caps?.bookValue ?? '–', compact: true },
           { label: 'Net Cash', value: caps?.netCash ?? '–', compact: true },
           { label: 'Bargeld', value: c?.bankAccount?.cash ?? '–', compact: true },
@@ -174,6 +186,49 @@ export function CompanyPage() {
           <DS.Tabs size="sm" aria-label="Unternehmen" items={items} value={tab} onChange={(v) => setParams({ ansicht: v }, { replace: true })} />
         </div>
       </DS.Card>
+    </div>
+  );
+}
+
+/**
+ * A bank at a glance, for everyone: reserves at the central bank, the interest they earn per day
+ * at the reserve rate, and how much of its credit line (10 % of the reserves, via system bonds) it
+ * uses. The CEO manages reserves and boost under „Führen“.
+ */
+function BankFacts({ caps, isCeo, asin }: { caps: NonNullable<CompanyProfile['companyCapabilities']>; isCeo: boolean; asin: string }) {
+  const main = useMainInterestRate();
+  const rate = main.data?.reserveInterestRate;
+  const income = reserveIncome(caps.reserves, rate);
+  const max = caps.maxCentralBankLoans ?? 0;
+  const taken = caps.takenCentralBankLoans ?? 0;
+  return (
+    <div className="company__pad company__bank">
+      <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Bank">
+        <DS.StatTile label="Zentralbankeinlage" value={caps.reserves ?? 0} compact hint="Bargeld bei der Zentralbank" />
+        <DS.StatTile
+          label="Zinsertrag pro Tag"
+          value={income ?? '–'}
+          compact
+          hint={rate != null ? `Einlagezins ${rate.toLocaleString('de-DE', { minimumFractionDigits: 2 })} %, ohne Boost` : 'Einlagezins wird geladen'}
+        />
+        <DS.StatTile label="Kreditrahmen" value={max} compact hint="10 % der Einlage" />
+      </DS.StatGroup>
+      <DS.ProgressBar
+        size="sm"
+        variant="neutral"
+        label="Kreditrahmen genutzt"
+        value={max ? (taken / max) * 100 : 0}
+        valueText={`${DS.format.money(taken, '€', 2, true)} von ${DS.format.money(max, '€', 2, true)}`}
+        hint="Zentralbankkredit über Systemanleihen, Zins Leitzins + 1 %"
+      />
+      <p className="company__note">
+        {isCeo ? (
+          <>
+            Einlage erhöhen und Zins-Boost unter <a href={`/unternehmen/${asin}?ansicht=fuehren&aktion=bank`}>Führen → Bank</a>. {' '}
+          </>
+        ) : null}
+        Alle Banken, Leitzins und Zinstender: <a href="/zentralbank">Zentralbank</a>.
+      </p>
     </div>
   );
 }

@@ -8,7 +8,7 @@ describe('translate', () => {
         substitutions: ['1079380.08', '54', 'AlphaCoins', 'ACALPHCOIN'],
         filledString: 'You can realize 1079380.08 …',
       }),
-    ).toBe('Du kannst 1,08 Mio. € Gewinn mitnehmen, wenn du 54 Stück AlphaCoins (ACALPHCOIN) verkaufst.');
+    ).toBe('Du kannst 1,08 Mio. € erlösen, wenn du 54 Stück AlphaCoins (ACALPHCOIN) verkaufst.');
     expect(translate({ message: 'You can transfer # AlphaCoins to your private portfolio', substitutions: ['1234.5'] })).toBe(
       'Du kannst 1.234,5 AlphaCoins in dein Privatportfolio übertragen.',
     );

@@ -1,10 +1,12 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { DS } from '../ds';
+import { useParamState } from '../lib/useParamState';
 import { api, ApiError, unwrap } from '../api/client';
 import {
   useDailyHistory,
+  useIndexDetails,
   useListingProfile,
   useMe,
   useMyCompanies,
@@ -18,37 +20,30 @@ import { toSpread, type ListingProfile, type OrderCheck } from '../api/types';
 import { Plot } from '../charts/Plot';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
 import { useInternalLinks } from '../lib/useInternalLinks';
-import { change24h, depth, depthNear, holderSlices, recentPrices, window_ } from './derive';
+import { useTick } from '../lib/useTick';
+import { afterRebase, availableAt, change24h, defaultShares, depth, depthNear, holderSlices, recentPrices, window_ } from './derive';
+import { assetClass, isTradable, type AssetClass } from './assetClass';
+import {
+  BondPanel,
+  BuildingPanel,
+  EtfTrackingPanel,
+  EtfUnitsPanel,
+  IndexMembersPanel,
+  IndexWeightsPanel,
+  useBondOf,
+} from './ClassPanels';
 import { candles, depthChart, holdersBars, priceLine, tradesChart } from './charts';
+import { Panel } from './Panel';
 import './SecurityPage.css';
 
 type Side = 'BUY' | 'SELL';
-type Pick = { side: Side; price?: number; type: 'MARKET' | 'LIMIT' };
+/** A click on buy/sell: side, price and the shares available at that price right now. */
+type Pick = { side: Side; price?: number; type: 'MARKET' | 'LIMIT'; available?: number };
 type Result = { ok: boolean; text: string };
 type OrderParams = Parameters<NonNullable<React.ComponentProps<typeof DS.OrderTicket>['onSubmit']>>[0];
 
 const DAY = 86_400_000;
 
-/** A view choice kept in the URL (?key=value), so views can be linked and reloaded. */
-function useParamState(key: string, fallback: string, allowed: { value: string }[]) {
-  const [params, setParams] = useSearchParams();
-  const raw = params.get(key);
-  const value = allowed.some((o) => o.value === raw) ? raw! : fallback;
-  const set = useCallback(
-    (v: string) =>
-      setParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          if (v === fallback) next.delete(key);
-          else next.set(key, v);
-          return next;
-        },
-        { replace: true },
-      ),
-    [key, fallback, setParams],
-  );
-  return [value, set] as const;
-}
 const RANGES = [
   { value: '1T', label: '1T' },
   { value: '14T', label: '14T' },
@@ -56,7 +51,10 @@ const RANGES = [
 ];
 
 /**
- * Securities page – one screen, no page scroll.
+ * Securities page – one screen, no page scroll. The frame is the same for every asset class; facts,
+ * the analysis panel and the actions follow the class (see assetClass.ts and ClassPanels.tsx):
+ * stock/coin → holders · bond/repo → yield · index → weights + members, no trading · ETF → tracking +
+ * subscribe/redeem · building → price comparison.
  * Desktop (≥ 1100 px): header · chart · [order book | depth | trades] + holders · order ticket on the right.
  * Tablet: same without the ticket column (ticket opens in a Sheet).
  * Phone: top bar · header · one panel chosen by a segmented control · TradeBar + Sheet.
@@ -98,21 +96,27 @@ export function SecurityPage() {
   }
 
   const p = profile.data;
+  const cls = assetClass(p.type);
+  const tradable = isTradable(cls);
   const listing = { securityIdentifier: p.securityIdentifier, name: p.name, type: p.type, startDate: p.startDate };
   const sp = toSpread(spread.data ?? p.currentSpread);
   const ch = change24h(p.prices14d);
 
   const header = (
-    <DS.SecurityHeader
+    <ClassHeader
+      key={asin}
+      profile={p}
+      cls={cls}
+      compact={isPhone}
+      sideFacts={isWide}
       listing={listing}
       spread={sp}
       company={p.company ? { ...p.company, logoUrl: p.company.logoUrl ?? undefined } : null}
       change={ch?.pct}
       changeAmount={ch?.abs}
       changeSuffix="24 h"
-      facts={facts(p, isPhone)}
-      onBuy={isPhone ? undefined : (price) => openOrder({ side: 'BUY', price, type: 'MARKET' })}
-      onSell={isPhone ? undefined : (price) => openOrder({ side: 'SELL', price, type: 'MARKET' })}
+      onBuy={isPhone || !tradable ? undefined : (price) => openOrder({ side: 'BUY', price, type: 'MARKET', available: spread.data?.askSize })}
+      onSell={isPhone || !tradable ? undefined : (price) => openOrder({ side: 'SELL', price, type: 'MARKET', available: spread.data?.bidSize })}
       actions={
         p.company && !isPhone ? (
           <DS.Button variant="ghost" size="sm" onClick={() => navigate(`/unternehmen/${asin}`)}>
@@ -125,7 +129,7 @@ export function SecurityPage() {
 
   const ticket = (
     <Ticket
-      key={pick ? `${pick.side}${pick.price}${pick.type}` : 'none'}
+      key={pick ? `${pick.side}${pick.price}${pick.type}${pick.available}` : 'none'}
       profile={p}
       listing={listing}
       spread={sp}
@@ -137,6 +141,26 @@ export function SecurityPage() {
       }}
     />
   );
+
+  const side =
+    cls === 'index' ? (
+      <IndexSide asin={asin} />
+    ) : cls === 'etf' ? (
+      <DS.Tabs
+        size="sm"
+        aria-label="Handeln"
+        items={[
+          { value: 'handeln', label: 'Börse', content: ticket },
+          {
+            value: 'anteile',
+            label: 'Zeichnen / Zurückgeben',
+            content: <EtfUnitsPanel profile={p} onDone={(ok, text) => setToast({ ok, text })} />,
+          },
+        ]}
+      />
+    ) : (
+      ticket
+    );
 
   const sheetEl = (
     <DS.Sheet
@@ -164,17 +188,19 @@ export function SecurityPage() {
 
   if (isPhone) {
     return (
-      <div className="sec sec--phone" onClick={onLinkClick}>
+      <div className={`sec sec--phone sec--${cls}`} onClick={onLinkClick}>
         <DS.MobileTopBar title={p.name} eyebrow={p.securityIdentifier} onBack={() => navigate(-1)} backText="Zurück" />
         <div className="sec__phone-scroll">
           {header}
-          <PhonePanels asin={asin} profile={p} onPick={openOrder} />
+          <PhonePanels asin={asin} profile={p} cls={cls} onPick={openOrder} />
         </div>
-        {sp && (
+        {sp && tradable && (
           <DS.TradeBar
             listing={listing}
             spread={sp}
-            onTrade={(t) => openOrder({ side: t.action, price: t.price, type: 'MARKET' })}
+            onTrade={(t) =>
+              openOrder({ side: t.action, price: t.price, type: 'MARKET', available: t.action === 'BUY' ? spread.data?.askSize : spread.data?.bidSize })
+            }
           />
         )}
         {sheetEl}
@@ -183,20 +209,22 @@ export function SecurityPage() {
     );
   }
 
+  const yieldFirst = cls === 'bond' || cls === 'repo';
   return (
-    <div className={`sec${isWide ? ' sec--wide' : ''}`} onClick={onLinkClick}>
+    <div className={`sec sec--${cls}${isWide ? ' sec--wide' : ''}`} onClick={onLinkClick}>
       <div className="sec__head">{header}</div>
       <div className="sec__body">
         <div className="sec__main">
-          <PricePanel asin={asin} profile={p} />
+          {/* Bonds and repos: the price hardly moves around 100 %, the yield is the story – it takes the wide slot. */}
+          {yieldFirst ? <BondPanel profile={p} /> : <PricePanel asin={asin} profile={p} />}
           <div className="sec__lower">
-            <MarketPanel asin={asin} profile={p} onPick={openOrder} />
-            <HoldersPanel asin={asin} />
+            {cls === 'index' ? <IndexWeightsPanel asin={asin} /> : <MarketPanel asin={asin} profile={p} onPick={openOrder} />}
+            {yieldFirst ? <PricePanel asin={asin} profile={p} /> : <ClassPanel asin={asin} profile={p} cls={cls} />}
           </div>
         </div>
-        {isWide && <aside className="sec__ticket">{ticket}</aside>}
+        {isWide && <aside className="sec__ticket">{side}</aside>}
       </div>
-      {!isWide && sheetEl}
+      {!isWide && tradable && sheetEl}
       {toastEl}
     </div>
   );
@@ -204,33 +232,133 @@ export function SecurityPage() {
 
 // ---------- header facts ----------
 
-function facts(p: ListingProfile, compact: boolean) {
+type Facts = NonNullable<React.ComponentProps<typeof DS.SecurityHeader>['facts']>;
+const pct = (n: number, d = 2) => `${n.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d })} %`;
+const when = (ms: number) =>
+  new Date(ms).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+/** Key figures in the header, chosen by asset class; at most five, fewer on the phone. */
+function useClassFacts(p: ListingProfile, cls: AssetClass, compact: boolean, sideFacts: boolean): Facts {
+  const bondInfo = useBondOf(p);
+  const index = useIndexDetails(p.securityIdentifier, cls === 'index');
+  const f: Facts = [];
   const c = p.company;
-  const f: React.ComponentProps<typeof DS.SecurityHeader>['facts'] = [];
-  if (p.marketCap) f.push({ label: 'Marktkap.', value: p.marketCap });
-  if (c?.companyCapabilities?.bookValuePerShare != null)
-    f.push({ label: 'Buchwert / Aktie', value: c.companyCapabilities.bookValuePerShare, compact: false });
-  if (!compact && c?.companyCapabilities?.netCash != null) f.push({ label: 'Net Cash', value: c.companyCapabilities.netCash });
-  if (!compact && c?.ceo)
-    f.push({
-      label: 'CEO',
-      value: <a href={`/spieler/${encodeURIComponent(c.ceo.username)}`}>{c.ceo.username}</a>,
-      sub: c.ceoEmploymentAgreement?.dailyWage ? `${DS.format.compact(c.ceoEmploymentAgreement.dailyWage, 1e6) ?? ''} € am Tag` : undefined,
-    });
-  if (!compact && c?.marketMakerPolicy)
-    f.push({ label: 'Market Maker', value: c.marketMakerPolicy === 'OPEN' ? 'offen' : 'geschlossen' });
+  switch (cls) {
+    case 'bond':
+    case 'repo': {
+      const b = bondInfo.bond;
+      if (b) {
+        f.push({ label: 'Zins', value: pct(b.interestRate) });
+        f.push({ label: 'Fällig', value: when(b.maturityDate) });
+        if (b.issuer) f.push({ label: 'Emittent', value: b.issuer.securityIdentifier ? <a href={`/unternehmen/${b.issuer.securityIdentifier}`}>{b.issuer.name}</a> : b.issuer.name });
+        else if (p.type.startsWith('SYSTEM')) f.push({ label: 'Emittent', value: 'Zentralbank' });
+        if (!compact) f.push({ label: 'Volumen', value: b.volume });
+        if (!compact) f.push({ label: 'Nennwert', value: b.faceValue, compact: false });
+      }
+      break;
+    }
+    case 'index': {
+      // Wide screens show IndexFacts in the right column; the header repeats nothing.
+      const i = sideFacts ? undefined : index.data;
+      if (i) {
+        f.push({ label: 'Mitglieder', value: (i.members?.length ?? i.membersCount ?? 0).toLocaleString('de-DE') });
+        if (i.owner?.username) f.push({ label: 'Betreiber', value: <a href={`/spieler/${encodeURIComponent(i.owner.username)}`}>{i.owner.username}</a> });
+        if (!compact && i.baseValue) f.push({ label: 'Basiswert', value: i.baseValue.toLocaleString('de-DE'), compact: false });
+        if (!compact && i.nextChainingDate) f.push({ label: 'Nächste Verkettung', value: when(i.nextChainingDate) });
+      }
+      break;
+    }
+    case 'etf':
+      if (p.outstandingShares != null) f.push({ label: 'Anteile im Umlauf', value: p.outstandingShares.toLocaleString('de-DE') });
+      if (p.lastPrice && p.outstandingShares) f.push({ label: 'Fondsvolumen', value: p.lastPrice.value * p.outstandingShares });
+      break;
+    case 'coin':
+      if (p.marketCap) f.push({ label: 'Marktkap.', value: p.marketCap });
+      if (p.outstandingShares) f.push({ label: 'Im Umlauf', value: DS.format.compact(p.outstandingShares, 1e6) ?? String(p.outstandingShares) });
+      if (!compact) f.push({ label: 'Schürfen', value: <a href="/miner">Miner</a> });
+      break;
+    case 'building': {
+      const size = p.building?.size;
+      if (size) f.push({ label: 'Fläche', value: `${size.toLocaleString('de-DE')} m²` });
+      if (size && p.lastPrice) f.push({ label: 'Preis je m²', value: p.lastPrice.value / size });
+      if (!compact && p.building?.type) f.push({ label: 'Art', value: p.building.type.startsWith('OFFICE') ? 'Büro' : p.building.type });
+      break;
+    }
+    default:
+      if (p.marketCap) f.push({ label: 'Marktkap.', value: p.marketCap });
+      if (c?.companyCapabilities?.bookValuePerShare != null)
+        f.push({ label: 'Buchwert / Aktie', value: c.companyCapabilities.bookValuePerShare, compact: false });
+      if (!compact && c?.companyCapabilities?.netCash != null) f.push({ label: 'Net Cash', value: c.companyCapabilities.netCash });
+      if (!compact && c?.ceo)
+        f.push({
+          label: 'CEO',
+          value: <a href={`/spieler/${encodeURIComponent(c.ceo.username)}`}>{c.ceo.username}</a>,
+          sub: c.ceoEmploymentAgreement?.dailyWage ? `${DS.format.compact(c.ceoEmploymentAgreement.dailyWage, 1e6) ?? ''} € am Tag` : undefined,
+        });
+      if (!compact && c?.marketMakerPolicy)
+        f.push({ label: 'Market Maker', value: c.marketMakerPolicy === 'OPEN' ? 'offen' : 'geschlossen' });
+  }
   return f.slice(0, 5);
+}
+
+/** SecurityHeader with the class-specific facts (the facts need queries, hence a component). */
+function ClassHeader({
+  profile,
+  cls,
+  compact,
+  sideFacts,
+  ...rest
+}: Omit<React.ComponentProps<typeof DS.SecurityHeader>, 'facts'> & {
+  profile: ListingProfile;
+  cls: AssetClass;
+  compact: boolean;
+  sideFacts: boolean;
+}) {
+  // The last price lights up when a trade moves it (keyed by ASIN, so a new page does not tick).
+  const lp = rest.spread?.lastPrice;
+  const tick = useTick(typeof lp === 'number' ? lp : lp?.value);
+  return (
+    <DS.SecurityHeader
+      {...rest}
+      className={[rest.className, tick && `tick-price--${tick}`].filter(Boolean).join(' ') || undefined}
+      facts={useClassFacts(profile, cls, compact, sideFacts)}
+    />
+  );
+}
+
+/** The panel next to the market panel: what matters most for judging this asset class. */
+function ClassPanel({ asin, profile, cls }: { asin: string; profile: ListingProfile; cls: AssetClass }) {
+  switch (cls) {
+    case 'bond':
+    case 'repo':
+      return <BondPanel profile={profile} />;
+    case 'index':
+      return <IndexMembersPanel asin={asin} />;
+    case 'etf':
+      return <EtfTrackingPanel profile={profile} />;
+    case 'building':
+      return <BuildingPanel profile={profile} />;
+    default:
+      return <HoldersPanel asin={asin} />;
+  }
+}
+
+/** Right column of an index: facts instead of an order ticket – an index is calculated, not traded. */
+function IndexSide({ asin }: { asin: string }) {
+  const index = useIndexDetails(asin);
+  if (!index.data) return <DS.Skeleton variant="block" />;
+  return (
+    <div className="sec__side">
+      <DS.IndexFacts index={index.data} />
+      <p className="class__note">
+        Ein Index wird aus den Kursen seiner Mitglieder berechnet und nicht gehandelt. Handelbar sind ETFs und Optionsscheine darauf.
+      </p>
+    </div>
+  );
 }
 
 // ---------- panels ----------
 
-function Panel({ title, action, children, className = '' }: { title?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
-  return (
-    <DS.Card title={title} titleAs="h2" action={action} flush className={`panel ${className}`}>
-      <div className="panel__fill">{children}</div>
-    </DS.Card>
-  );
-}
 
 function PricePanel({ asin, profile, bare = false }: { asin: string; profile: ListingProfile; bare?: boolean }) {
   const [range, setRange] = useParamState('zeitraum', '14T', RANGES);
@@ -239,20 +367,26 @@ function PricePanel({ asin, profile, bare = false }: { asin: string; profile: Li
 
   // prices14d holds the last ~500 trades – for busy stocks only a few hours. 14 days therefore
   // combine daily closes with the recent trades.
-  const points = useMemo(
-    () => (range === '1T' ? window_(profile.prices14d, DAY) : recentPrices(history.data, profile.prices14d, 14 * DAY)),
-    [profile.prices14d, history.data, range],
+  // Indexes and ETFs start at a base value and are chained later: cut everything before such a jump.
+  const rebases = profile.type === 'INDEX' || profile.type === 'ETF';
+  const points = useMemo(() => {
+    const pts = range === '1T' ? window_(profile.prices14d, DAY) : recentPrices(history.data, profile.prices14d, 14 * DAY);
+    return rebases ? afterRebase(pts, (x) => x.value) : pts;
+  }, [profile.prices14d, history.data, range, rebases]);
+  const days = useMemo(
+    () => (rebases ? afterRebase(history.data ?? [], (d) => d.closePrice ?? 0) : (history.data ?? [])),
+    [history.data, rebases],
   );
   const rangeChange =
     points.length > 1 && points[0].value ? (points[points.length - 1].value / points[0].value - 1) * 100 : undefined;
 
   const figure = useCallback(
     (t: Parameters<typeof priceLine>[0], w: number) =>
-      range === 'K' ? candles(t, w, history.data ?? [], book, profile.type) : priceLine(t, w, points, book, profile.type),
-    [range, history.data, points, book, profile.type],
+      range === 'K' ? candles(t, w, days, book, profile.type) : priceLine(t, w, points, book, profile.type),
+    [range, days, points, book, profile.type],
   );
 
-  const empty = range === 'K' ? !history.data?.length : points.length < 2;
+  const empty = range === 'K' ? !days.length : points.length < 2;
   return (
     <Panel
       title={bare ? undefined : 'Kursverlauf'}
@@ -323,7 +457,8 @@ function BookView({ asin, profile, onPick }: { asin: string; profile: ListingPro
         orderbook={ob.data}
         lastPrice={profile.lastPrice?.value}
         depth={8}
-        onSelect={(s) => onPick({ side: s.side, price: s.price, type: 'LIMIT' })}
+        // A limit at this row also takes every better row: the size is the running total up to it.
+        onSelect={(s) => onPick({ side: s.side, price: s.price, type: 'LIMIT', available: availableAt(ob.data, s.side, s.price) || s.numberOfShares })}
       />
     </div>
   );
@@ -379,23 +514,47 @@ function HoldersView({ asin }: { asin: string }) {
   return <Plot aria-label="Größte Anteilseigner in Prozent" figure={figure} />;
 }
 
-const PHONE_VIEWS = [
-  { value: 'price', label: 'Kurs' },
-  { value: 'book', label: 'Orderbuch' },
-  { value: 'trades', label: 'Trades' },
-  { value: 'holders', label: 'Eigner' },
-];
+/** Phone: one panel at a time; the class decides which. */
+function phoneViews(cls: AssetClass) {
+  const price = { value: 'price', label: 'Kurs' };
+  switch (cls) {
+    case 'index':
+      return [price, { value: 'weights', label: 'Gewichtung' }, { value: 'members', label: 'Mitglieder' }];
+    case 'bond':
+    case 'repo':
+      return [{ value: 'yield', label: 'Rendite' }, price, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }];
+    case 'etf':
+      return [price, { value: 'tracking', label: 'vs. Index' }, { value: 'book', label: 'Orderbuch' }, { value: 'units', label: 'Zeichnen' }];
+    case 'building':
+      return [price, { value: 'compare', label: 'Vergleich' }, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }];
+    default:
+      return [price, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }, { value: 'holders', label: 'Eigner' }];
+  }
+}
 
-function PhonePanels({ asin, profile, onPick }: { asin: string; profile: ListingProfile; onPick: (p: Pick) => void }) {
-  const [view, setView] = useParamState('ansicht', 'price', PHONE_VIEWS);
+function PhonePanels({ asin, profile, cls, onPick }: { asin: string; profile: ListingProfile; cls: AssetClass; onPick: (p: Pick) => void }) {
+  const views = phoneViews(cls);
+  const [view, setView] = useParamState('ansicht', views[0].value, views);
+  const [note, setNote] = useState<Result | null>(null);
   return (
     <div className="sec__phone-panels">
-      <DS.SegmentedControl aria-label="Ansicht" size="sm" options={PHONE_VIEWS} value={view} onChange={setView} />
+      <DS.SegmentedControl aria-label="Ansicht" size="sm" options={views} value={view} onChange={setView} />
       <div className="sec__phone-panel">
         {view === 'price' && <PricePanel asin={asin} profile={profile} bare />}
         {view === 'book' && <BookView asin={asin} profile={profile} onPick={onPick} />}
         {view === 'trades' && <TradesView asin={asin} type={profile.type} />}
         {view === 'holders' && <HoldersView asin={asin} />}
+        {view === 'yield' && <BondPanel profile={profile} bare />}
+        {view === 'weights' && <IndexWeightsPanel asin={asin} bare />}
+        {view === 'members' && <IndexMembersPanel asin={asin} bare />}
+        {view === 'tracking' && <EtfTrackingPanel profile={profile} bare />}
+        {view === 'compare' && <BuildingPanel profile={profile} bare />}
+        {view === 'units' && (
+          <div>
+            <EtfUnitsPanel profile={profile} onDone={(ok, text) => setNote({ ok, text })} />
+            {note && <DS.Banner variant={note.ok ? 'info' : 'error'}>{note.text}</DS.Banner>}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -434,6 +593,10 @@ function Ticket({
   const privateSelected = !accountId || accountId === portfolio.data?.securitiesAccountId;
   const pos = privateSelected
     ? portfolio.data?.positions.find((x) => x.securityIdentifier === profile.securityIdentifier)
+    : undefined;
+  const account = accounts.find((a) => a.id === (accountId ?? accounts[0]?.id));
+  const shares = pick
+    ? defaultShares(pick.available, pick.side, pick.price, account?.cash, pos ? pos.numberOfShares - pos.committedShares : undefined, profile.bond?.faceValue)
     : undefined;
 
   const onCheck = async (params: OrderParams) => {
@@ -494,6 +657,7 @@ function Ticket({
       defaultAction={pick?.side ?? 'BUY'}
       defaultType={pick?.type ?? 'MARKET'}
       defaultPrice={pick?.type === 'LIMIT' ? pick.price : undefined}
+      defaultShares={shares}
       onCheck={onCheck}
       onSubmit={onSubmit}
       loading={sending}

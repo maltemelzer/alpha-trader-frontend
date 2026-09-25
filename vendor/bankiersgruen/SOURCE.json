@@ -1,13 +1,13 @@
 {
   "artifact": "https://claude.ai/artifact/JTZ2zQxkHrv2m5uZHdqq9C",
-  "version": "1790281274-d2c3",
-  "syncedAt": "2026-09-24T20:21:34.513Z",
+  "version": "1790328655-d43f",
+  "syncedAt": "2026-09-25T09:31:09.038Z",
   "files": {
-    "bundle.js": "8fbca0c7ecff0b26fdb84951a9731900f832469f431fcbe78e3508c69c1dc4e4",
-    "bundle.css": "ef3e4633046f18463b1c39b27787560a08b9fa417d0af6bc352749f13498521a",
-    "index.d.ts": "8993d24e76d2b2ea53e93c2c3fec336720e6ad4670493dc08efe273cdf6ead32",
+    "bundle.js": "8ab56a78d62bcd5fc175f292c100e984f86077bfe6a93618a1255567c6086969",
+    "bundle.css": "e3da9a05cfa5fc306bba33d2522c1e41c3200177fd361c650ae88fb795d9fe76",
+    "index.d.ts": "6854c9397c8abfd5a787bbfe206ba8d9baa613f012cbb442b16feded4c3ab9ee",
     "tokens.json": "6980c8d044102d19200a2c4a76cb61ea07b21bc105f8b51936b770d538b5ab14",
-    "README.md": "a111ceac0ea739040952a9475b756797c1b41f6e228f7edd9303fc57e6530feb",
+    "README.md": "552c5d7db9c142888a257226e1cb1e15f9e48bbc31b0fa13c91dc6524971a5d8",
     "diagramme.md": "dc396d2c92fdb51c1bcc84d07274ca507c1eed0577de982d90686fef79e2271b",
     "plotly-template.json": "94e67d97490d688aaa84bfa2c2c75e269ea57943cb3b65e75fb57424bf587011",
     "plotly-template-farbenblind.json": "3a961032046dbc748f868c1e86e4f70e2aa2910173637f55e2be15bb91d434ec"

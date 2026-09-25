@@ -1,14 +1,24 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { DS } from '../ds';
-import { useBigMovers, useMarketTrades, useMinimalStats, useMostTraded, useSpreadSearch } from '../api/queries';
+import {
+  useBigMovers,
+  useBond,
+  useBondList,
+  useIndexes,
+  useMarketTrades,
+  useMinimalStats,
+  useMostTraded,
+  useSpreadSearch,
+  type MarketRow,
+} from '../api/queries';
 import { Plot } from '../charts/Plot';
 import { short } from '../lib/format';
 import { useDebounced } from '../lib/useDebounced';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
 import { activityChart, moversChart } from './charts';
-import { applyFilter, movers, tickerItems, toResult, tradeCounts } from './derive';
+import { applyFilter, bondRows, movers, tickerItems, toResult, tradeCounts, uniqueRows } from './derive';
 import type { MarketFilterValue } from '../../vendor/bankiersgruen';
 import './MarketPage.css';
 
@@ -24,13 +34,17 @@ export function MarketPage() {
   const isPhone = useIsPhone();
   const onLinkClick = useInternalLinks();
   const [params, setParams] = useSearchParams();
+  // All changes of one interaction go into ONE update: React Router hands every functional updater
+  // the params of the last render, so a second call in the same tick would undo the first.
   const setParam = useCallback(
-    (key: string, v: string | null) =>
+    (changes: Record<string, string | null>) =>
       setParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          if (v) next.set(key, v);
-          else next.delete(key);
+          for (const [key, v] of Object.entries(changes)) {
+            if (v) next.set(key, v);
+            else next.delete(key);
+          }
           return next;
         },
         { replace: true },
@@ -40,19 +54,56 @@ export function MarketPage() {
 
   // Filter: type and search live in the URL, the rest only in the page.
   const [more, setMore] = useState<MarketFilterValue>({});
-  const type = params.get('art') ?? 'STOCK';
-  const q = params.get('q') ?? '';
-  const value: MarketFilterValue = useMemo(() => ({ ...more, type, search: q }), [more, type, q]);
-  const search = useDebounced(value.search ?? '', 250);
+  const art = params.get('art');
+  const type = art == null ? 'STOCK' : art === 'alle' ? '' : art;
+  // The search text lives in the page and follows into the URL after a pause: a field bound to the
+  // URL loses keystrokes, because the router updates the URL asynchronously.
+  const [text, setText] = useState(() => params.get('q') ?? '');
+  const value: MarketFilterValue = useMemo(() => ({ ...more, type, search: text }), [more, type, text]);
+  const search = useDebounced(text, 250);
+  const urlQ = params.get('q') ?? '';
+  useEffect(() => {
+    if (search !== urlQ) setParam({ q: search || null, seite: null });
+  }, [search, urlQ, setParam]);
   const searching = search.trim().length >= 2;
-  const found = useSpreadSearch(search);
+  // Sources: the spread search does not list bonds and repos, and „most traded“ is empty for them,
+  // so bonds come from their own list (plus a direct lookup by ASIN); indexes from the index list.
+  const bondish = type === 'BOND' || type === 'REPO';
+  const found = useSpreadSearch(bondish ? '' : search);
+  const bonds = useBondList(bondish || (type === '' && searching));
+  const asinBond = useBond(bondish && /^(BO|SB|RE|SR)[A-Z0-9]{8}$/i.test(search.trim()) ? search.trim().toUpperCase().replace(/^RE/, 'BO').replace(/^SR/, 'SB') : undefined, search.trim().toUpperCase().startsWith('S') ? 'SYSTEM_BOND' : 'BOND');
+  const indexes = useIndexes(type === 'INDEX' && !searching);
   const stats = useMinimalStats();
   const winners = useBigMovers(false);
   const losers = useBigMovers(true);
   const mostTraded = useMostTraded(value.type || undefined, 50);
-  // Without a search term: the most traded securities of the chosen type.
-  const source = searching ? found : mostTraded;
-  const rows = useMemo(() => applyFilter(source.data?.content ?? [], value), [source.data, value]);
+  const now = bonds.dataUpdatedAt;
+  const source: { rows: MarketRow[]; isLoading: boolean; error: Error | null; label: string | null } = useMemo(() => {
+    if (bondish) {
+      const list = [...(asinBond.data ? [asinBond.data] : []), ...(bonds.data ?? [])];
+      return {
+        rows: uniqueRows(bondRows(list, now, type === 'REPO')),
+        isLoading: bonds.isLoading,
+        error: bonds.error,
+        label: searching ? null : type === 'REPO' ? 'Repos der zuletzt fälligen laufenden Anleihen.' : 'Laufende Anleihen, zuletzt fällige zuerst, dazu alle Systemanleihen.',
+      };
+    }
+    if (type === 'INDEX' && !searching) {
+      const rows = (indexes.data?.content ?? []).map((i) => ({ listing: { ...i.listing, type: 'INDEX' } }));
+      return { rows, isLoading: indexes.isLoading, error: indexes.error, label: 'Alle Indizes – sie werden berechnet, nicht gehandelt.' };
+    }
+    if (searching) {
+      const extra = type === '' ? bondRows(bonds.data ?? [], now) : [];
+      return { rows: uniqueRows(found.data?.content ?? [], extra), isLoading: found.isLoading, error: found.error, label: null };
+    }
+    return {
+      rows: mostTraded.data?.content ?? [],
+      isLoading: mostTraded.isLoading,
+      error: mostTraded.error,
+      label: 'Die meistgehandelten Wertpapiere.',
+    };
+  }, [bondish, type, searching, asinBond.data, bonds.data, bonds.isLoading, bonds.error, now, indexes.data, indexes.isLoading, indexes.error, found.data, found.isLoading, found.error, mostTraded.data, mostTraded.isLoading, mostTraded.error]);
+  const rows = useMemo(() => applyFilter(source.rows, value), [source.rows, value]);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   const page = Math.min(Math.max(0, Number(params.get('seite') ?? 1) - 1), pages - 1);
   const results = useMemo(() => rows.slice(page * PAGE, (page + 1) * PAGE).map(toResult), [rows, page]);
@@ -69,8 +120,9 @@ export function MarketPage() {
       if (l) out[l.securityIdentifier] = { name: l.name, type: l.type ?? '' };
     };
     [found.data, winners.data, losers.data, mostTraded.data].forEach((p) => p?.content.forEach((r) => add(r.listing)));
+    source.rows.forEach((r) => add(r.listing));
     return out;
-  }, [found.data, winners.data, losers.data, mostTraded.data]);
+  }, [found.data, winners.data, losers.data, mostTraded.data, source.rows]);
   const ticker = useMemo(() => tickerItems(trades.data ?? [], names), [trades.data, names]);
   const active = useMemo(
     () =>
@@ -88,20 +140,20 @@ export function MarketPage() {
       <div className="market__filter">
         <DS.MarketFilterBar
           value={value}
-          total={source.data ? rows.length : undefined}
+          total={source.isLoading ? undefined : rows.length}
           onChange={(v) => {
             setMore({ minPrice: v.minPrice, maxPrice: v.maxPrice, withAsk: v.withAsk, withBid: v.withBid });
-            if ((v.type ?? '') !== value.type) setParam('art', v.type ?? '');
-            if ((v.search ?? '') !== value.search) setParam('q', v.search || null);
-            setParam('seite', null);
+            // „Alle“ is the empty type; it must stay in the URL, otherwise the default (Aktien) comes back.
+            setText(v.search ?? '');
+            if ((v.type ?? '') !== type) setParam({ art: v.type || 'alle', seite: null });
           }}
         />
       </div>
       <div className="panel__fill scroll market__results">
-        {!searching && <p className="market__hint">Meistgehandelt – für alle Wertpapiere Name oder ASIN eingeben.</p>}
+        {source.label && <p className="market__hint">{source.label}</p>}
         {source.isLoading ? (
           <DS.Loading rows={10} label="Wertpapiere werden geladen" />
-        ) : source.isError ? (
+        ) : source.error ? (
           <DS.Banner variant="error">Suche fehlgeschlagen: {source.error?.message}</DS.Banner>
         ) : (
           <DS.MarketResults
@@ -117,7 +169,7 @@ export function MarketPage() {
             page={page + 1}
             pages={pages}
             total={`${rows.length.toLocaleString('de-DE')} Treffer`}
-            onChange={(p) => setParam('seite', p > 1 ? String(p) : null)}
+            onChange={(p) => setParam({ seite: p > 1 ? String(p) : null })}
           />
         </div>
       )}
@@ -208,7 +260,7 @@ export function MarketPage() {
             aria-label="Ansicht"
             fullWidth
             value={view}
-            onChange={(v) => setParam('ansicht', v === 'suche' ? null : v)}
+            onChange={(v) => setParam({ ansicht: v === 'suche' ? null : v })}
             options={[
               { value: 'suche', label: 'Suche' },
               { value: 'bewegung', label: 'Bewegung' },

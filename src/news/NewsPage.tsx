@@ -80,7 +80,7 @@ export function NewsPage() {
       <DS.PageHeader
         size="md"
         title="Zeitung"
-        meta={total ? <span>{total.toLocaleString('de-DE')} Artikel</span> : undefined}
+        meta={total ? <span>{total.toLocaleString('de-DE')} Artikel</span> : '\u00a0'}
         actions={<DS.Input aria-label="Artikel suchen" placeholder="Artikel suchen" size="sm" value={q} onChange={(e) => setQ(e.target.value)} />}
       />
       <div className={`page__body news__body${isWide ? ' news__body--wide' : ''}`}>

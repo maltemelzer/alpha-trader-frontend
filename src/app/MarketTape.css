@@ -1,0 +1,154 @@
+.tape {
+  display: flex;
+  height: 32px;
+  border-bottom: var(--hairline) solid var(--line);
+  background: var(--bg-page);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.tape__live {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-right: var(--hairline) solid var(--line);
+  background: none;
+  color: var(--text-secondary);
+  font: 600 11px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.tape__live:hover {
+  color: var(--text-primary);
+}
+
+.tape__rate {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fixed width, so a changing count (e.g. 98 → 161) does not move the whole band. */
+.tape__num {
+  display: inline-block;
+  min-width: 4ch;
+  text-align: right;
+}
+
+.tape__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  animation: tape-live 2.4s ease-in-out infinite;
+}
+
+.tape__dot.is-paused {
+  animation: none;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--text-secondary);
+}
+
+@keyframes tape-live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.tape__viewport {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tape__track {
+  display: flex;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  will-change: transform;
+}
+
+.tape__item {
+  flex: none;
+  display: flex;
+}
+
+.tape__item a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  border-right: var(--hairline) solid var(--line);
+  color: var(--text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tape__item a:hover .tape__name,
+.tape__item a:focus-visible .tape__name {
+  text-decoration: underline;
+}
+
+.tape__name {
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.tape__asin {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.tape__count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.tape__px {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reduced motion: the newest trades stand still and are replaced with each poll. */
+.tape--static .tape__item {
+  animation: tape-in 0.6s ease-out;
+}
+
+@keyframes tape-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 719.98px) {
+  .tape__unit {
+    display: none;
+  }
+
+  .tape__name {
+    max-width: 16ch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tape__dot {
+    animation: none;
+  }
+}

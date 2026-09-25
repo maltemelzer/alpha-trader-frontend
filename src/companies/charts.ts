@@ -1,6 +1,8 @@
 import type { plotlyTheme } from '../charts/plotlyTheme';
 import type { CompanyHistoryPoint } from '../api/queries';
 import { short } from '../lib/format';
+import { rangeTicks } from '../charts/ticks';
+
 
 type Theme = ReturnType<typeof plotlyTheme>;
 
@@ -55,15 +57,4 @@ export function developmentChart(t: Theme, w: number, points: CompanyHistoryPoin
             })),
     },
   };
-}
-
-/** About five round tick values covering lo…hi (unlike security's niceTicks, which starts at 0). */
-export function rangeTicks(lo: number, hi: number, n = 5): number[] {
-  if (hi === lo) return [lo];
-  const raw = (hi - lo) / n;
-  const mag = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((s) => s >= raw) ?? raw;
-  const out: number[] = [];
-  for (let t = Math.floor(lo / step) * step; t <= hi + step / 2; t += step) out.push(Math.round(t / step) * step);
-  return out;
 }

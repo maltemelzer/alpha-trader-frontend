@@ -1,4 +1,4 @@
-import { applyFilter, movers, tickerItems, tradeCounts } from './derive';
+import { applyFilter, bondRows, matchesSearch, movers, tickerItems, tradeCounts, typeMatches, uniqueRows } from './derive';
 import type { MarketRow } from '../api/queries';
 
 const row = (asin: string, type: string, change: number, last = true): MarketRow => ({
@@ -63,5 +63,43 @@ describe('applyFilter', () => {
     expect(ids({ minPrice: '1.000' })).toEqual(['STB']);
     expect(ids({ maxPrice: '10,5' })).toEqual(['STA']);
     expect(ids({})).toEqual(['STA', 'STB', 'BOC']);
+  });
+});
+
+describe('market sources', () => {
+  const row = (asin: string, name: string, type = 'STOCK') => ({ listing: { securityIdentifier: asin, name, type } });
+
+  it('groups system bonds and repos with their class', () => {
+    expect(typeMatches('SYSTEM_BOND', 'BOND')).toBe(true);
+    expect(typeMatches('SYSTEM_REPO', 'REPO')).toBe(true);
+    expect(typeMatches('STOCK', 'BOND')).toBe(false);
+    expect(typeMatches('ETF', '')).toBe(true);
+  });
+
+  it('matches name or ASIN, ignoring one-letter terms', () => {
+    expect(matchesSearch(row('BOX1', 'XTRA Bond'), 'xtra')).toBe(true);
+    expect(matchesSearch(row('BOX1', 'XTRA Bond'), 'box')).toBe(true);
+    expect(matchesSearch(row('BOX1', 'XTRA Bond'), 'alpha')).toBe(false);
+    expect(matchesSearch(row('BOX1', 'XTRA Bond'), 'a')).toBe(true);
+  });
+
+  it('turns running bonds into rows and their repos into price-less rows', () => {
+    const bond = (asin: string, maturityDate: number) => ({
+      id: asin,
+      listing: { securityIdentifier: asin, name: asin, type: 'BOND' as const },
+      repurchaseListing: { securityIdentifier: 'RE' + asin.slice(2), name: asin, type: 'REPO' as const },
+      interestRate: 2,
+      faceValue: 100,
+      volume: 1,
+      maturityDate,
+      priceSpread: { askPrice: 99, askSize: 5, lastPrice: { value: 100, date: 1 } },
+    });
+    const bonds = [bond('BO1', 50), bond('BO2', 200)];
+    expect(bondRows(bonds, 100).map((r) => [r.listing.securityIdentifier, r.askPrice, r.lastPrice?.value])).toEqual([['BO2', 99, 100]]);
+    expect(bondRows(bonds, 100, true).map((r) => [r.listing.securityIdentifier, r.askPrice])).toEqual([['RE2', undefined]]);
+  });
+
+  it('keeps the first row per ASIN', () => {
+    expect(uniqueRows([row('A', 'a')], [row('A', 'b'), row('B', 'c')]).map((r) => r.listing.name)).toEqual(['a', 'c']);
   });
 });

@@ -3,6 +3,7 @@ import type { plotlyTheme } from '../charts/plotlyTheme';
 import type { HistorizedListingDataView, PricePoint, SecurityOrderLogEntryView } from '../api/types';
 import { alpha, changeText, clip, euro, short } from '../lib/format';
 import { niceTicks, type DepthSide, type HolderSlice } from './derive';
+import { shortAxis } from '../charts/ticks';
 
 type Theme = ReturnType<typeof plotlyTheme>;
 const NARROW = 520;
@@ -54,7 +55,7 @@ export function priceLine(t: Theme, _w: number, points: PricePoint[], bookValue?
       showlegend: false,
       margin: { l: 0, r: 0, t: 8, b: 0 },
       xaxis: { ...t.layout.xaxis, tickformat: intraday ? '%H:%M' : '%d.%m.' },
-      yaxis: { ...t.layout.yaxis, ticksuffix: u.suffix },
+      yaxis: { ...t.layout.yaxis, ...shortAxis(points.map((p) => p.value), u.suffix) },
       ...ref,
     },
   };
@@ -83,7 +84,7 @@ export function candles(t: Theme, w: number, days: HistorizedListingDataView[], 
     layout: {
       showlegend: false,
       xaxis: { ...t.layout.xaxis, rangeslider: { visible: false }, tickformat: w < NARROW ? '%d.%m.' : '%d.%m.%y' },
-      yaxis: { ...t.layout.yaxis, ticksuffix: u.suffix },
+      yaxis: { ...t.layout.yaxis, ...shortAxis(days.flatMap((d) => [d.highPrice ?? NaN, d.lowPrice ?? NaN]), u.suffix) },
       ...ref,
     },
   };
@@ -159,7 +160,7 @@ export function tradesChart(t: Theme, _w: number, trades: SecurityOrderLogEntryV
       hovermode: 'closest',
       showlegend: false,
       xaxis: { ...t.layout.xaxis, showspikes: false, tickformat: '%d.%m. %H:%M' },
-      yaxis: { ...t.layout.yaxis, ticksuffix: u.suffix },
+      yaxis: { ...t.layout.yaxis, ...shortAxis(trades.map((x) => x.price ?? NaN), u.suffix) },
     },
   };
 }

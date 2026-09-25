@@ -85,7 +85,7 @@ export function AlliancePage() {
         kindLabel="Allianz"
         name={a?.name ?? '…'}
         logoUrl={a?.logoUrl}
-        meta={a?.dateCreated ? [`Gegründet ${new Date(a.dateCreated).toLocaleDateString('de-DE')}`] : undefined}
+        meta={a?.dateCreated ? [`Gegründet ${new Date(a.dateCreated).toLocaleDateString('de-DE')}`] : ['\u00a0']}
         tags={isMember ? [{ label: 'Deine Allianz' }] : undefined}
         actions={
           <>

@@ -28,7 +28,7 @@ export function AlliancesPage() {
       <DS.PageHeader
         size="md"
         title="Allianzen"
-        meta={alliances.data ? <span>{alliances.data.totalElements} Allianzen</span> : undefined}
+        meta={alliances.data ? <span>{alliances.data.totalElements} Allianzen</span> : '\u00a0'}
         actions={
           <>
             <DS.Input aria-label="Allianz suchen" placeholder="Suchen" size="sm" value={q} onChange={(e) => setQ(e.target.value)} />

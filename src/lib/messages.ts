@@ -13,7 +13,7 @@ const DE: Record<string, string> = {
   // Suggestions
   'You can claim AlphaCoins as reward for # personal achievements': 'Für # Erfolge kannst du AlphaCoins als Belohnung abholen.',
   'You can upgrade your private miner to produce more AlphaCoins': 'Du kannst deinen Miner ausbauen, damit er mehr AlphaCoins schürft.',
-  'You can realize # of cash if you sell # pieces of # (#)': 'Du kannst # € Gewinn mitnehmen, wenn du # Stück # (#) verkaufst.',
+  'You can realize # of cash if you sell # pieces of # (#)': 'Du kannst # € erlösen, wenn du # Stück # (#) verkaufst.',
   'You do not control a company, you should get a spare company':
     'Du führst kein Unternehmen – übernimm eine freie Spare-AG.',
   'You can transfer # AlphaCoins to your private portfolio': 'Du kannst # AlphaCoins in dein Privatportfolio übertragen.',

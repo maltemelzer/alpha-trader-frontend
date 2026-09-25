@@ -101,8 +101,8 @@ export function PlayerPage() {
         kind="user"
         kindLabel="Spieler"
         name={username}
-        eyebrow={al ? [<a key="a" href={`/allianz/${al.id}`}>{al.name}</a>] : undefined}
-        meta={user?.registrationDate ? [`Dabei seit ${new Date(user.registrationDate).getFullYear()}`] : undefined}
+        eyebrow={al ? [<a key="a" href={`/allianz/${al.id}`}>{al.name}</a>] : [alliance.isLoading ? '\u00a0' : 'Keine Allianz']}
+        meta={user?.registrationDate ? [`Dabei seit ${new Date(user.registrationDate).getFullYear()}`] : ['\u00a0']}
         tags={tags}
         actions={
           !own && user ? (

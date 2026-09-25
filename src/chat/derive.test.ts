@@ -64,6 +64,11 @@ describe('toThread', () => {
     expect(t[1]).toMatchObject({ own: false, author: { name: 'Frieda' }, time: '18:02' });
     expect(t[4]).toMatchObject({ own: true, status: 'Gelesen' });
   });
+  it('trusts the own name over myUser (live pushes carry the sender\'s view)', () => {
+    const live = msg('1', 'Frieda', 'Hallo', at(24, 9), { sender: user('Frieda', true) });
+    const t = toThread([live], { me: 'Ich', now });
+    expect(t[1]).toMatchObject({ own: false, author: { name: 'Frieda' } });
+  });
   it('shows no read receipts in group chats', () => {
     const t = toThread([msg('1', 'Ich', 'Hallo', at(24, 9))], { direct: false, now });
     expect(t[1].status).toBeUndefined();

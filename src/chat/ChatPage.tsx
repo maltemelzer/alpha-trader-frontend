@@ -116,7 +116,7 @@ export function ChatPage() {
       <DS.ChatWindow
         height="100%"
         title={chat ? chatTitle(chat, me) : room ? room.name : chatId ? '…' : 'Nachrichten'}
-        subtitle={chat ? subtitle(kind) : room ? `Öffentlicher Raum · ${room.numberOfMembers.toLocaleString('de-DE')} Mitglieder` : undefined}
+        subtitle={chat ? subtitle(kind) : room ? `Öffentlicher Raum · ${room.numberOfMembers.toLocaleString('de-DE')} Mitglieder` : chatId ? '\u00a0' : undefined}
         actions={actions}
         list={list}
         mobileShowList={!chatId}

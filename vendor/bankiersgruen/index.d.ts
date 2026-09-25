@@ -499,6 +499,8 @@ export interface StockSearchProps {
   label?: React.ReactNode;
   'aria-label'?: string;
   size?: 'sm' | 'md' | 'lg';
+  /** Seite, an der die Trefferliste bündig steht: start (Standard) wächst nach rechts, end nach links – für Felder am rechten Rand wie in der Kopfleiste */
+  align?: 'start' | 'end';
   currency?: string;
   defaultOpen?: boolean;
   id?: string;
@@ -1098,6 +1100,8 @@ export interface TooltipProps {
   delay?: number;
   width?: number | string;
   defaultOpen?: boolean;
+  /** Blase nur fürs Auge: kein role=tooltip/aria-describedby, wenn der Auslöser den Text schon für Screenreader enthält (so bei Amount) */
+  decorative?: boolean;
   id?: string;
   className?: string;
 }

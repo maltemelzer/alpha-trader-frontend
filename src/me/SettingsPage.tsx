@@ -15,17 +15,17 @@ export function SettingsPage() {
 
   return (
     <div className="page me__settings">
-      <DS.PageHeader size="md" title="Einstellungen" meta={u?.username ? <span>{u.username}</span> : undefined} />
+      <DS.PageHeader size="md" title="Einstellungen" meta={u?.username ? <span>{u.username}</span> : '\u00a0'} />
       <div className="me__settings-body">
         <DS.SettingsSection title="Konto" description="Name und E-Mail ändern geht derzeit nur im Original-Spiel.">
-          <DS.SettingsRow label="Spielername" description={u?.username} />
+          <DS.SettingsRow label="Spielername" description={u?.username ?? '\u00a0'} />
           <DS.SettingsRow
             label="Dabei seit"
-            description={u?.registrationDate ? new Date(u.registrationDate).toLocaleDateString('de-DE') : undefined}
+            description={u?.registrationDate ? new Date(u.registrationDate).toLocaleDateString('de-DE') : '\u00a0'}
           />
           <DS.SettingsRow
             label="Newsletter"
-            description={u?.emailSubscriptionType === 'UNSUBSCRIBED' ? 'Abbestellt' : 'Abonniert'}
+            description={!u ? '\u00a0' : u.emailSubscriptionType === 'UNSUBSCRIBED' ? 'Abbestellt' : 'Abonniert'}
           />
           <DS.SettingsRow label="Werbe-Code" description="Für neue Spieler, die du einlädst.">
             <code className="me__code">{u?.refId}</code>

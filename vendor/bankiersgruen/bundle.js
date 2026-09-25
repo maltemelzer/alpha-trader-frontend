@@ -101,7 +101,9 @@
   function price(n, type, cur) {
     if (n == null || isNaN(n)) return '–';
     if (isPercentQuoted(type)) return fmt(n, 4) + ' %';
-    return money(Number(n), cur == null ? '€' : cur, 2);
+    /* Kurse unter 0,01 € mit zwei gültigen Ziffern (0,0034 €) statt „0,00 €“ */
+    var a = Math.abs(Number(n));
+    return money(Number(n), cur == null ? '€' : cur, a > 0 && a < 0.01 ? Math.min(8, Math.ceil(-Math.log10(a)) + 1) : 2);
   }
   function number(n, d, compact) {
     var cp = compact ? compactParts(n, compactThreshold(compact)) : null;
@@ -114,7 +116,7 @@
     return dt.getDate() + '.' + (dt.getMonth() + 1) + '.' + dt.getFullYear() + (withTime === false ? '' : ', ' + p(dt.getHours()) + ':' + p(dt.getMinutes()));
   }
 
-  /* Amount — Betrag; ab der Schwelle in Kurzform, der volle Wert steht im Tooltip und für Screenreader. */
+  /* Amount — Betrag; ab der Schwelle in Kurzform, der volle Wert steht im Tooltip (Blase, auch per Antippen) und für Screenreader. */
   function Amount(props) {
     var n = Number(props.value);
     var cur = props.currency == null ? '€' : props.currency;
@@ -124,8 +126,10 @@
     var full = sign + fmt(n, d) + tail;
     var cp = props.compact === false ? null : compactParts(n, compactThreshold(props.compact));
     if (!cp) return h('span', { className: cx('bnk-amt', props.className) }, full);
-    return h('span', { className: cx('bnk-amt', 'is-compact', props.className), title: full },
-      h('span', { 'aria-hidden': 'true' }, sign + fmt(cp.value, cp.d) + ' ' + cp.unit + tail), h('span', { className: 'bnk-sr' }, full));
+    /* Voller Wert als Tooltip-Blase (Hover, Antippen); Screenreader lesen ihn aus dem bnk-sr-Text, darum decorative. */
+    return h(Tooltip, { content: full, decorative: true, delay: 120 },
+      h('span', { className: cx('bnk-amt', 'is-compact', props.className), tabIndex: -1 },
+        h('span', { 'aria-hidden': 'true' }, sign + fmt(cp.value, cp.d) + ' ' + cp.unit + tail), h('span', { className: 'bnk-sr' }, full)));
   }
 
 
@@ -480,7 +484,7 @@
     }))) : null;
     var sortable = columns.filter(function (c) { return c.sortable; });
     var ord = function (c) { return isNum(c) || /date|Date|^_/.test(c.key) || (!!c.sortValue && c.key !== 'name' && c.key !== 'company'); };
-    var msort = props.stack === 'auto' && sortable.length ? h('div', { className: 'bnk-table__msort' },
+    var msort = props.stack === 'auto' && sortable.length && rows.length > 1 ? h('div', { className: 'bnk-table__msort' },
       h(Select, { label: 'Sortieren', size: 'sm', fullWidth: false, value: sort ? sort.key + ':' + sort.dir : '',
         placeholder: sort ? undefined : 'Sortierung wählen',
         onChange: function (e) { var v = e.target.value.split(':'); setSort({ key: v[0], dir: v[1] }); },
@@ -736,7 +740,8 @@
     var val = Math.max(0, Math.min(max, Number(props.value) || 0));
     var pct = max ? (val / max) * 100 : 0;
     var id = useFieldId(props.id);
-    var valueText = props.valueText != null ? props.valueText : (fmt(val, 0) + ' / ' + fmt(max, 0) + (props.unit ? ' ' + props.unit : ''));
+    /* Prozent von 100 als „79 %“, sonst „7 / 9“ */
+    var valueText = props.valueText != null ? props.valueText : props.unit === '%' && max === 100 ? fmt(val, 0) + ' %' : (fmt(val, 0) + ' / ' + fmt(max, 0) + (props.unit ? ' ' + props.unit : ''));
     return h('div', { ref: ref, className: cx('bnk-prog', 'bnk-prog--' + (props.variant || 'reward'), 'bnk-prog--' + (props.size || 'md'), props.className) },
       (props.label || props.showValue !== false) ? h('div', { className: 'bnk-prog__top' },
         props.label ? h('span', { className: 'bnk-prog__label', id: id + '-lbl' }, props.label) : h('span'),
@@ -896,7 +901,7 @@
     }
     var listId = id + '-list';
     var cur = props.currency == null ? '€' : props.currency;
-    return h('div', { ref: rootRef, className: cx('bnk-srch', 'bnk-srch--' + (props.size || 'md'), open && 'is-open', props.className) },
+    return h('div', { ref: rootRef, className: cx('bnk-srch', 'bnk-srch--' + (props.size || 'md'), props.align === 'end' && 'bnk-srch--end', open && 'is-open', props.className) },
       props.label ? h('label', { className: 'bnk-field__label', htmlFor: id }, props.label) : null,
       h('div', { className: 'bnk-input bnk-srch__box bnk-input--' + (props.size || 'md') },
         h('span', { className: 'bnk-srch__icon', 'aria-hidden': 'true' }),
@@ -1304,7 +1309,7 @@
         pinned.map(row),
         pinned.length && rest.length ? h('li', { key: 'sep', className: 'bnk-threads__sep', role: 'presentation' }) : null,
         rest.map(row)),
-      !threads.length ? h('div', { className: 'bnk-threads__empty' }, props.emptyText || 'Noch keine Themen. Starten Sie das erste.') : null);
+      !threads.length ? h('div', { className: 'bnk-threads__empty' }, props.emptyText || 'Noch keine Themen. Starte das erste.') : null);
   }
 
   /* ForumPost — Beitrag im Zeitungsstil: Autorzeile oben, Text, Zitat, eingebettete Aktien/Trades, Aktionen. */
@@ -1466,7 +1471,7 @@
           tab === 'write'
             ? h('textarea', { ref: ta, id: id + '-ta', className: 'bnk-feditor__ta', value: body, maxLength: maxBody, disabled: props.disabled,
                 'aria-label': isThread ? 'Beitrag' : 'Antwort', 'aria-describedby': id + '-hint',
-                placeholder: props.placeholder || (isThread ? 'Ihre Einschätzung, Ihre Frage, Ihre Strategie …' : 'Ihre Antwort …'),
+                placeholder: props.placeholder || (isThread ? 'Deine Einschätzung, deine Frage, deine Strategie …' : 'Deine Antwort …'),
                 style: { minHeight: props.rows ? props.rows * 24 + 24 : (isThread ? 200 : 120) },
                 onChange: function (e) { bodySt[1](e.target.value); },
                 onKeyDown: function (e) {
@@ -1776,7 +1781,7 @@
             ent.logoUrl ? h('img', { className: 'bnk-hs__logo', src: ent.logoUrl, alt: '' }) : h(Avatar, { name: name, size: 28, group: kind !== 'user' }),
             h('span', { className: 'bnk-hs__id' },
               href ? h('a', { href: href, className: 'bnk-hs__name' }, name) : h('span', { className: 'bnk-hs__name' }, name),
-              own ? h('span', { className: 'bnk-hs__you' }, kind === 'user' ? 'Sie' : 'Ihres') : null,
+              own ? h('span', { className: 'bnk-hs__you' }, kind === 'user' ? 'Du' : 'Deins') : null,
               sub ? h('span', { className: 'bnk-hs__sub' }, sub) : null)),
           h('span', { className: 'bnk-hs__value' }, highscoreValue(type, e.value)));
       })),
@@ -1801,6 +1806,13 @@
       props.comments != null ? h(props.onComments ? 'button' : 'span', { type: props.onComments ? 'button' : undefined, className: 'bnk-react bnk-react--comments', onClick: props.onComments },
         h('span', null, fmt(props.comments, 0) + (props.comments === 1 ? ' Kommentar' : ' Kommentare'))) : null);
   }
+  /* Kurzzeit für Listen: heute „10:05“, dieses Jahr „9.9.“, sonst „9.9.25“ */
+  function briefTime(ms) {
+    if (ms == null) return '';
+    var d = new Date(ms), now = new Date(), p = function (x) { return (x < 10 ? '0' : '') + x; };
+    if (d.toDateString() === now.toDateString()) return p(d.getHours()) + ':' + p(d.getMinutes());
+    return d.getDate() + '.' + (d.getMonth() + 1) + '.' + (d.getFullYear() === now.getFullYear() ? '' : String(d.getFullYear()).slice(2));
+  }
   function NewsItem(props) {
     var p = props.post || props;
     var v = props.variant || 'default';
@@ -1812,7 +1824,7 @@
     var locale = p.locale ? String(p.locale).slice(0, 2).toUpperCase() : null;
     if (v === 'brief') {
       return h('article', { className: cx('bnk-news', 'bnk-news--brief', props.className) },
-        h('time', { className: 'bnk-news__time', dateTime: p.dateCreated ? new Date(p.dateCreated).toISOString() : undefined }, props.shortTime || (when || '').split(', ').pop()),
+        h('time', { className: 'bnk-news__time', dateTime: p.dateCreated ? new Date(p.dateCreated).toISOString() : undefined }, props.shortTime || briefTime(p.dateCreated) || (when || '').split(', ').pop()),
         h('div', { className: 'bnk-news__briefBody' },
           h(Tag, { className: 'bnk-news__title' }, title),
           h('span', { className: 'bnk-news__briefMeta' }, [pub || author, p.numberOfComments ? fmt(p.numberOfComments, 0) + ' Komm.' : null].filter(Boolean).join(' · '))));
@@ -1879,7 +1891,7 @@
             h(Tag, { className: 'bnk-sech__title' }, l.name))),
         h('div', { className: 'bnk-sech__px' },
           h('span', { className: 'bnk-sech__price' }, last != null ? price(last, l.type, cur) : '–'),
-          props.change != null ? h(PriceChange, { value: props.change, amount: props.changeAmount, variant: 'tag', size: 'lg', suffix: props.changeSuffix, currency: cur }) : null,
+          props.change != null ? h(PriceChange, { value: props.change, amount: props.changeAmount, variant: 'tag', size: 'lg', suffix: props.changeSuffix, currency: isPercentQuoted(l.type) ? 'Pp.' : cur }) : null,
           lastDate ? h('time', { className: 'bnk-sech__time', dateTime: new Date(lastDate).toISOString() }, 'Letzter Trade ' + dateTime(lastDate)) : null)),
       h('div', { className: 'bnk-sech__quote' },
         side('Geld', s.bidPrice, s.bidSize, props.onSell ? h(Button, { size: 'sm', onClick: function () { props.onSell(s.bidPrice); }, disabled: s.bidPrice == null }, 'Verkaufen') : null),
@@ -1921,7 +1933,7 @@
       var w = Math.max(3, Math.round(100 * Math.log10((r.numberOfShares || 0) + 1) / logMax));
       var label = (sideKey === 'ask' ? 'Angebot: ' : 'Nachfrage: ') + number(r.numberOfShares, 0) + ' Anteile zu ' + price(r.price, l.type, cur);
       var marks = [r.marketMaker ? h('span', { key: 'mm', className: 'bnk-ob__mark', title: 'Market Maker' }, 'MM') : null,
-        r.own ? h('span', { key: 'own', className: 'bnk-ob__mark is-own' }, 'Ihre') : null].filter(Boolean);
+        r.own ? h('span', { key: 'own', className: 'bnk-ob__mark is-own' }, 'Deine') : null].filter(Boolean);
       var cells = [
         h('span', { key: 'b', className: 'bnk-ob__cell bnk-ob__cell--bid' }, sideKey === 'bid' ? [h('span', { key: 'bar', className: 'bnk-ob__bar', style: { width: w + '%' } }), marks, h('span', { key: 'n', className: 'bnk-ob__n' }, number(r.numberOfShares, 0, true))] : null),
         h('span', { key: 'p', className: 'bnk-ob__price' }, price(r.price, l.type, '')),
@@ -2033,11 +2045,11 @@
       h(SummaryList, { className: 'bnk-poll__facts', items: facts }),
       h(VoteBar, { tally: t, threshold: props.threshold || 50 }),
       t.mine ? h('div', { className: 'bnk-poll__me' },
-        t.mineVoted ? h('p', { className: 'bnk-poll__voted' }, 'Sie haben mit ', h('b', null, number(t.mineVoted, 0, true)), ' Stimmen ', h('b', null, t.myType === 'YES' ? 'Ja' : 'Nein'), ' gestimmt.',
+        t.mineVoted ? h('p', { className: 'bnk-poll__voted' }, 'Du hast mit ', h('b', null, number(t.mineVoted, 0, true)), ' Stimmen ', h('b', null, t.myType === 'YES' ? 'Ja' : 'Nein'), ' gestimmt.',
           t.mineLeft ? ' ' + number(t.mineLeft, 0, true) + ' Stimmen sind noch frei.' : '') : null,
         running && t.mineLeft ? h('div', { className: 'bnk-poll__vote' },
-          h(Input, { label: 'Ihre Stimmen', numeric: true, size: 'sm', value: vSt[0], max: t.mineLeft, onChange: function (e) { vSt[1](e.target.value); },
-            hint: 'Höchstens ' + fmt(t.mineLeft, 0), error: voices > t.mineLeft ? 'Sie haben nur ' + fmt(t.mineLeft, 0) + ' Stimmen.' : null }),
+          h(Input, { label: 'Deine Stimmen', numeric: true, size: 'sm', value: vSt[0], max: t.mineLeft, onChange: function (e) { vSt[1](e.target.value); },
+            hint: 'Höchstens ' + fmt(t.mineLeft, 0), error: voices > t.mineLeft ? 'Du hast nur ' + fmt(t.mineLeft, 0) + ' Stimmen.' : null }),
           h('div', { className: 'bnk-poll__btns' },
             h(Button, { size: 'sm', disabled: !(voices > 0) || voices > t.mineLeft, onClick: function () { if (props.onVote) props.onVote(p, 'YES', voices); } }, 'Ja'),
             h(Button, { size: 'sm', disabled: !(voices > 0) || voices > t.mineLeft, onClick: function () { if (props.onVote) props.onVote(p, 'NO', voices); } }, 'Nein'))) : null) : null,
@@ -2064,7 +2076,7 @@
           h(Button, { size: 'sm', onClick: function () { props.onVoteAll('NO', true); } }, 'Nein'),
           h(Button, { variant: 'ghost', size: 'sm', onClick: function () { confirmSt[1]('menu'); } }, 'Alle …')) : null),
       confirmSt[0] ? h(Dialog, { open: true, title: 'Über alle offenen Abstimmungen entscheiden?', onClose: function () { confirmSt[1](null); },
-          description: 'Das gilt auch für Kapitalerhöhungen, Fusionen und Liquidationen. Ihre Stimmen lassen sich danach nicht zurücknehmen.',
+          description: 'Das gilt auch für Kapitalerhöhungen, Fusionen und Liquidationen. Deine Stimmen lassen sich danach nicht zurücknehmen.',
           actions: [h(Button, { key: 'c', onClick: function () { confirmSt[1](null); } }, 'Abbrechen'),
             h(Button, { key: 'n', onClick: function () { confirmSt[1](null); props.onVoteAll('NO', false); } }, 'Alle mit Nein'),
             h(Button, { key: 'y', onClick: function () { confirmSt[1](null); props.onVoteAll('YES', false); } }, 'Alle mit Ja')] }) : null,
@@ -2185,10 +2197,10 @@
     }
     return h('form', { className: cx('bnk-caf', 'bnk-found', props.className), onSubmit: submit, noValidate: true, 'aria-label': 'Unternehmen gründen' },
       h('div', { className: 'bnk-caf__head' }, h('div', { className: 'bnk-caf__title' }, props.heading || 'Unternehmen gründen'),
-        h('div', { className: 'bnk-caf__sub' }, 'Sie werden CEO, die Einlage wird zum Bargeld der AG.')),
+        h('div', { className: 'bnk-caf__sub' }, 'Du wirst CEO, die Einlage wird zum Bargeld der AG.')),
       h(Input, { label: 'Name', value: nSt[0], placeholder: 'z. B. Hanse Beteiligungs AG', onChange: function (e) { nSt[1](e.target.value); }, error: show('name') }),
       h(Input, { label: 'Einlage', numeric: true, suffix: cur, value: cSt[0], onChange: function (e) { cSt[1](e.target.value); }, error: show('cash'),
-        hint: props.cash != null ? 'Ihr Bargeld: ' + money(props.cash, cur, 2, true) : null }),
+        hint: props.cash != null ? 'Dein Bargeld: ' + money(props.cash, cur, 2, true) : null }),
       h('div', { className: 'bnk-caf__row' },
         h(Input, { label: 'Eigene ASIN', optional: true, value: aSt[0], placeholder: 'STHANSEBET', maxLength: 10, disabled: !props.premium, onChange: function (e) { aSt[1](e.target.value.toUpperCase()); }, error: show('asin') }),
         h(Input, { label: 'Anzahl Anteile', optional: true, numeric: true, value: sSt[0], disabled: !props.premium, onChange: function (e) { sSt[1](e.target.value); }, error: show('shares') })),
@@ -2260,39 +2272,52 @@
         : props.hint ? h('div', { id: name + '-msg', className: 'bnk-check__msg' }, props.hint) : null);
   }
 
-  /* Tooltip — kurze Erklärung bei Hover und Fokus, Escape schließt. Nur Text, nichts Anklickbares darin. */
+  /* Tooltip — kurze Erklärung bei Hover, Fokus und Antippen, Escape schließt. Nur Text, nichts Anklickbares darin.
+     Die Blase hängt per Portal an document.body und steht fest (position: fixed) am Auslöser – so schneiden
+     scrollende Tabellen und Karten (overflow) sie nicht ab. Beim Scrollen oder Größenwechsel schließt sie. */
   function Tooltip(props) {
     var id = useFieldId(props.id);
     var st = React.useState(false);
-    var posSt = React.useState(props.placement || 'top');
-    var alignSt = React.useState('center');
     var wrap = React.useRef(null);
+    var bubble = React.useRef(null);
     var timer = React.useRef(null);
     var open = st[0];
-    function measure() {
-      if (wrap.current) { var r = wrap.current.getBoundingClientRect(), half = Math.min(140, window.innerWidth * 0.4) - r.width / 2;
-        if (!props.placement) posSt[1](r.top < 120 ? 'bottom' : 'top');
-        alignSt[1](r.left < half + 8 ? 'start' : window.innerWidth - r.right < half + 8 ? 'end' : 'center'); }
-    }
-    function show() { clearTimeout(timer.current); timer.current = setTimeout(function () { measure(); st[1](true); }, props.delay == null ? 250 : props.delay); }
-    React.useEffect(function () { if (props.defaultOpen) { measure(); st[1](true); } }, []);
+    function show() { clearTimeout(timer.current); timer.current = setTimeout(function () { st[1](true); }, props.delay == null ? 250 : props.delay); }
     function hide() { clearTimeout(timer.current); st[1](false); }
+    React.useEffect(function () { if (props.defaultOpen) st[1](true); return function () { clearTimeout(timer.current); }; }, []);
+    React.useLayoutEffect(function () {
+      var b = bubble.current, w = wrap.current;
+      if (!open || !b || !w) return;
+      var r = w.getBoundingClientRect(), bw = b.offsetWidth, bh = b.offsetHeight, vw = document.documentElement.clientWidth, gap = 8;
+      var place = props.placement || (r.top - bh - gap < gap && r.bottom + bh + gap <= window.innerHeight ? 'bottom' : 'top');
+      var left = Math.max(gap, Math.min(r.left + r.width / 2 - bw / 2, vw - bw - gap));
+      b.style.left = left + 'px';
+      b.style.top = (place === 'top' ? r.top - bh - gap : r.bottom + gap) + 'px';
+      b.style.setProperty('--tip-arrow', Math.max(10, Math.min(r.left + r.width / 2 - left, bw - 10)) + 'px');
+      b.className = cx('bnk-tip__bubble', 'is-' + place, 'is-open');
+    }, [open, props.placement]);
     React.useEffect(function () {
       if (!open) return;
       function key(e) { if (e.key === 'Escape') hide(); }
-      document.addEventListener('keydown', key); return function () { document.removeEventListener('keydown', key); };
+      document.addEventListener('keydown', key);
+      window.addEventListener('scroll', hide, true);
+      window.addEventListener('resize', hide);
+      return function () { document.removeEventListener('keydown', key); window.removeEventListener('scroll', hide, true); window.removeEventListener('resize', hide); };
     }, [open]);
     var child = React.Children.only(props.children);
     var trigger = React.cloneElement(child, {
-      'aria-describedby': cx(child.props['aria-describedby'], id) || undefined,
+      'aria-describedby': props.decorative ? child.props['aria-describedby'] : cx(child.props['aria-describedby'], id) || undefined,
       onMouseEnter: function (e) { show(); if (child.props.onMouseEnter) child.props.onMouseEnter(e); },
       onMouseLeave: function (e) { hide(); if (child.props.onMouseLeave) child.props.onMouseLeave(e); },
       onFocus: function (e) { show(); if (child.props.onFocus) child.props.onFocus(e); },
       onBlur: function (e) { hide(); if (child.props.onBlur) child.props.onBlur(e); }
     });
+    var bub = h('span', { ref: bubble, id: id, role: props.decorative ? undefined : 'tooltip', 'aria-hidden': props.decorative ? 'true' : undefined,
+        className: cx('bnk-tip__bubble', 'is-' + (props.placement || 'top'), open && 'is-open'), style: props.width ? { width: props.width } : undefined },
+      props.title ? h('span', { className: 'bnk-tip__title' }, props.title) : null, props.content);
+    var portal = window.ReactDOM && window.ReactDOM.createPortal && typeof document !== 'undefined';
     return h('span', { ref: wrap, className: cx('bnk-tip', props.className) }, trigger,
-      h('span', { id: id, role: 'tooltip', className: cx('bnk-tip__bubble', 'is-' + posSt[0], 'is-' + alignSt[0], open && 'is-open'), style: props.width ? { width: props.width } : undefined },
-        props.title ? h('span', { className: 'bnk-tip__title' }, props.title) : null, props.content));
+      portal ? window.ReactDOM.createPortal(bub, document.body) : bub);
   }
 
   /* Term — Fachbegriff mit gepunkteter Unterstreichung und Erklärung im Tooltip. */
@@ -2912,7 +2937,7 @@
         h('div', null, h('dt', null, 'Übertragbar'), h('dd', null, number(m.transferableCoins || 0, 0), h('small', null, ' AC')),
           coin ? h('p', { className: 'bnk-miner__sub' }, '≈ ', money((m.transferableCoins || 0) * coin, cur, 2, true)) : null)),
       h(ProgressBar, { label: 'Speicher', value: stored, max: cap || 1, variant: 'neutral', valueText: fmt(stored, 1) + ' / ' + fmt(cap, 1) + ' AC',
-        hint: full ? h('span', { className: 'bnk-miner__warn' }, h('span', { 'aria-hidden': 'true' }, '! '), 'Speicher voll – der Miner erzeugt nichts, bis Sie Coins übertragen.')
+        hint: full ? h('span', { className: 'bnk-miner__warn' }, h('span', { 'aria-hidden': 'true' }, '! '), 'Speicher voll – der Miner erzeugt nichts, bis du Coins überträgst.')
           : hoursLeft != null ? 'Voll in ' + remaining(Date.now() + hoursLeft * 3600e3) : null }),
       h('div', { className: 'bnk-miner__actions' },
         props.onTransfer ? h(Button, { variant: full ? (props.transferVariant || 'primary') : 'secondary', disabled: !(m.transferableCoins > 0), onClick: props.onTransfer },
@@ -3304,7 +3329,7 @@
     var mode = modeSt[0];
     var u = toNum(unitsSt[0]);
     var max = mode === 'redeem' ? props.ownedUnits : null;
-    var err = !unitsSt[0] ? null : isNaN(u) || u <= 0 || u % 1 ? 'Bitte eine ganze Zahl über 0 eingeben.' : max != null && u > max ? 'Sie halten nur ' + number(max, 0) + ' Anteile.' : null;
+    var err = !unitsSt[0] ? null : isNaN(u) || u <= 0 || u % 1 ? 'Bitte eine ganze Zahl über 0 eingeben.' : max != null && u > max ? 'Du hältst nur ' + number(max, 0) + ' Anteile.' : null;
     var est = props.navPerUnit && u > 0 && !err ? u * props.navPerUnit : null;
     var disabled = props.frozen && mode === 'subscribe';
     return h('form', { className: cx('bnk-etfform', props.className), onSubmit: function (e) { e.preventDefault(); if (!err && u > 0 && props.onSubmit) props.onSubmit({ mode: mode, units: u }); } },
@@ -3312,7 +3337,7 @@
       disabled ? h('p', { className: 'bnk-bank__text' }, 'Der Fonds ist eingefroren – es werden keine neuen Anteile ausgegeben.') : null,
       h(Input, { label: 'Anteile', numeric: true, stepper: true, min: 1, step: 1, suffix: 'Stk.', value: unitsSt[0], onChange: function (e) { unitsSt[1](e.target.value); }, error: err, disabled: disabled,
         hint: max != null ? 'Im Bestand: ' + number(max, 0) + ' Anteile' : props.navPerUnit ? 'Anteilswert ca. ' + money(props.navPerUnit, '€', 2) : undefined }),
-      est != null ? h('p', { className: 'bnk-xfer__sum' }, mode === 'redeem' ? 'Sie erhalten ca. ' : 'Kostet ca. ', h(Amount, { value: est, currency: '€', compact: true }), props.managementFeePercent != null && mode === 'subscribe' ? ' · laufende Gebühr ' + fmt(props.managementFeePercent, 2) + ' % p. a.' : '') : null,
+      est != null ? h('p', { className: 'bnk-xfer__sum' }, mode === 'redeem' ? 'Du erhältst ca. ' : 'Kostet ca. ', h(Amount, { value: est, currency: '€', compact: true }), props.managementFeePercent != null && mode === 'subscribe' ? ' · laufende Gebühr ' + fmt(props.managementFeePercent, 2) + ' % p. a.' : '') : null,
       h('div', { className: 'bnk-xfer__actions' }, h(Button, { type: 'submit', variant: props.submitVariant || 'primary', disabled: disabled || !(u > 0) || !!err, loading: props.loading }, mode === 'redeem' ? 'Anteile zurückgeben' : 'Anteile zeichnen')));
   }
 
@@ -3345,7 +3370,7 @@
       return h('li', { key: m.id || i, className: 'bnk-amem__item' },
         h('span', { className: 'bnk-amem__av' }, h(Avatar, { name: u.username, size: 36 }), m.online ? h('span', { className: 'bnk-amem__on', title: 'online' }) : null),
         h('span', { className: 'bnk-amem__main' },
-          h('span', { className: 'bnk-amem__name' }, props.hrefFor ? h('a', { className: 'bnk-pos__link', href: props.hrefFor(m) }, u.username) : u.username, u.myUser ? h('span', { className: 'bnk-prof__tag' }, 'Sie') : null),
+          h('span', { className: 'bnk-amem__name' }, props.hrefFor ? h('a', { className: 'bnk-pos__link', href: props.hrefFor(m) }, u.username) : u.username, u.myUser ? h('span', { className: 'bnk-prof__tag' }, 'Du') : null),
           h('span', { className: 'bnk-amem__meta' }, ALLIANCE_ROLES[m.role] || m.role, m.dateJoined ? ' · seit ' + dateTime(m.dateJoined, false) : '', m.online ? h('span', { className: 'bnk-sr' }, ' · online') : null)),
         canManage ? h(DropdownMenu, { label: h('span', { className: 'bnk-sr' }, 'Mitglied ' + u.username), variant: 'ghost', align: 'end', items: [
           { heading: u.username },
@@ -3435,7 +3460,7 @@
           h(Checkbox, { label: 'Nur mit Angebot', checked: !!v.withAsk, onChange: function (e) { set('withAsk', e.target.checked); } }),
           h(Checkbox, { label: 'Nur mit Nachfrage', checked: !!v.withBid, onChange: function (e) { set('withBid', e.target.checked); } })),
         props.onSave ? h(Button, { size: 'sm', onClick: function () { props.onSave(buildMarketFilter(v)); } }, 'Filter speichern') : null) : null,
-      props.total != null ? h('p', { className: 'bnk-mfilter__total', 'aria-live': 'polite' }, number(props.total, 0), ' Treffer') : null);
+      h('p', { className: 'bnk-mfilter__total', 'aria-live': 'polite' }, props.total != null ? number(props.total, 0) + ' Treffer' : '\u00a0'));
   }
   /* MarketResults — Ergebnisliste des Marktfilters (ListingMarketFilterResultView). */
   function MarketResults(props) {
@@ -3505,7 +3530,7 @@
     return h('form', { className: cx('bnk-issue', props.className), onSubmit: function (e) { e.preventDefault(); if (!ok || !props.onSubmit) return;
         props.onSubmit(sys ? { kind: 'system', numberOfBonds: n } : { kind: 'bond', numberOfBonds: n, faceValue: face, interestRate: rate, maturityDate: due }); } },
       props.canIssueSystemBonds ? h(RadioGroup, { label: 'Art', value: kind, onChange: kindSt[1], options: [
-        { value: 'bond', label: 'Eigene Anleihe', description: 'Zins, Nennwert und Fälligkeit legen Sie fest. Käufer finden sich am Markt.' },
+        { value: 'bond', label: 'Eigene Anleihe', description: 'Zins, Nennwert und Fälligkeit legst du fest. Käufer finden sich am Markt.' },
         { value: 'system', label: 'Systemanleihe', description: 'Die Zentralbank kauft zum aktuellen Leitzins' + (props.mainRate != null ? ' (' + fmt(props.mainRate, 2) + ' %)' : '') + '. Nur mit Banklizenz.' }] }) : null,
       h('div', { className: 'bnk-issue__grid' },
         h(Input, { label: 'Stücke', numeric: true, stepper: true, min: 1, step: 1, value: nSt[0], onChange: function (e) { nSt[1](e.target.value); }, error: errN }),

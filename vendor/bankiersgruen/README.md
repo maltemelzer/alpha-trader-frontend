@@ -71,6 +71,10 @@ Die Oberfläche spricht wie eine Privatbank, die API behält ihre Namen. Wo das 
 | --- | --- |
 | Meine Organisation | Mein Imperium (`/empire`, `…/companiesbyempireshare`) |
 
+## Anrede
+
+Die Oberfläche duzt, wie die Community im Spiel: „Du hast nur 12 Stimmen.“, „Deine Antwort …“, „Starte das erste.“ – nie „Sie“/„Ihr“.
+
 ## Regeln
 
 1. **Ein Messing-Button pro Bildschirm.** Nur die Hauptaktion (z. B. „Kaufen“) ist mit `brass` gefüllt, Label in `on-brass`. Alle anderen Buttons sind umrandet: `border` in `line-control`, Text `text-primary`, Hover `bg-raised`.

@@ -20,7 +20,7 @@ export function PollsPage() {
       <DS.PageHeader
         size="md"
         title="Abstimmungen"
-        meta={open.data ? <span>{open.data.totalElements} offen</span> : undefined}
+        meta={open.data ? <span>{open.data.totalElements} offen</span> : '\u00a0'}
       />
       <DS.Card className="panel">
         <div className="panel__fill scroll">
@@ -40,7 +40,11 @@ export function PollsPage() {
               hrefFor={(e, kind) =>
                 kind === 'company' ? (e.securityIdentifier ? `/wertpapier/${e.securityIdentifier}` : null) : `/spieler/${encodeURIComponent(e.username)}`
               }
-              emptyText={filter === 'NOT_VOTED' ? 'Keine offenen Abstimmungen.' : 'Keine Abstimmungen.'}
+              emptyText={
+                <DS.EmptyState compact as="h3" title={filter === 'NOT_VOTED' ? 'Keine offenen Abstimmungen' : 'Keine Abstimmungen'}>
+                  Hauptversammlungen deiner Beteiligungen erscheinen hier.
+                </DS.EmptyState>
+              }
             />
           )}
         </div>

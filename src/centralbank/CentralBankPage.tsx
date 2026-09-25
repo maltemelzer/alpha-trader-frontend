@@ -1,0 +1,349 @@
+import { useMemo } from 'react';
+import { DS } from '../ds';
+import {
+  useCompaniesByAsin,
+  useHighscores,
+  useInterestHistory,
+  useInterestTender,
+  useMainInterestRate,
+  useOrderbook,
+  useReservesPayment,
+  useSystemBonds,
+} from '../api/queries';
+import { Plot } from '../charts/Plot';
+import { useInternalLinks } from '../lib/useInternalLinks';
+import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
+import { useParamState } from '../lib/useParamState';
+import { bankSharesChart, dueChart, rateHistoryChart, tenderBidsChart } from './charts';
+import { bankShares, dueByDay, rateWindow, tenderRate } from './derive';
+import './CentralBankPage.css';
+
+const DAY = 86_400_000;
+const pct = (n: number | undefined, d = 2) =>
+  n == null ? '–' : `${n.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d })} %`;
+
+const RANGES = [
+  { value: '7T', label: '7T', ms: 7 * DAY },
+  { value: '30T', label: '30T', ms: 30 * DAY },
+  { value: 'alle', label: 'Alle', ms: undefined },
+];
+
+const SIDE = [
+  { value: 'banken', label: 'Banken' },
+  { value: 'kredite', label: 'Kredite' },
+  { value: 'tender', label: 'Zinstender' },
+  { value: 'regeln', label: 'So funktioniert’s' },
+];
+const PHONE = [
+  { value: 'zinsen', label: 'Zinsen' },
+  { value: 'banken', label: 'Banken' },
+  { value: 'kredite', label: 'Kredit' },
+  { value: 'tender', label: 'Tender' },
+  { value: 'regeln', label: 'Regeln' },
+];
+
+/** Forum posts of the game that explain the rules (Offizielles Forum). */
+const FORUM = '/forum/08e13473-024a-4637-b8d7-b856d07b1b5b';
+
+/**
+ * Zentralbank: the rates the game sets (main rate, reserve rate per day, system bond rate) and how
+ * they moved, who holds the central bank reserves, the credit the central bank gave through system
+ * bonds, the running interest tender – and in short how banking works in the game.
+ */
+export function CentralBankPage() {
+  const onLinkClick = useInternalLinks();
+  const isPhone = useIsPhone();
+  const isWide = useMediaQuery('(min-width: 1100px)');
+  const main = useMainInterestRate();
+  const history = useInterestHistory(1000);
+  const payment = useReservesPayment();
+  const [range, setRange] = useParamState('zeitraum', '30T', RANGES);
+  const [view, setView] = useParamState('ansicht', isPhone ? 'zinsen' : 'banken', isPhone ? PHONE : SIDE);
+
+  const now = history.dataUpdatedAt;
+  const points = useMemo(
+    () => rateWindow(history.data, RANGES.find((r) => r.value === range)?.ms, now),
+    [history.data, range, now],
+  );
+  const latest = history.data?.length ? rateWindow(history.data, undefined).at(-1) : undefined;
+  const reserveRate = main.data?.reserveInterestRate ?? latest?.reserveInterestRate;
+  const systemRate = latest?.systemBondInterestRate ?? (main.data ? main.data.value + 1 : undefined);
+
+  const stats = (
+    <DS.StatGroup columns="repeat(4, minmax(0, 1fr))" aria-label="Zinsen der Zentralbank">
+      <DS.StatTile label="Leitzins" value={pct(main.data?.value)} hint="Ø der Zinstender, 30 Tage" />
+      <DS.StatTile label="Einlagezins" value={reserveRate != null ? `${pct(reserveRate)} / Tag` : '–'} hint="auf Zentralbankeinlagen, + Boost" />
+      <DS.StatTile label="Systemanleihe" value={pct(systemRate)} hint="Kredit der Zentralbank · Leitzins + 1" />
+      <DS.StatTile
+        label="Zuletzt ausgezahlt"
+        value={payment.data ? payment.data.paidInterest : '–'}
+        compact
+        hint={
+          payment.data?.nextPaymentDate ? (
+            <DS.Countdown to={payment.data.nextPaymentDate} label="nächste in" short />
+          ) : (
+            'Zinsen auf alle Einlagen'
+          )
+        }
+      />
+    </DS.StatGroup>
+  );
+
+  const chart = (
+    <DS.Card
+      className="panel"
+      title={isPhone ? undefined : 'Zinsverlauf'}
+      action={<DS.SegmentedControl size="sm" aria-label="Zeitraum" fullWidth={false} options={RANGES} value={range} onChange={setRange} />}
+    >
+      <div className="panel__fill cb__chart">
+        {history.isLoading ? (
+          <DS.Skeleton variant="block" />
+        ) : points.length > 1 ? (
+          <Plot aria-label="Leitzins, Zins der Systemanleihe und Einlagezins im Verlauf" figure={(t, w) => rateHistoryChart(t, w, points)} />
+        ) : (
+          <DS.EmptyState compact as="h3" title="Kein Zinsverlauf" />
+        )}
+      </div>
+    </DS.Card>
+  );
+
+  const panels: Record<string, React.ReactNode> = {
+    banken: <Banks />,
+    kredite: <Credit />,
+    tender: <Tender />,
+    regeln: <Rules mainRate={main.data?.value} reserveRate={reserveRate} />,
+  };
+
+  if (isPhone) {
+    return (
+      <div className="page cb cb--phone" onClick={onLinkClick}>
+        <DS.PageHeader size="md" title="Zentralbank" meta={<span>Leitzins {pct(main.data?.value)} · Einlage {pct(reserveRate)} / Tag</span>} />
+        <div className="page__body cb__body">
+          <DS.SegmentedControl size="sm" aria-label="Ansicht" options={PHONE} value={view} onChange={setView} />
+          {view === 'zinsen' ? (
+            <>
+              {stats}
+              {chart}
+            </>
+          ) : (
+            <DS.Card flush className="panel">
+              <div className="panel__fill scroll cb__pad">{panels[view]}</div>
+            </DS.Card>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`page cb${isWide ? ' cb--wide' : ''}`} onClick={onLinkClick}>
+      <DS.PageHeader
+        size="md"
+        title="Zentralbank"
+        meta={<span>Leitzins, Einlagen der Banken und Kredite der Zentralbank</span>}
+      />
+      <div className="page__body cb__body">
+        {stats}
+        <div className="cb__grid">
+          {chart}
+          <DS.Card flush className="panel">
+            <div className="panel__tabs">
+              <DS.Tabs
+                size="sm"
+                aria-label="Bankwesen"
+                value={view}
+                onChange={setView}
+                items={SIDE.map((s) => ({ value: s.value, label: s.label, content: <div className="cb__pad">{panels[s.value]}</div> }))}
+              />
+            </div>
+          </DS.Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Who holds the reserves: the largest holders as bars, then how much credit the largest banks use. */
+function Banks() {
+  const list = useHighscores('company', 'RESERVES', 0, '', 100);
+  const entries = useMemo(
+    () =>
+      (list.data?.content ?? []).map((e) => ({
+        name: e.company?.name ?? '–',
+        asin: e.company?.securityIdentifier,
+        reserves: e.value,
+      })),
+    [list.data],
+  );
+  const rows = useMemo(() => bankShares(entries, 7), [entries]);
+  const total = entries.reduce((s, e) => s + e.reserves, 0);
+  const top = useMemo(() => entries.slice(0, 12).flatMap((e) => (e.asin ? [e.asin] : [])), [entries]);
+  const profiles = useCompaniesByAsin(top);
+  const credit = top
+    .map((asin, i) => ({ asin, name: profiles[i]?.name ?? entries[i]?.name ?? asin, caps: profiles[i]?.companyCapabilities }))
+    .filter((c) => c.caps)
+    .sort((a, b) => (b.caps!.takenCentralBankLoans ?? 0) - (a.caps!.takenCentralBankLoans ?? 0));
+  const using = credit.filter((c) => (c.caps!.takenCentralBankLoans ?? 0) > 0);
+  const idle = credit.length - using.length;
+
+  if (list.isLoading) return <DS.Loading rows={6} />;
+  if (!rows.length) return <DS.EmptyState compact as="h3" title="Keine Einlagen" />;
+  return (
+    <div className="cb__stack">
+      <p className="cb__note">
+        <b>
+          <DS.Amount value={total} compact />
+        </b>{' '}
+        Zentralbankeinlagen bei den {entries.filter((e) => e.reserves > 0).length.toLocaleString('de-DE')} größten Einlegern
+      </p>
+      <div className="cb__bars" style={{ height: 32 * rows.length + 8 }}>
+        <Plot aria-label="Anteil an allen Zentralbankeinlagen je Bank" figure={(t, w) => bankSharesChart(t, w, rows)} />
+      </div>
+      <h3 className="cb__h">Kreditrahmen genutzt</h3>
+      {credit.length < top.length ? (
+        <DS.Loading rows={2} />
+      ) : (
+        <ul className="cb__credit">
+          {using.map((c) => {
+            const max = c.caps!.maxCentralBankLoans ?? 0;
+            const taken = c.caps!.takenCentralBankLoans ?? 0;
+            return (
+              <li key={c.asin}>
+                <div className="cb__row">
+                  <a href={`/unternehmen/${c.asin}`}>{c.name}</a>
+                  <span>
+                    <DS.Amount value={taken} compact /> von <DS.Amount value={max} compact />
+                  </span>
+                </div>
+                <DS.ProgressBar size="sm" variant="neutral" value={max ? (taken / max) * 100 : 0} showValue={false} aria-label={`${c.name}: Kreditrahmen genutzt`} />
+              </li>
+            );
+          })}
+          {idle > 0 && (
+            <li className="cb__note">
+              {using.length ? `${idle} weitere` : `Keine der ${idle}`} der {top.length} größten Banken {using.length ? 'nutzen' : 'nutzt'} ihren
+              Kreditrahmen nicht.
+            </li>
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Central bank credit: the running system bonds, their volume and when it falls due. */
+function Credit() {
+  const bonds = useSystemBonds();
+  const now = bonds.dataUpdatedAt;
+  const running = useMemo(() => (bonds.data ?? []).filter((b) => (b.maturityDate ?? 0) > now), [bonds.data, now]);
+  const days = useMemo(() => dueByDay(running, now), [running, now]);
+  const volume = running.reduce((s, b) => s + (b.volume ?? 0), 0);
+  const rates = [...new Set(running.map((b) => b.interestRate))].sort((a, b) => a - b);
+
+  if (bonds.isLoading) return <DS.Loading rows={4} />;
+  if (!running.length) return <DS.EmptyState compact as="h3" title="Keine laufenden Systemanleihen" />;
+  return (
+    <div className="cb__stack">
+      <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Systemanleihen">
+        <DS.StatTile label="Laufend" value={String(running.length)} hint="Systemanleihen" />
+        <DS.StatTile label="Volumen" value={volume} compact hint="Kredit der Zentralbank" />
+        <DS.StatTile
+          label="Zins"
+          value={rates.length > 1 ? `${rates[0].toLocaleString('de-DE', { minimumFractionDigits: 2 })}–${pct(rates.at(-1))}` : pct(rates[0])}
+          hint="für die Laufzeit"
+        />
+      </DS.StatGroup>
+      <h3 className="cb__h">Fällig nach Tag</h3>
+      <div className="cb__due">
+        <Plot aria-label="Volumen der Systemanleihen nach Fälligkeitstag" figure={(t, w) => dueChart(t, w, days)} />
+      </div>
+      <p className="cb__note">
+        Banken leihen sich Geld bei der Zentralbank, indem sie Systemanleihen ausgeben – bis 10 % ihrer Einlage, zum Leitzins
+        + 1 %, Laufzeit etwa 6½ Tage.
+      </p>
+    </div>
+  );
+}
+
+/** The running interest tender: which bond, when bidding closes, and the bids read as rates. */
+function Tender() {
+  const tender = useInterestTender();
+  const asin = tender.data?.bondListing.securityIdentifier ?? '';
+  const book = useOrderbook(asin);
+  const bids = useMemo(
+    () => (book.data?.buyEntries ?? []).map((e) => ({ price: e.priceLimit, size: e.size, rate: tenderRate(e.priceLimit) ?? 0 })),
+    [book.data],
+  );
+  const volume = bids.reduce((s, b) => s + b.size, 0);
+
+  if (tender.isLoading) return <DS.Loading rows={4} />;
+  if (!tender.data) return <DS.EmptyState compact as="h3" title="Gerade kein Zinstender" />;
+  return (
+    <div className="cb__stack">
+      <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Zinstender">
+        <DS.StatTile label="Gebote" value={volume} compact hint={`${bids.length} ${bids.length === 1 ? 'Preisstufe' : 'Preisstufen'}`} />
+        <DS.StatTile label="Laufzeit" value="7 Tage" hint="ohne Zins, von der Alpha Bank" />
+        <DS.StatTile label="Bieten bis" value={<DS.Countdown to={tender.data.endDate} short endedText="beendet" />} />
+      </DS.StatGroup>
+      <p className="cb__note">
+        Anleihe <a href={`/wertpapier/${asin}`}>{tender.data.bondListing.name}</a> · <span className="cb__mono">{asin}</span>
+      </p>
+      <h3 className="cb__h">Gebote als Zins</h3>
+      <div className="cb__due">
+        {book.isLoading ? (
+          <DS.Skeleton variant="block" />
+        ) : bids.length ? (
+          <Plot aria-label="Volumen der Gebote je Zinssatz" figure={(t, w) => tenderBidsChart(t, w, bids)} />
+        ) : (
+          <DS.EmptyState compact as="h3" title="Noch keine Gebote" />
+        )}
+      </div>
+      <p className="cb__note">
+        Gebote von 98 % bis 102 % des Nennwerts: 98 % heißt 2 % Zins für die Bank, 102 % heißt, sie zahlt 2 %. Laut dem
+        Forumsbeitrag „Zinstender-Verfahren“ (2022) ergibt der gewichtete Durchschnitt den Zins des Tages und der Leitzins den
+        Schnitt der letzten 30 Tage – der Verlauf des Leitzinses passt nicht ganz dazu, er bewegte sich zuletzt nur zwischen 0,6 %
+        und 2 %.
+      </p>
+    </div>
+  );
+}
+
+/** The rules in short, with the live figures; sources are the game's own forum posts. */
+function Rules({ mainRate, reserveRate }: { mainRate?: number; reserveRate?: number }) {
+  return (
+    <div className="cb__stack">
+      <dl className="cb__rules">
+        <dt>Banklizenz</dt>
+        <dd>
+          Ein Unternehmen mit mindestens 5 Mio. € Bargeld kann sie beantragen – als CEO unter <b>Unternehmen → Führen → Bank</b>.
+        </dd>
+        <dt>Zentralbankeinlage</dt>
+        <dd>
+          Bargeld, das eine Bank bei der Zentralbank anlegt. Sie zahlt jeden Tag den Einlagezins darauf (jetzt {pct(reserveRate)},
+          halb so viel wie der Leitzins). Mit AlphaCoins lässt er sich um je 0,01 % erhöhen, bis 2 % pro Tag – die Coins werden
+          verbrannt.
+        </dd>
+        <dt>Kreditrahmen</dt>
+        <dd>
+          Bis 10 % der Einlage darf eine Bank als Kredit aufnehmen. Dafür gibt sie Systemanleihen aus: Zins Leitzins + 1 %
+          (jetzt {pct(mainRate != null ? mainRate + 1 : undefined)}), Laufzeit etwa 6½ Tage.
+        </dd>
+        <dt>Leitzins</dt>
+        <dd>
+          Wird aus dem täglichen Zinstender gebildet, laut Forum als Schnitt über 30 Tage (jetzt {pct(mainRate)}). Neu gesetzt wird
+          er einmal am Tag, gegen 14 Uhr.
+        </dd>
+        <dt>Anleihen</dt>
+        <dd>
+          Der Zins einer Anleihe gilt für die ganze Laufzeit und wird bei Fälligkeit gezahlt. Vergleichbar wird er erst pro Tag –
+          die Wertpapierseite jeder Anleihe zeigt die Rendite pro Tag neben dem Einlagezins.
+        </dd>
+      </dl>
+      <p className="cb__note">
+        Quellen: <a href={`${FORUM}/54117377-7142-43ab-b9a1-8901cae734a4`}>Zinstender-Verfahren</a> und{' '}
+        <a href={`${FORUM}/9e43ea4b-0839-4598-8bf0-f518083bc9cb`}>Coin-Boost reformieren</a> im Offiziellen Forum, dazu der
+        Zinsverlauf der Zentralbank.
+      </p>
+    </div>
+  );
+}

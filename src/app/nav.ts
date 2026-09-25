@@ -15,6 +15,7 @@ export const AREAS: Area[] = [
     children: [
       { label: 'Wertpapiere', href: '/markt', description: 'Aktien, Anleihen, Coins, Indizes, Fonds' },
       { label: 'Kapitalmaßnahmen', href: '/kapitalmassnahmen', description: 'Laufende Kapitalerhöhungen und -herabsetzungen' },
+      { label: 'Zentralbank', href: '/zentralbank', description: 'Leitzins, Einlagen der Banken, Zentralbankkredite, Zinstender' },
     ],
   },
   {

@@ -26,7 +26,7 @@ export function AchievementsPage() {
       <DS.PageHeader
         size="md"
         title="Erfolge"
-        meta={caps ? <span>{caps.achievementCount} von {caps.achievementTotal} erreicht</span> : undefined}
+        meta={caps ? <span>{caps.achievementCount} von {caps.achievementTotal} erreicht</span> : '\u00a0'}
       />
       <DS.Card className="panel">
         <div className="panel__fill scroll">

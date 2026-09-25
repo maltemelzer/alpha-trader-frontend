@@ -1,6 +1,8 @@
 .shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  /* The Börsenband is far wider than the screen – it must not widen the column. */
+  grid-template-columns: minmax(0, 1fr);
   height: 100dvh;
 }
 
@@ -9,6 +11,8 @@
 }
 
 .shell__main {
+  /* Always the last row – the Börsenband above it is missing until the first trades arrive. */
+  grid-row: -2 / -1;
   position: relative;
   min-height: 0;
   overflow: auto;

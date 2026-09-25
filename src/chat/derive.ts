@@ -48,7 +48,7 @@ export function chatKind(c: Pick<ChatView, 'publicChat' | 'groupChat'>): ChatKin
 /** Name of a chat; direct chats have none and are named after the other side. */
 export function chatTitle(c: ChatView, me?: string): string {
   if (c.chatName) return c.chatName;
-  const others = c.participants.filter((p) => !p.myUser && p.username !== me).map((p) => p.username ?? '');
+  const others = c.participants.filter((p) => !isMe(p, me)).map((p) => p.username ?? '');
   return others.join(', ') || 'Unterhaltung';
 }
 
@@ -61,7 +61,11 @@ export function systemText(content: string): string | null {
   return m[2] === 'joined' ? `${m[1]} ist beigetreten.` : `${m[1]} hat den Chat verlassen.`;
 }
 
-const isOwn = (m: MessageView, me?: string) => !!m.sender?.myUser || (!!me && m.sender?.username === me);
+// `myUser` is relative to whoever the server built the object for: live pushes are built once
+// for the sender, so every recipient sees `myUser: true`. Trust the name once it is known.
+const isMe = (u: { myUser?: boolean; username?: string } | undefined, me?: string) =>
+  me ? u?.username === me : !!u?.myUser;
+const isOwn = (m: MessageView, me?: string) => isMe(m.sender, me);
 
 /** Messages (oldest first) → ChatThread items with day separators and system lines. */
 export function toThread(

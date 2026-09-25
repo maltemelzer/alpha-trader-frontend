@@ -133,7 +133,7 @@ export function HighscoresPage() {
           <DS.StatTile
             label="Platz"
             value={myEntry?.historyPosition != null ? myEntry.historyPosition.toLocaleString('de-DE') : '–'}
-            hint={total ? `von ${total.toLocaleString('de-DE')}` : undefined}
+            hint={total ? `von ${total.toLocaleString('de-DE')}` : '\u00a0'}
           />
           <DS.StatTile label={info.label} value={myEntry ? formatValue(type, myEntry.value) : '–'} />
         </DS.StatGroup>

@@ -21,6 +21,9 @@ export function plotlyTheme() {
     automargin: true,
     fixedrange: true,
     tickfont: { family: mono, size: 11, color: v('text-secondary') },
+    // German numbers on every axis: „150.000“ instead of Plotly's „150k“ / „4.7M“.
+    exponentformat: 'none',
+    separatethousands: true,
   };
   return {
     tokens: v,

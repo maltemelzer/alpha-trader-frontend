@@ -48,3 +48,26 @@ export function alpha(hex: string, a: number): string {
 export function clip(s: string, max = 11): string {
   return s.length > max ? s.slice(0, max - 1) + '…' : s;
 }
+
+/**
+ * A rate that spans orders of magnitude (yield per day: 0,004 % … 1.700 %), in German format:
+ * three decimals below 0,1 %, two up to 10 %, one above; from 1.000 % on „über 1.000 %“.
+ */
+export function ratePct(pct: number): string {
+  const sign = pct < 0 ? '−' : '';
+  const a = Math.abs(pct);
+  if (a >= 1000) return `${sign}über 1.000\u00a0%`;
+  const d = a >= 10 ? 1 : a >= 0.1 ? 2 : 3;
+  return `${sign}${a.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d })}\u00a0%`;
+}
+
+/** Time span as it is read in the game: „12 Min.“, „13 Std.“, „5 T 4 Std.“ */
+export function span(ms: number): string {
+  const min = Math.max(0, Math.round(ms / 60_000));
+  if (min < 60) return `${min}\u00a0Min.`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}\u00a0Std.`;
+  const d = Math.floor(h / 24);
+  const rest = h % 24;
+  return rest ? `${d}\u00a0T ${rest}\u00a0Std.` : `${d}\u00a0T`;
+}

@@ -25,6 +25,7 @@ import { ForumPage } from './forum/ForumPage';
 import { CompanyPage } from './companies/CompanyPage';
 import { CompaniesPage } from './companies/CompaniesPage';
 import { CapitalPage } from './capital/CapitalPage';
+import { CentralBankPage } from './centralbank/CentralBankPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,6 +59,7 @@ export function App() {
               <Route path="unternehmen/gruenden" element={<Navigate to="/unternehmen?gruenden=1" replace />} />
               <Route path="unternehmen/:asin" element={<CompanyPage />} />
               <Route path="kapitalmassnahmen" element={<CapitalPage />} />
+              <Route path="zentralbank" element={<CentralBankPage />} />
               <Route path="orders" element={<OrdersPage />} />
               <Route path="highscores" element={<HighscoresPage />} />
               <Route path="spieler/:username" element={<PlayerPage />} />

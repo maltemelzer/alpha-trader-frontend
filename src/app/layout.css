@@ -131,3 +131,43 @@
     gap: var(--space-3);
   }
 }
+
+/* A value that just changed lights up briefly in its direction (useTick + tickClass). */
+.tick {
+  display: inline-flex;
+  border-radius: var(--radius-sm);
+}
+
+.tick--up,
+.tick-price--up .bnk-sech__price {
+  animation: tick-up 1.6s ease-out;
+}
+
+.tick--down,
+.tick-price--down .bnk-sech__price {
+  animation: tick-down 1.6s ease-out;
+}
+
+@keyframes tick-up {
+  from {
+    background: var(--gain-tint);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@keyframes tick-down {
+  from {
+    background: var(--loss-tint);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+/* Charts with clickable points (Plot onPointClick): Plotly sets its own cursor on the drag layer. */
+.plot--clickable .nsewdrag,
+.plot--clickable .draglayer .drag {
+  cursor: pointer !important;
+}

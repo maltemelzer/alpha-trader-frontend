@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, type InfiniteData, type UseQueryResult } from '@tanstack/react-query';
 import { api, ApiError, unwrap } from './client';
 import { LIVE_RECONNECTED_EVENT, useTopic } from './live';
 import type {
@@ -7,6 +7,7 @@ import type {
   ChatView,
   CompanyView,
   HistorizedListingDataView,
+  ListingView,
   MessageView,
   ListingProfile,
   OrderbookView,
@@ -21,10 +22,14 @@ import type {
 } from './types';
 import { useEffect } from 'react';
 import type { ApiMessage } from '../lib/messages';
+import { mergeTrades } from '../app/tape';
 import type {
   AchievementItem,
   AllianceMembership,
   BalanceSheetView,
+  BondView,
+  EtfView,
+  IndexView as IndexDetails,
   CashTransferLogEntry,
   CentralBankReserves,
   Employment,
@@ -82,6 +87,7 @@ export function useMyCompanies(userId: string | undefined) {
 export function useListingProfile(asin: string) {
   return useQuery({
     queryKey: ['listingprofile', asin],
+    enabled: !!asin,
     queryFn: () =>
       unwrap<ListingProfile>(
         api.GET('/api/listingprofiles/{securityIdentifier}', { params: { path: { securityIdentifier: asin } } }),
@@ -93,6 +99,7 @@ export function useListingProfile(asin: string) {
 export function usePriceSpread(asin: string) {
   return useQuery({
     queryKey: ['pricespread', asin],
+    enabled: !!asin,
     queryFn: () =>
       unwrap<PriceSpreadView>(
         api.GET('/api/pricespreads/{securityIdentifier}', { params: { path: { securityIdentifier: asin } } }),
@@ -104,6 +111,7 @@ export function usePriceSpread(asin: string) {
 export function useOrderbook(asin: string) {
   return useQuery({
     queryKey: ['orderbook', asin],
+    enabled: !!asin,
     queryFn: () =>
       unwrap<OrderbookView>(
         api.GET('/api/orderbook/{securityIdentifier}', { params: { path: { securityIdentifier: asin } } }),
@@ -143,6 +151,7 @@ export function useTrades(asin: string, size = 50) {
 export function useDailyHistory(asin: string) {
   return useQuery({
     queryKey: ['history', asin],
+    enabled: !!asin,
     queryFn: async () => {
       const page = await unwrap<{ content: HistorizedListingDataView[] }>(
         api.GET('/api/v2/historizedlistingdata/{securityIdentifier}', {
@@ -330,6 +339,43 @@ export function useMarketTrades() {
     queryFn: () => unwrap<SecurityOrderLogEntryView[]>(api.GET('/api/securityorderlogs')),
     refetchInterval: LIVE,
   });
+}
+
+/**
+ * Market trades for the tape: first the last two minutes, then only what came after the newest
+ * known trade (GET /api/securityorderlogs?startDate=) – a few KB per poll instead of 1.000 trades.
+ */
+export function useRecentTrades() {
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: ['recenttrades'],
+    queryFn: async () => {
+      const prev = qc.getQueryData<SecurityOrderLogEntryView[]>(['recenttrades']) ?? [];
+      const since = prev[0]?.date ?? Date.now() - 120_000;
+      const fresh = await unwrap<SecurityOrderLogEntryView[]>(
+        api.GET('/api/securityorderlogs', { params: { query: { startDate: String(since) } } }),
+      );
+      return mergeTrades(fresh, prev);
+    },
+    refetchInterval: LIVE,
+  });
+}
+
+const byAsin = (results: UseQueryResult<ListingView>[]) =>
+  Object.fromEntries(results.flatMap((r) => (r.data?.securityIdentifier ? [[r.data.securityIdentifier, r.data]] : []))) as Record<string, ListingView>;
+
+/** One listing (name, type), kept for the session – also for prefetching. */
+export const listingQuery = (asin: string) => ({
+  queryKey: ['listing', asin],
+  queryFn: () => unwrap<ListingView>(api.GET('/api/listings/{securityIdentifier}', { params: { path: { securityIdentifier: asin } } })),
+  staleTime: Infinity,
+  gcTime: Infinity,
+  retry: false,
+});
+
+/** Listings by ASIN (name, type), fetched one by one and kept for the session. */
+export function useListings(asins: string[]) {
+  return useQueries({ queries: asins.map(listingQuery), combine: byAsin });
 }
 
 // ---------- Highscores ----------
@@ -880,16 +926,27 @@ export interface CompanyHistoryPoint {
   fairValuePerShare?: number;
 }
 
+const companyByAsin = (asin: string) => ({
+  queryKey: ['company', 'asin', asin],
+  enabled: !!asin,
+  queryFn: async () => {
+    const c = await unwrap<CompanyView>(
+      api.GET('/api/companies/securityIdentifier/{securityIdentifier}', { params: { path: { securityIdentifier: asin } } }),
+    );
+    return unwrap<CompanyProfile>(api.GET('/api/companyprofiles/{companyId}', { params: { path: { companyId: c.id! } } }));
+  },
+  staleTime: SLOW,
+});
+
 export function useCompanyByAsin(asin: string) {
-  return useQuery({
-    queryKey: ['company', 'asin', asin],
-    queryFn: async () => {
-      const c = await unwrap<CompanyView>(
-        api.GET('/api/companies/securityIdentifier/{securityIdentifier}', { params: { path: { securityIdentifier: asin } } }),
-      );
-      return unwrap<CompanyProfile>(api.GET('/api/companyprofiles/{companyId}', { params: { path: { companyId: c.id! } } }));
-    },
-    staleTime: SLOW,
+  return useQuery(companyByAsin(asin));
+}
+
+/** Several company profiles at once (e.g. the largest banks), by ASIN; shared cache with useCompanyByAsin. */
+export function useCompaniesByAsin(asins: string[]) {
+  return useQueries({
+    queries: asins.map(companyByAsin),
+    combine: (results) => results.map((r) => r.data),
   });
 }
 
@@ -970,6 +1027,97 @@ export function useFoundCompany() {
       void qc.invalidateQueries({ queryKey: ['companies'] });
       void qc.invalidateQueries({ queryKey: ['portfolio'] });
     },
+  });
+}
+
+// ---------- Asset classes ----------
+
+/** Bond or system bond behind a listing (null when matured and gone). */
+export function useBond(asin: string | undefined, type: string | undefined) {
+  const system = type === 'SYSTEM_BOND' || type === 'SYSTEM_REPO';
+  return useQuery({
+    queryKey: ['bond', asin],
+    enabled: !!asin,
+    queryFn: async () => {
+      try {
+        return await unwrap<BondView>(
+          system
+            ? api.GET('/api/systembonds/securityidentifier/{securityIdentifier}', { params: { path: { securityIdentifier: asin! } } })
+            : api.GET('/api/bonds/securityidentifier/{securityIdentifier}', { params: { path: { securityIdentifier: asin! } } }),
+        );
+      } catch (e) {
+        if (e instanceof ApiError && e.status < 500) return null;
+        throw e;
+      }
+    },
+    staleTime: SLOW,
+  });
+}
+
+/**
+ * Running bonds for the market list: the 500 bonds maturing last plus all system bonds. The spread
+ * search does not list bonds, and there are more than 2.000 at a time.
+ */
+export function useBondList(enabled: boolean) {
+  return useQuery({
+    queryKey: ['bonds', 'list'],
+    enabled,
+    queryFn: async () => {
+      const [bonds, system] = await Promise.all([
+        getPage<BondView>('/api/v2/bonds', { pageable: { page: 0, size: 500, sort: ['maturityDate,desc'] } }),
+        unwrap<BondView[]>(api.GET('/api/systembonds')),
+      ]);
+      return [...(system ?? []), ...bonds.content];
+    },
+    staleTime: LIVE,
+  });
+}
+
+/** Index with members, weights and chaining (GET /api/v2/index/{asin}). */
+export function useIndexDetails(asin: string, enabled = true) {
+  return useQuery({
+    queryKey: ['index', asin],
+    enabled: !!asin && enabled,
+    queryFn: () =>
+      unwrap<IndexDetails>(api.GET('/api/v2/index/{securityIdentifier}', { params: { path: { securityIdentifier: asin } } })),
+    staleTime: SLOW,
+  });
+}
+
+export function useEtf(asin: string, enabled = true) {
+  return useQuery({
+    queryKey: ['etf', asin],
+    enabled: !!asin && enabled,
+    queryFn: () => unwrap<EtfView>(api.GET('/api/v2/etfs/{asin}', { params: { path: { asin } } })),
+    staleTime: SLOW,
+  });
+}
+
+/** Subscribe (new units against cash) or redeem ETF units. */
+export function useEtfUnits(asin: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ mode, units }: { mode: 'subscribe' | 'redeem'; units: number }) =>
+      unwrap(
+        mode === 'subscribe'
+          ? api.POST('/api/v2/etfs/{asin}/subscriptions', { params: { path: { asin }, query: { units } } })
+          : api.POST('/api/v2/etfs/{asin}/redemptions', { params: { path: { asin }, query: { units } } }),
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['portfolio'] });
+      void qc.invalidateQueries({ queryKey: ['etf', asin] });
+      void qc.invalidateQueries({ queryKey: ['listingprofile', asin] });
+    },
+  });
+}
+
+/** A sample of buildings of one size with their last price, for the price comparison (~11.000 per size exist). */
+export function useBuildings(size: number | undefined) {
+  return useQuery({
+    queryKey: ['buildings', size],
+    enabled: !!size,
+    queryFn: () => getPage<MarketRow>('/api/v2/pricespreads', { search: `Building ${size} `, pageable: { page: 0, size: 500 } }),
+    staleTime: SLOW,
   });
 }
 
@@ -1131,16 +1279,27 @@ export function useBanking(companyId: string | undefined, enabled: boolean) {
     queryFn: () => unwrap<CentralBankReserves>(api.GET('/api/centralbankreserves', { params: { query: { companyId: companyId! } } })),
     staleTime: SLOW,
   });
-  const lastPayment = useQuery({
+  const lastPayment = useReservesPayment(on);
+  const tender = useInterestTender(on);
+  return { license, reserves, lastPayment, tender };
+}
+
+/** Last daily interest payment on all central bank reserves, with the time of the next one. */
+export function useReservesPayment(enabled = true) {
+  return useQuery({
     queryKey: ['reservespayment'],
-    enabled: on,
+    enabled,
     queryFn: () =>
       unwrap<{ paymentDate: number; nextPaymentDate?: number; paidInterest: number }>(api.GET('/api/v2/lastcentralbankreservespayment')),
     staleTime: SLOW,
   });
-  const tender = useQuery({
+}
+
+/** The running interest tender: a 7-day bond without coupon; banks bid 98–102 %, which sets the main rate. */
+export function useInterestTender(enabled = true) {
+  return useQuery({
     queryKey: ['interesttender'],
-    enabled: on,
+    enabled,
     queryFn: async () => {
       try {
         return await unwrap<{ bondListing: Listing; endDate: number } | null>(api.GET('/api/v2/interesttenders'));
@@ -1151,7 +1310,58 @@ export function useBanking(companyId: string | undefined, enabled: boolean) {
     },
     staleTime: SLOW,
   });
-  return { license, reserves, lastPayment, tender };
+}
+
+/** All system bonds: credit of the central bank to banks, at the main rate + 1, about 6,5 days. */
+export function useSystemBonds() {
+  return useQuery({
+    queryKey: ['systembonds'],
+    queryFn: () => unwrap<BondView[]>(api.GET('/api/systembonds')),
+    staleTime: SLOW,
+  });
+}
+
+export interface InterestRateSnapshot {
+  date: number;
+  mainInterestRate?: number;
+  reserveInterestRate?: number;
+  systemBondInterestRate?: number;
+  averageBondInterestRate?: number;
+}
+
+/** Hourly snapshots of main, reserve and system bond rate (1.000 ≈ 6 weeks). */
+export function useInterestHistory(limit = 1000) {
+  return useQuery({
+    queryKey: ['interestratehistory', limit],
+    queryFn: () => unwrap<InterestRateSnapshot[]>(api.GET('/api/v2/interestratehistory', { params: { query: { limit } } })),
+    staleTime: SLOW,
+  });
+}
+
+/**
+ * Running bonds for comparing yields: the 500 due first and the 500 due last (there are more than
+ * 2.000 at a time; the list sorts by maturity) plus the system bonds.
+ */
+export function useBondUniverse(enabled = true) {
+  return useQuery({
+    queryKey: ['bonds', 'universe'],
+    enabled,
+    queryFn: async () => {
+      const [first, last, system] = await Promise.all([
+        getPage<BondView>('/api/v2/bonds', { pageable: { page: 0, size: 500, sort: ['maturityDate,asc'] } }),
+        getPage<BondView>('/api/v2/bonds', { pageable: { page: 0, size: 500, sort: ['maturityDate,desc'] } }),
+        unwrap<BondView[]>(api.GET('/api/systembonds')),
+      ]);
+      const seen = new Set<string>();
+      return [...(system ?? []), ...first.content, ...last.content].filter((b) => {
+        const id = b.id ?? b.listing?.securityIdentifier ?? '';
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+    },
+    staleTime: LIVE,
+  });
 }
 
 export function useBankingActions(companyId: string | undefined) {

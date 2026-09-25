@@ -1,12 +1,15 @@
 import { useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { DS } from '../ds';
-import { useMe, usePortfolioSummary, useUnreadChats } from '../api/queries';
+import { useMe, usePortfolio, useUnreadChats } from '../api/queries';
+import { bookValue } from '../organisation/derive';
 import { useAuth } from '../auth/AuthProvider';
 import { useIsPhone } from '../lib/useMediaQuery';
 import { AREAS, areaOf } from './nav';
 import { Notifications } from './Notifications';
 import { GlobalSearch } from './GlobalSearch';
+import { MarketTape } from './MarketTape';
+import { tickClass, useTick } from '../lib/useTick';
 import './AppShell.css';
 import './layout.css';
 
@@ -16,8 +19,10 @@ export function AppShell() {
   const isPhone = useIsPhone();
   const { logout } = useAuth();
   const me = useMe();
-  const summary = usePortfolioSummary();
+  const portfolio = usePortfolio();
+  const book = portfolio.data ? bookValue(portfolio.data) : undefined;
   const [moreOpen, setMoreOpen] = useState(false);
+  const valueTick = useTick(book);
   const unreadChats = useUnreadChats();
   const badges: Record<string, number | undefined> = { community: unreadChats || undefined, '/nachrichten': unreadChats || undefined };
 
@@ -33,9 +38,13 @@ export function AppShell() {
     children: a.children?.map((c) => ({ ...c, active: pathname === c.href || pathname.startsWith(c.href + '/'), badge: badges[c.href] })),
   }));
 
-  const stats = summary.data && [
-    <DS.HeaderStat key="d" label="Depotwert" value={summary.data.totalValue} />,
-    <DS.HeaderStat key="b" label="Bargeld" value={summary.data.cash} />,
+  // Placeholders of the same size while the portfolio loads – otherwise search and nav jump sideways.
+  const pending = <DS.Skeleton width="13ch" />;
+  const stats = [
+    <span key="d" className={`tick${tickClass(valueTick)}`}>
+      <DS.HeaderStat label="Depotwert" value={book ?? pending} />
+    </span>,
+    <DS.HeaderStat key="b" label="Bargeld" value={portfolio.data?.cash ?? pending} />,
   ];
 
   const menu = (
@@ -85,7 +94,7 @@ export function AppShell() {
           brand="Alpha-Trader"
           brandHref="/"
           items={items}
-          meta={[...(isPhone ? [] : [<GlobalSearch key="s" />]), ...(stats || []), <Notifications key="n" />, menu]}
+          meta={[...(isPhone ? [] : [<GlobalSearch key="s" />]), ...stats, <Notifications key="n" />, menu]}
           bottomNav={bottomNav}
           renderLink={(item, { key, ...props }, children) => (
             <Link key={key} to={item.href ?? '/'} {...props}>
@@ -94,6 +103,7 @@ export function AppShell() {
           )}
         />
       )}
+      {!bare && <MarketTape />}
       <main className="shell__main">
         <Outlet />
       </main>

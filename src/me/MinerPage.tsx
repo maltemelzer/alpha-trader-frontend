@@ -24,7 +24,7 @@ export function MinerPage() {
       <DS.PageHeader
         size="md"
         title="Miner"
-        meta={coinPrice ? <span>AlphaCoin {DS.format.money(coinPrice, '€')}</span> : undefined}
+        meta={coinPrice ? <span>AlphaCoin {DS.format.money(coinPrice, '€')}</span> : '\u00a0'}
         description="Der Miner schürft AlphaCoins in seinen Speicher. Übertragene Coins landen im Privatportfolio und sind dort handelbar."
       />
       <div className="page__body me__narrow">

@@ -75,3 +75,19 @@
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
 }
+
+.company__bank {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.company__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.company__note a {
+  color: var(--text-primary);
+}

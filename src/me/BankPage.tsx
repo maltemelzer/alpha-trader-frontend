@@ -58,9 +58,11 @@ export function BankPage() {
       <div className={`page__body me__bank${isWide ? ' me__bank--wide' : ''}`}>
         <div className="page__col me__bank-side">
           <DS.StatGroup columns="1fr" aria-label="Kontostände">
-            {accounts.map((a) => (
-              <DS.StatTile key={a.id} label={a.name} value={a.cash} compact="auto" />
-            ))}
+            {accounts.length ? (
+              accounts.map((a) => <DS.StatTile key={a.id} label={a.name} value={a.cash} compact="auto" />)
+            ) : (
+              <DS.StatTile label="Privatkonto" value={<DS.Skeleton width="9em" />} />
+            )}
           </DS.StatGroup>
           <DS.Card title="Überweisung">
             {accounts.length > 1 ? (

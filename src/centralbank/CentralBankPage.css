@@ -1,0 +1,138 @@
+.cb__body {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.cb__grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.cb--wide .cb__grid {
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+}
+
+.cb__chart {
+  min-height: 200px;
+}
+
+.cb__pad {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.cb__stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cb__stack > * {
+  flex: none;
+}
+
+.cb__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.cb__note b,
+.cb__mono {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.cb__note a,
+.cb__rules a,
+.cb__credit a {
+  color: var(--text-primary);
+}
+
+.cb__h {
+  margin: var(--space-2) 0 0;
+  font: 600 12px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.cb__bars {
+  position: relative;
+  min-height: 120px;
+}
+
+.cb__due {
+  position: relative;
+  height: 150px;
+}
+
+.cb__credit {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cb__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+  font-size: 14px;
+}
+
+.cb__row span {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.cb__rules {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-2) var(--space-4);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.cb__rules dt {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cb__rules dd {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.cb .bnk-statgrp .bnk-stat__hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 719.98px) {
+  .cb__body {
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  .cb--phone .cb__body:has(> .bnk-statgrp) {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .cb .bnk-statgrp {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .cb__rules {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cb__rules dd {
+    margin-bottom: var(--space-2);
+  }
+}

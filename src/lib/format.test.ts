@@ -1,4 +1,23 @@
-import { alpha, changeText, clip, euro, short } from './format';
+import { alpha, changeText, clip, euro, short, ratePct, span } from './format';
+
+describe('span', () => {
+  it('reads like the game', () => {
+    expect(span(12 * 60_000)).toBe('12\u00a0Min.');
+    expect(span(13 * 3_600_000 + 5 * 60_000)).toBe('13\u00a0Std.');
+    expect(span((5 * 24 + 4) * 3_600_000)).toBe('5\u00a0T 4\u00a0Std.');
+    expect(span(2 * 86_400_000)).toBe('2\u00a0T');
+  });
+});
+
+describe('ratePct', () => {
+  it('picks decimals by size', () => {
+    expect(ratePct(0.0123)).toBe('0,012\u00a0%');
+    expect(ratePct(0.354)).toBe('0,35\u00a0%');
+    expect(ratePct(12.34)).toBe('12,3\u00a0%');
+    expect(ratePct(-0.5)).toBe('−0,50\u00a0%');
+    expect(ratePct(1700)).toBe('über 1.000\u00a0%');
+  });
+});
 
 describe('format', () => {
   it('short', () => {

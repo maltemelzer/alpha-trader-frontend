@@ -15,7 +15,8 @@
 }
 
 .org__right {
-  grid-template-rows: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  /* Fixed shares (no fit-content: that would jump when the suggestions arrive); room for three suggestions at 900 px. */
+  grid-template-rows: minmax(0, 1.2fr) minmax(0, 1fr);
 }
 
 .org-trades__stats {

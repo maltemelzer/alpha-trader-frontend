@@ -25,6 +25,7 @@ export function GlobalSearch() {
         placeholder="Suchen"
         size="sm"
         shortcut="/"
+        align="end"
         value={q}
         onChange={setQ}
         results={q.trim().length >= 2 ? results : []}

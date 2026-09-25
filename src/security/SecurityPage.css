@@ -64,6 +64,10 @@
   .sec__lower {
     gap: var(--space-3);
   }
+  /* Room for the Börsenband above */
+  .sec__main {
+    grid-template-rows: minmax(200px, 1.15fr) minmax(200px, 1fr);
+  }
 }
 
 /* ---------- phone ---------- */
@@ -156,4 +160,106 @@
 
 .sec .bnk-sech__fact a {
   color: inherit;
+}
+
+/* ---------- class panels (bond, index, ETF, building) ---------- */
+.class__stack {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.class__chart {
+  flex: 1;
+  min-height: 64px;
+}
+
+.class__note {
+  flex: none;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.class__note a,
+.sec__side a {
+  color: var(--text-primary);
+}
+
+.class__stats {
+  flex: none;
+}
+
+.class__stats .bnk-stat {
+  padding: var(--space-1) var(--space-3);
+}
+
+.class__stats .bnk-stat__value {
+  font-size: 18px;
+}
+
+.class__stats .bnk-stat__label,
+.class__stats .bnk-stat__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.class__stats .bnk-stat__hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.class__list {
+  position: relative;
+  margin: 0 calc(-1 * var(--space-4));
+}
+
+.class__gap {
+  color: var(--text-secondary);
+  font: 500 12px/16px var(--font-mono);
+  white-space: nowrap;
+}
+
+.sec__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (max-width: 719.98px) {
+  .class__stats .bnk-statgrp {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Indexes are not traded: no bid/ask in the header */
+.sec--index .bnk-sech__q {
+  display: none;
+}
+
+.sec--index .bnk-sech__facts {
+  border-left: 0;
+}
+
+.class__note b {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.panel--class .bnk-prog__hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Bonds: the price chart sits in the narrow lower slot – no room for the range tag next to the title. */
+.sec__lower .panel--price .panel__actions .bnk-chg {
+  display: none;
 }

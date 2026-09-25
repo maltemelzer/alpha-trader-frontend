@@ -53,6 +53,10 @@ export interface ListingProfile {
     };
   } | null;
   bond?: { faceValue?: number; interestRate?: number; maturityDate?: number } | null;
+  /** SystemBondView for SYSTEM_BOND listings */
+  systemBond?: import('../../vendor/bankiersgruen').BondView | null;
+  /** BuildingView: type like OFFICE1200, size in m² */
+  building?: { type?: string; size?: number } | null;
 }
 
 /** GET /api/orderbook/{asin} */
