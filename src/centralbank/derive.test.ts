@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bankShares, dueByDay, potRows, rateOnlyBelowTarget, rateWindow, reserveIncome, signedPct, supplySeries, targetGrowthPct, tenderRate } from './derive';
+import { bankShares, dueByDay, potRows, rateOnlyBelowTarget, rateWindow, reserveIncome, signedPct, supplySeries, targetGrowthPct } from './derive';
 
 describe('supplySeries', () => {
   it('sorts oldest first, computes the gap to the target and the rate in %', () => {
@@ -51,15 +51,6 @@ describe('signedPct', () => {
     expect(signedPct(5.88)).toBe('+5,9 %');
     expect(signedPct(-3.296, 2)).toBe('−3,30 %');
     expect(signedPct(0)).toBe('±0,0 %');
-  });
-});
-
-describe('tenderRate', () => {
-  it('reads a bid as rate', () => {
-    expect(tenderRate(98)).toBe(2);
-    expect(tenderRate(102)).toBe(-2);
-    expect(tenderRate(99.29)).toBeCloseTo(0.71, 6);
-    expect(tenderRate(undefined)).toBeUndefined();
   });
 });
 

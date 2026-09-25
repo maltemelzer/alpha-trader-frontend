@@ -2774,3 +2774,90 @@ export function useTopBookValues(enabled: boolean) {
     staleTime: SLOW,
   });
 }
+
+// ---------- Interest tender (Zinstender) ----------
+
+/** Issuer of every tender bond; the order log of its account holds all tender allotments. */
+const ALPHA_BANK_ASIN = 'STALPHBANK';
+
+/**
+ * Allotments of the past interest tenders (3–6 per day, 300 ≈ two months), newest first: the order log
+ * of the Alpha Bank's securities account, searched for the tender ASINs („ITI…“). The Alpha Bank sells
+ * each bid at its own price right after the bidding ends; buyer names are public here.
+ */
+export function useTenderAllotments(enabled = true) {
+  return useQuery({
+    queryKey: ['tender', 'allotments'],
+    enabled,
+    queryFn: async () => {
+      const bank = await unwrap<CompanyView>(
+        api.GET('/api/companies/securityIdentifier/{securityIdentifier}', { params: { path: { securityIdentifier: ALPHA_BANK_ASIN } } }),
+      );
+      if (!bank.securitiesAccountId) return [];
+      const page = await getPage<SecurityOrderLogEntryView>('/api/v2/securityorderlogs', {
+        securitiesAccountId: bank.securitiesAccountId,
+        search: 'ITI',
+        pageable: { page: 0, size: 300, sort: ['date,desc'] },
+      });
+      return page.content;
+    },
+    staleTime: SLOW,
+  });
+}
+
+export interface MyBank {
+  id: string;
+  name: string;
+  securityIdentifier: string;
+  securitiesAccountId: string;
+  cash?: number;
+  maxCentralBankLoans?: number;
+  takenCentralBankLoans?: number;
+}
+
+/** Companies the player runs as CEO that hold a banking license (only banks may bid in the tender). */
+export function useMyBanks() {
+  const me = useMe();
+  const companies = useMyCompanies(me.data?.id);
+  const list = companies.data ?? [];
+  const profiles = useQueries({ queries: list.map((c) => companyByAsin(c.securityIdentifier ?? '')) });
+  const loading = me.isLoading || companies.isLoading || profiles.some((p) => p.isLoading);
+  const banks: MyBank[] = list.flatMap((c, i) => {
+    const p = profiles[i]?.data;
+    if (!p?.companyCapabilities?.bank || !c.securitiesAccountId || !c.id) return [];
+    return [
+      {
+        id: c.id,
+        name: p.name ?? c.name ?? '',
+        securityIdentifier: p.securityIdentifier,
+        securitiesAccountId: c.securitiesAccountId,
+        cash: p.bankAccount?.cash ?? c.bankAccount?.cash,
+        maxCentralBankLoans: p.companyCapabilities.maxCentralBankLoans,
+        takenCentralBankLoans: p.companyCapabilities.takenCentralBankLoans,
+      },
+    ];
+  });
+  return { banks, isLoading: loading, companies: list.length };
+}
+
+/** Open orders of several of my accounts on one security (shares the cache with useOpenOrders). */
+export function useOrdersOn(accountIds: string[], asin: string) {
+  return useQueries({
+    queries: accountIds.map((id) => ({
+      queryKey: ['orders', id],
+      enabled: !!asin,
+      queryFn: () =>
+        getPage<SecurityOrderView>('/api/v2/securityorders', {
+          securitiesAccountId: id,
+          pageable: { page: 0, size: 100, sort: ['creationDate,desc'] },
+        }),
+      refetchInterval: LIVE,
+    })),
+    combine: (results) => ({
+      orders: results.flatMap((r, i) =>
+        (r.data?.content ?? []).filter((o) => o.securityIdentifier === asin).map((o) => ({ ...o, accountId: accountIds[i] })),
+      ),
+      isLoading: results.some((r) => r.isLoading),
+    }),
+  });
+}

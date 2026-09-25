@@ -1,10 +1,5 @@
-// Pure helpers for the central bank page: tender rate, bank shares, rate history.
-
-/** A bid on the interest tender bond in % of face value → the rate it stands for (98 % ≙ 2 %, 102 % ≙ −2 %). */
-export function tenderRate(bidPct: number | null | undefined): number | undefined {
-  if (bidPct == null || !Number.isFinite(bidPct) || bidPct <= 0) return undefined;
-  return 100 - bidPct;
-}
+// Pure helpers for the central bank page: bank shares, rate history, money supply.
+// The interest tender has its own module (tender.ts).
 
 export interface BankShare {
   name: string;

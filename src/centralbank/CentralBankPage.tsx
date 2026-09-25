@@ -4,11 +4,9 @@ import {
   useCompaniesByAsin,
   useHighscores,
   useInterestHistory,
-  useInterestTender,
   useMainInterestRate,
   useMoneySupply,
   useMoneySupplyBreakdown,
-  useOrderbook,
   useReservesPayment,
   useSystemBonds,
 } from '../api/queries';
@@ -17,8 +15,10 @@ import { Plot } from '../charts/Plot';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
 import { useParamState } from '../lib/useParamState';
-import { bankSharesChart, dueChart, moneySupplyChart, potsChart, rateHistoryChart, tenderBidsChart } from './charts';
-import { bankShares, dueByDay, potRows, rateOnlyBelowTarget, rateWindow, signedPct, supplySeries, targetGrowthPct, tenderRate } from './derive';
+import { bankSharesChart, dueChart, moneySupplyChart, potsChart, rateHistoryChart } from './charts';
+import { bankShares, dueByDay, potRows, rateOnlyBelowTarget, rateWindow, signedPct, supplySeries, targetGrowthPct } from './derive';
+import { CreditForm } from './CreditForm';
+import { AssumeControl, TenderBid, TenderPhone, TenderSide } from './TenderPanel';
 import './CentralBankPage.css';
 
 const DAY = 86_400_000;
@@ -94,7 +94,14 @@ export function CentralBankPage() {
     </DS.StatGroup>
   );
 
-  const chart = (
+  // With the tender tab open, the big card becomes the bid simulator; the tab shows the history and the book.
+  const chart = !isPhone && view === 'tender' ? (
+    <DS.Card className="panel" title="Was bewirkt dein Gebot?" action={<AssumeControl />}>
+      <div className="panel__fill scroll cb__tender">
+        <TenderBid />
+      </div>
+    </DS.Card>
+  ) : (
     <DS.Card
       className="panel"
       title={isPhone ? undefined : 'Zinsverlauf'}
@@ -115,7 +122,7 @@ export function CentralBankPage() {
   const panels: Record<string, React.ReactNode> = {
     banken: <Banks />,
     kredite: <Credit />,
-    tender: <Tender />,
+    tender: isPhone ? <TenderPhone /> : <TenderSide />,
     geld: <MoneySupply />,
     regeln: <Rules mainRate={main.data?.value} reserveRate={reserveRate} />,
   };
@@ -142,7 +149,7 @@ export function CentralBankPage() {
   }
 
   return (
-    <div className={`page cb${isWide ? ' cb--wide' : ''}`} onClick={onLinkClick}>
+    <div className={`page cb${isWide ? ' cb--wide' : ''}${view === 'tender' ? ' cb--tender' : ''}`} onClick={onLinkClick}>
       <DS.PageHeader
         size="md"
         title="Zentralbank"
@@ -267,49 +274,7 @@ function Credit() {
         Banken leihen sich Geld bei der Zentralbank, indem sie Systemanleihen ausgeben – bis 10 % ihrer Einlage, zum Leitzins
         + 1 %, Laufzeit etwa 6½ Tage.
       </p>
-    </div>
-  );
-}
-
-/** The running interest tender: which bond, when bidding closes, and the bids read as rates. */
-function Tender() {
-  const tender = useInterestTender();
-  const asin = tender.data?.bondListing.securityIdentifier ?? '';
-  const book = useOrderbook(asin);
-  const bids = useMemo(
-    () => (book.data?.buyEntries ?? []).map((e) => ({ price: e.priceLimit, size: e.size, rate: tenderRate(e.priceLimit) ?? 0 })),
-    [book.data],
-  );
-  const volume = bids.reduce((s, b) => s + b.size, 0);
-
-  if (tender.isLoading) return <DS.Loading rows={4} />;
-  if (!tender.data) return <DS.EmptyState compact as="h3" title="Gerade kein Zinstender" />;
-  return (
-    <div className="cb__stack">
-      <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Zinstender">
-        <DS.StatTile label="Gebote" value={volume} compact hint={`${bids.length} ${bids.length === 1 ? 'Preisstufe' : 'Preisstufen'}`} />
-        <DS.StatTile label="Laufzeit" value="7 Tage" hint="ohne Zins, von der Alpha Bank" />
-        <DS.StatTile label="Bieten bis" value={<DS.Countdown to={tender.data.endDate} short endedText="beendet" />} />
-      </DS.StatGroup>
-      <p className="cb__note">
-        Anleihe <a href={`/wertpapier/${asin}`}>{tender.data.bondListing.name}</a> · <span className="cb__mono">{asin}</span>
-      </p>
-      <h3 className="cb__h">Gebote als Zins</h3>
-      <div className="cb__due">
-        {book.isLoading ? (
-          <DS.Skeleton variant="block" />
-        ) : bids.length ? (
-          <Plot aria-label="Volumen der Gebote je Zinssatz" figure={(t, w) => tenderBidsChart(t, w, bids)} />
-        ) : (
-          <DS.EmptyState compact as="h3" title="Noch keine Gebote" />
-        )}
-      </div>
-      <p className="cb__note">
-        Gebote von 98 % bis 102 % des Nennwerts: 98 % heißt 2 % Zins für die Bank, 102 % heißt, sie zahlt 2 %. Laut dem
-        Forumsbeitrag „Zinstender-Verfahren“ (2022) ergibt der gewichtete Durchschnitt den Zins des Tages und der Leitzins den
-        Schnitt der letzten 30 Tage – der Verlauf des Leitzinses passt nicht ganz dazu, er bewegte sich zuletzt nur zwischen 0,6 %
-        und 2 %.
-      </p>
+      <CreditForm />
     </div>
   );
 }
@@ -404,8 +369,9 @@ function Rules({ mainRate, reserveRate }: { mainRate?: number; reserveRate?: num
         </dd>
         <dt>Leitzins</dt>
         <dd>
-          Wird aus dem täglichen Zinstender gebildet, laut Forum als Schnitt über 30 Tage (jetzt {pct(mainRate)}). Neu gesetzt wird
-          er einmal am Tag, gegen 14 Uhr.
+          Schnitt aus (Gebot − 100 %) aller Zuteilungen der Zinstender der letzten 7 Tage, nach Stück gewichtet (jetzt{' '}
+          {pct(mainRate)}): Gebote über 100 % heben ihn, darunter senken sie ihn. Neu gesetzt wird er einmal am Tag, gegen 14 Uhr,
+          wenn der Tender zugeteilt ist. Bieten dürfen nur Banken.
         </dd>
         <dt>Anleihen</dt>
         <dd>
