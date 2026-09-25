@@ -42,6 +42,8 @@ import {
   type ScreenRow,
 } from './screener';
 import { Screener } from './ScreenerPanel';
+import { ClassOverview } from './ClassOverview';
+import { overviewKind } from './overview';
 import { RealEstateView } from './RealEstateView';
 import { WarrantMarket } from './WarrantMarket';
 import './MarketPage.css';
@@ -132,7 +134,8 @@ export function MarketPage() {
 
   const sort = screen.sort ?? defaultSort(types);
   const base = useMemo(() => applyScreen(universe, { ...screen, ranges: {}, quote: '', issuer: '', sizes: [] }, now), [universe, screen, now]);
-  const rows = useMemo(() => sortRows(applyScreen(universe, screen, now), sort), [universe, screen, now, sort]);
+  const filtered = useMemo(() => applyScreen(universe, screen, now), [universe, screen, now]);
+  const rows = useMemo(() => sortRows(filtered, sort), [filtered, sort]);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   const page = Math.min(Math.max(0, Number(params.get('seite') ?? 1) - 1), pages - 1);
   const pageRows = useMemo(() => rows.slice(page * PAGE, (page + 1) * PAGE), [rows, page]);
@@ -176,6 +179,37 @@ export function MarketPage() {
         { value: 'liste', label: 'Liste' },
       ]}
     />
+  ) : null;
+
+  // Class overview above the list (scrolls away with it); ?ueb=aus hides it.
+  const kind = special ? null : overviewKind(types);
+  const showOverview = params.get('ueb') !== 'aus';
+  const overview =
+    kind && showOverview ? (
+      <ClassOverview
+        kind={kind}
+        rows={filtered}
+        now={now}
+        loading={loading || ((kind === 'bond' || kind === 'repo') && loadingBonds)}
+        onSelectType={(g) => setParam({ art: g, seite: null, sp: null, sort: null, immo: null })}
+      />
+    ) : null;
+  const overviewToggle = kind ? (
+    isPhone ? (
+      <button
+        type="button"
+        className="ovw-toggle"
+        aria-pressed={showOverview}
+        aria-label={showOverview ? 'Diagramm ausblenden' : 'Diagramm zeigen'}
+        onClick={() => setParam({ ueb: showOverview ? 'aus' : null })}
+      >
+        <DS.Icon name="markt" size={20} />
+      </button>
+    ) : (
+      <DS.Button size="sm" variant="ghost" aria-pressed={showOverview} onClick={() => setParam({ ueb: showOverview ? 'aus' : null })}>
+        {showOverview ? 'Diagramm ausblenden' : 'Diagramm zeigen'}
+      </DS.Button>
+    )
   ) : null;
 
   const stats = useMinimalStats();
@@ -265,6 +299,8 @@ export function MarketPage() {
         isPhone={isPhone}
         special={special}
         estateSwitch={estateSwitch}
+        overview={overview}
+        overviewToggle={overviewToggle}
         pagination={
           pages > 1 && !special ? (
             <div className="market__pages">

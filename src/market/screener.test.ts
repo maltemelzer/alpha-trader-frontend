@@ -148,6 +148,10 @@ describe('rows from sources', () => {
     expect(a.change).toBe(4);
     expect(b.change).toBe(0);
   });
+  it('a complete turnover list says nothing about bonds, indexes and ETFs (it never lists them)', () => {
+    const rows = mergeRows([[row('EF1', 'ETF'), row('ID1', 'INDEX'), row('BD1', 'BUILDING')]], { volume: lookup([['ST1', 100]], true) });
+    expect(rows.map((r) => r.volume)).toEqual([null, null, 0]);
+  });
   it('a movers list that does not reach 0 leaves others unknown', () => {
     const l = changeLookup([mrow('A', 'STOCK', { priceChangeInPercent: 5 })], [mrow('B', 'STOCK', { priceChangeInPercent: -1 })])!;
     expect(l.complete).toBe(false);

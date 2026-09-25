@@ -214,6 +214,9 @@ function pick(l: Lookup | null | undefined, asin: string): number | null {
   return l.complete ? 0 : null;
 }
 
+/** Groups that `biggesttradedsecurities` lists at all (checked 25.09.2026: STOCK, BUILDING, COIN – no bonds, indexes, ETFs). */
+const VOLUME_GROUPS: Group[] = ['STOCK', 'BUILDING', 'COIN'];
+
 /** Merges row lists (first occurrence of an ASIN wins, later lists fill its gaps) and adds the lookups. */
 export function mergeRows(
   lists: (ScreenRow | null)[][],
@@ -230,7 +233,8 @@ export function mergeRows(
   }
   const rows = [...byAsin.values()];
   for (const r of rows) {
-    r.volume ??= pick(add.volume, r.asin);
+    // The turnover list only covers shares, buildings and coins; elsewhere 0 would be a guess.
+    if (VOLUME_GROUPS.includes(r.group)) r.volume ??= pick(add.volume, r.asin);
     r.trades ??= pick(add.trades, r.asin);
     // Bonds and repos are not in the movers lists; indexes and ETFs are.
     if (r.group !== 'BOND' && r.group !== 'REPO') r.change ??= pick(add.change, r.asin);
