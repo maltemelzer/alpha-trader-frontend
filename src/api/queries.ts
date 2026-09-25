@@ -1748,3 +1748,81 @@ export function useBiggestTraded(type?: string, size = 10) {
     refetchInterval: SLOW,
   });
 }
+
+// ---------- Dividends, mergers, money supply ----------
+
+type CompactCompany = { id: string; name: string; securityIdentifier: string; logoUrl?: string | null };
+
+/**
+ * DividendPaymentView / MergerView: an accepted dividend or merger poll, due at startDate. The API
+ * lists only upcoming ones; maximalCashVolume is the cap set in the poll (it may exceed the cash).
+ */
+export interface DividendPaymentView {
+  id: string;
+  maximalCashVolume: number;
+  startDate: number;
+  company: CompactCompany;
+}
+
+export interface MergerView extends DividendPaymentView {
+  /** The company the other one merges into */
+  acquiringCompany: CompactCompany;
+}
+
+export function useDividendPayments() {
+  return useQuery({
+    queryKey: ['dividendpayments'],
+    queryFn: () => getPage<DividendPaymentView>('/api/v2/dividendpayments', { pageable: { page: 0, size: 200 } }),
+    refetchInterval: SLOW,
+  });
+}
+
+export function useMergers() {
+  return useQuery({
+    queryKey: ['mergers'],
+    queryFn: () => getPage<MergerView>('/api/v2/mergers', { pageable: { page: 0, size: 500 } }),
+    refetchInterval: SLOW,
+  });
+}
+
+/** One step of the money supply control; appliedInterestRate is a fraction (0,02 = 2 %). */
+export interface MoneySupplySnapshot {
+  date: number;
+  playerMoneySupply: number;
+  /** Observed: the previous snapshot's playerMoneySupply × 1,001 */
+  targetSupply: number;
+  soldBondVolume: number;
+  appliedInterestRate: number;
+}
+
+/** The last 30 snapshots, newest first (irregular, several a day). */
+export function useMoneySupply() {
+  return useQuery({
+    queryKey: ['moneysupply'],
+    queryFn: () => unwrap<{ currentBondInterestRate?: number; snapshots: MoneySupplySnapshot[] }>(api.GET('/api/moneysupply')),
+    refetchInterval: SLOW,
+  });
+}
+
+export interface MoneySupplyPot {
+  pot: string;
+  accountCount: number;
+  cash: number;
+}
+
+/** Where the money is now: bank account cash plus central bank reserves (= total), split into pots. */
+export function useMoneySupplyBreakdown() {
+  return useQuery({
+    queryKey: ['moneysupply', 'breakdown'],
+    queryFn: () =>
+      unwrap<{
+        totalBankCash: number;
+        totalReserves: number;
+        total: number;
+        attributedCash: number;
+        unassignedCash: number;
+        pots: MoneySupplyPot[];
+      }>(api.GET('/api/moneysupply/breakdown')),
+    refetchInterval: SLOW,
+  });
+}

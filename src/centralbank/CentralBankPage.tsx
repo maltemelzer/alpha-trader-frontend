@@ -6,6 +6,8 @@ import {
   useInterestHistory,
   useInterestTender,
   useMainInterestRate,
+  useMoneySupply,
+  useMoneySupplyBreakdown,
   useOrderbook,
   useReservesPayment,
   useSystemBonds,
@@ -14,8 +16,8 @@ import { Plot } from '../charts/Plot';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
 import { useParamState } from '../lib/useParamState';
-import { bankSharesChart, dueChart, rateHistoryChart, tenderBidsChart } from './charts';
-import { bankShares, dueByDay, rateWindow, tenderRate } from './derive';
+import { bankSharesChart, dueChart, moneySupplyChart, potsChart, rateHistoryChart, tenderBidsChart } from './charts';
+import { bankShares, dueByDay, potRows, rateOnlyBelowTarget, rateWindow, signedPct, supplySeries, targetGrowthPct, tenderRate } from './derive';
 import './CentralBankPage.css';
 
 const DAY = 86_400_000;
@@ -32,13 +34,15 @@ const SIDE = [
   { value: 'banken', label: 'Banken' },
   { value: 'kredite', label: 'Kredite' },
   { value: 'tender', label: 'Zinstender' },
+  { value: 'geld', label: 'Geldmenge' },
   { value: 'regeln', label: 'So funktioniert’s' },
 ];
 const PHONE = [
   { value: 'zinsen', label: 'Zinsen' },
   { value: 'banken', label: 'Banken' },
-  { value: 'kredite', label: 'Kredit' },
+  { value: 'kredite', label: 'Kredite' },
   { value: 'tender', label: 'Tender' },
+  { value: 'geld', label: 'Geldmenge' },
   { value: 'regeln', label: 'Regeln' },
 ];
 
@@ -111,6 +115,7 @@ export function CentralBankPage() {
     banken: <Banks />,
     kredite: <Credit />,
     tender: <Tender />,
+    geld: <MoneySupply />,
     regeln: <Rules mainRate={main.data?.value} reserveRate={reserveRate} />,
   };
 
@@ -119,7 +124,7 @@ export function CentralBankPage() {
       <div className="page cb cb--phone" onClick={onLinkClick}>
         <DS.PageHeader size="md" title="Zentralbank" meta={<span>Leitzins {pct(main.data?.value)} · Einlage {pct(reserveRate)} / Tag</span>} />
         <div className="page__body cb__body">
-          <DS.SegmentedControl size="sm" aria-label="Ansicht" options={PHONE} value={view} onChange={setView} />
+          <DS.Tabs aria-label="Ansicht" items={PHONE} value={view} onChange={setView} />
           {view === 'zinsen' ? (
             <>
               {stats}
@@ -304,6 +309,74 @@ function Tender() {
         Schnitt der letzten 30 Tage – der Verlauf des Leitzinses passt nicht ganz dazu, er bewegte sich zuletzt nur zwischen 0,6 %
         und 2 %.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Money supply: the players' money supply against its target over the last snapshots, the bonds
+ * sold at each step, and where all money sits now (pots). Only what the numbers show is claimed:
+ * the target is the previous supply + 0,1 %, and a rate was applied only below the target.
+ */
+function MoneySupply() {
+  const supply = useMoneySupply();
+  const breakdown = useMoneySupplyBreakdown();
+  const points = useMemo(() => supplySeries(supply.data?.snapshots), [supply.data]);
+  const pots = useMemo(() => potRows(breakdown.data?.pots), [breakdown.data]);
+  const last = points.at(-1);
+  const growth = targetGrowthPct(points);
+  const b = breakdown.data;
+  const rate = (n: number) => `${n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+
+  if (supply.isLoading || breakdown.isLoading) return <DS.Loading rows={6} />;
+  return (
+    <div className="cb__stack">
+      <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Geldmenge">
+        <DS.StatTile label="Geld gesamt" value={b ? b.total : '–'} compact hint="Konten + Einlagen" />
+        <DS.StatTile
+          label="Geldmenge"
+          value={last ? last.supply : '–'}
+          compact
+          hint={last ? `${signedPct(last.gapPct)} zum Ziel` : ' '}
+        />
+        <DS.StatTile label="Zins zuletzt" value={last ? rate(last.ratePct) : '–'} hint="beim letzten Schritt" />
+      </DS.StatGroup>
+      <h3 className="cb__h">Geldmenge und Ziel</h3>
+      <div className="cb__supply">
+        {points.length > 1 ? (
+          <Plot aria-label="Geldmenge der Spieler und Zielmenge im Verlauf, darunter verkaufte Anleihen" figure={(t, w) => moneySupplyChart(t, w, points)} />
+        ) : (
+          <DS.EmptyState compact as="h3" title="Kein Verlauf" />
+        )}
+      </div>
+      <p className="cb__note">
+        Geldmenge und Ziel meldet das Spiel so; was genau zur Geldmenge zählt, sagt es nicht.
+        {growth != null && ` Das Ziel ist jeweils die vorige Geldmenge ${signedPct(growth, 1)}.`}
+        {rateOnlyBelowTarget(points) &&
+          ` In diesen ${points.length} Schritten gab es nur einen Zins, wenn die Geldmenge unter dem Ziel lag (bis ${rate(
+            Math.max(0, ...points.map((p) => p.ratePct)),
+          )}), sonst 0 %.`}
+      </p>
+      <h3 className="cb__h">Wo das Geld liegt</h3>
+      {pots.length ? (
+        <div className="cb__bars" style={{ height: 30 * pots.length + 8 }}>
+          <Plot aria-label="Anteil am gesamten Geld je Topf" figure={(t, w) => potsChart(t, w, pots)} />
+        </div>
+      ) : (
+        <DS.EmptyState compact as="h3" title="Keine Aufteilung" />
+      )}
+      {b && (
+        <p className="cb__note">
+          <b>
+            <DS.Amount value={b.totalBankCash} compact />
+          </b>{' '}
+          liegen auf Konten,{' '}
+          <b>
+            <DS.Amount value={b.totalReserves} compact />
+          </b>{' '}
+          als Zentralbankeinlagen. In Klammern: Zahl der Konten.
+        </p>
+      )}
     </div>
   );
 }
