@@ -274,3 +274,295 @@
 .etf-manage__group > :first-child {
   align-self: stretch;
 }
+
+/* ---------- warrants: „Wenn … dann …“ ---------- */
+/* The ticket wrapper that reads the draft must not change the ticket's layout. */
+.sec__draft {
+  display: contents;
+}
+
+/* The payoff is the story of a warrant: the top slot gets more height than a price chart would. */
+.sec--warrant .sec__main {
+  grid-template-rows: minmax(300px, 1.6fr) minmax(180px, 1fr);
+}
+
+@media (max-height: 800px) {
+  .sec--warrant .sec__main {
+    grid-template-rows: minmax(270px, 1.7fr) minmax(150px, 1fr);
+  }
+}
+
+.scn__eyebrow {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-secondary);
+  font: 600 11px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.scn {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.scn__summary {
+  flex: none;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.scn__body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--space-4);
+}
+
+.scn__chart {
+  min-height: 0;
+  min-width: 0;
+}
+
+.scn__box {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--line);
+}
+
+.scn__if {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scn__in {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.scn__in .bnk-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.scn__slider {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--chart-1);
+  height: 18px;
+}
+
+.scn__picks {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+}
+
+.scn__pick {
+  flex: 1 1 auto;
+  min-height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 500 12px/1 var(--font-mono);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.scn__pick:hover,
+.scn__pick:focus-visible {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+.scn__pick[aria-pressed='true'] {
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  border-color: var(--text-primary);
+}
+
+.scn__then {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.scn__label {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.scn__res {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.scn__big {
+  flex: none;
+  color: var(--text-primary);
+  font: 500 22px/28px var(--font-mono);
+}
+
+.scn__why,
+.scn__basis {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.scn__count {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.scn__count .bnk-field {
+  width: 110px;
+  flex: none;
+}
+
+.scn__count b {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.scn__pl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-2);
+  margin-top: 2px;
+}
+
+/* Narrow cards (tablet without the ticket column) and the phone: controls above the chart,
+   the view scrolls inside its panel. */
+@media (max-width: 899.98px) {
+  .scn {
+    height: auto;
+  }
+  .scn__body {
+    flex: none;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 240px;
+  }
+  .scn__box {
+    order: -1;
+    overflow: visible;
+    padding-left: 0;
+    border-left: 0;
+  }
+  .panel--scenario .panel__fill {
+    overflow: auto;
+  }
+  .panel--scenario .panel__fill > .scn {
+    flex: none;
+  }
+}
+
+/* No card title: the summary line is the heading. */
+.panel--scenario .panel__fill {
+  padding-top: var(--space-3);
+}
+
+.scn--bare .scn__summary {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+@media (pointer: coarse) {
+  .scn__pick {
+    min-height: 44px;
+  }
+  .scn__slider {
+    height: 44px;
+  }
+}
+
+/* Short desktop windows (1280×720): „wenn“ and „dann“ side by side, so nothing has to scroll. */
+@media (max-height: 800px) and (min-width: 900px) {
+  .scn__body {
+    grid-template-columns: minmax(0, 1fr) 480px;
+  }
+  .scn__box {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-content: start;
+    gap: var(--space-3);
+  }
+  .scn__then {
+    padding-top: 0;
+    padding-left: var(--space-3);
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+  .scn__picks {
+    flex-wrap: wrap;
+  }
+  .scn__res {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+  .scn__count {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .scn__count .bnk-field {
+    width: 88px;
+  }
+}
+
+/* Warrants on an underlying: one scenario for all of them */
+.warrants__if {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-2) var(--space-4) 0;
+}
+
+.warrants__if .bnk-field {
+  width: 110px;
+  flex: none;
+}
+
+.warrants__q {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.warrants__if .scn__picks {
+  flex: 1 1 260px;
+}
+
+.warrants__hint {
+  flex-basis: 100%;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 14px;
+}
