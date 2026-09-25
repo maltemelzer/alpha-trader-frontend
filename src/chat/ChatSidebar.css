@@ -1,0 +1,46 @@
+/* Docked right of the page column, from below the header to the bottom (grid area in AppShell.css). */
+.chat-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-card);
+  border-left: var(--border) solid var(--line-strong);
+}
+
+.chat-sidebar__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  padding: 0 var(--space-2) 0 var(--space-4);
+  border-bottom: var(--hairline) solid var(--line-strong);
+}
+
+.chat-sidebar__title {
+  flex: 1;
+  margin: 0;
+  font: 600 12px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.chat-sidebar__body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* The window sits flush in the sidebar: no card corners, the sidebar is the card. */
+.chat-sidebar .bnk-chatwin {
+  border-radius: 0;
+}
+
+.chat-sidebar .bnk-chatwin__scroll,
+.chat-sidebar .bnk-chatwin__side {
+  position: relative;
+}
+
+.chat-sidebar .bnk-chatwin__scroll {
+  padding: 0 var(--space-3);
+}

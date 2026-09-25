@@ -18,6 +18,38 @@
   overflow: auto;
 }
 
+/* Chat sidebar docked on the right (≥ 1200 px): header across, Börsenband and page on the left.
+   Collapsed, the column is gone – no rail. Width = CHAT_SIDEBAR_WIDTH in sidebarState.ts. */
+.shell--chat {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.shell--chat > .shell__header {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.shell--chat > .tape {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.shell--chat > .shell__main {
+  grid-column: 1;
+}
+
+.shell--chat > .chat-sidebar {
+  grid-column: 2;
+  grid-row: 2 / -1;
+}
+
+/* Chat and bell side by side, closer than the other header items */
+.shell__icons {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 /* Room for the fixed BottomNav and the home indicator */
 .shell--tabbar .shell__main {
   padding-bottom: calc(72px + env(safe-area-inset-bottom));
@@ -55,7 +87,11 @@
 /* The nav needs the room on smaller desktops: narrower field, hidden below 1200 px (Markt has the search). */
 @media (max-width: 1439.98px) {
   .global-search {
-    width: 150px;
+    width: 130px;
+  }
+  /* The chat button needs room too: tighter spacing on the right, or the nav runs under the search */
+  .shell__header .bnk-hdr__meta {
+    gap: var(--space-4);
   }
 }
 

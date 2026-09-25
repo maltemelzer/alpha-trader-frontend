@@ -1209,7 +1209,19 @@ export declare function Sheet(props: SheetProps): React.ReactElement | null;
 
 /** API: NotificationView (GET /v2/notifications) */
 export interface NotificationView { id: string; subject?: string | { filledString?: string }; content?: string | { filledString?: string }; date?: number; readByReceiver?: boolean; }
-export interface NotificationBellProps { count?: number; onClick?: React.MouseEventHandler<HTMLButtonElement>; expanded?: boolean; haspopup?: boolean; className?: string; }
+export interface NotificationBellProps {
+  count?: number; onClick?: React.MouseEventHandler<HTMLButtonElement>; expanded?: boolean; haspopup?: boolean; className?: string;
+  /** anderes Symbol statt der Glocke, z. B. 'chat' für ungelesene Nachrichten */
+  icon?: IconName;
+  /** Name für Screenreader, Standard „Benachrichtigungen“ (ergänzt um „, 3 ungelesen“) */
+  label?: string;
+  /** Umschalter (z. B. Chat-Seitenleiste): aria-pressed, gedrückt wie geöffnet */
+  pressed?: boolean;
+  /** id des gesteuerten Bereichs (aria-controls) */
+  controls?: string;
+  /** Hinweis bei Hover, z. B. Tastenkürzel */
+  title?: string;
+}
 export declare const NotificationBell: React.ForwardRefExoticComponent<NotificationBellProps & React.RefAttributes<HTMLButtonElement>>;
 export interface NotificationListProps {
   items: NotificationView[];

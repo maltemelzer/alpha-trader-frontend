@@ -6,6 +6,7 @@
 //   npm run shot -- /wertpapier/STSN3G03LB                 # 1440×900 + 1280×720 + 390×844
 //   npm run shot -- /markt --size 390x844 --out /tmp/shots
 //   npm run shot -- /anmelden --anon                       # without login
+//   npm run shot -- /markt --local at.chatSidebar=1        # localStorage entry before loading (chat sidebar open)
 //
 // Read-only: it only navigates; it never clicks buy/sell.
 
@@ -48,6 +49,7 @@ const sizes = opt('--size') ? [opt('--size')] : SIZES;
 const outDir = resolve(opt('--out', join(root, 'shots')));
 const app = opt('--app', 'http://localhost:5173');
 const wait = Number(opt('--wait', 2500));
+const local = args.flatMap((a, i) => (args[i - 1] === '--local' ? [a.split('=')] : []));
 
 const e = env();
 const jwt = args.includes('--anon') ? null : await token(e, e.VITE_API_BASE || 'https://stable.alpha-trader.com');
@@ -63,6 +65,7 @@ try {
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
     page.on('pageerror', (err) => errors.push(err.message));
     if (jwt) await page.evaluateOnNewDocument((t) => sessionStorage.setItem('at.token', t), jwt);
+    if (local.length) await page.evaluateOnNewDocument((kv) => kv.forEach(([k, v]) => localStorage.setItem(k, v)), local);
     await page.goto(app + path, { waitUntil: 'networkidle2' });
     await new Promise((r) => setTimeout(r, wait));
 

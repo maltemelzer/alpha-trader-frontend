@@ -13,6 +13,16 @@
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
 }
 
+/* One column (below 1100 px page width, e.g. 1280 px with the chat sidebar): chart and tabs share the
+   height – with auto rows the chart's minimum pushed it over the tabs card. */
+.cb:not(.cb--wide) .cb__grid {
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.cb:not(.cb--wide) .cb__chart {
+  min-height: 120px;
+}
+
 .cb__chart {
   min-height: 200px;
 }

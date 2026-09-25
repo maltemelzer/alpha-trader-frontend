@@ -10,6 +10,7 @@
 //
 //   npm run audit                              # all pages, 1440×900 + 390×844
 //   npm run audit -- /markt /orders --size 1280x720 --watch 30000
+//   npm run audit -- /markt --local at.chatSidebar=1   # localStorage entry before loading
 //
 // Read-only: it only navigates and hovers nothing.
 
@@ -70,7 +71,8 @@ const opt = (name, dflt) => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : dflt;
 };
-const paths = args.filter((a, i) => a.startsWith('/') && !['--size', '--watch'].includes(args[i - 1]));
+const paths = args.filter((a, i) => a.startsWith('/') && !['--size', '--watch', '--local'].includes(args[i - 1]));
+const local = args.flatMap((a, i) => (args[i - 1] === '--local' ? [a.split('=')] : []));
 const sizes = opt('--size') ? [opt('--size')] : ['1440x900', '390x844'];
 const watch = Number(opt('--watch', 12000));
 const app = opt('--app', 'http://localhost:5173');
@@ -194,6 +196,7 @@ try {
       page.on('pageerror', (err) => errors.push(err.message.slice(0, 160)));
       await page.evaluateOnNewDocument((t) => sessionStorage.setItem('at.token', t), jwt);
       await page.evaluateOnNewDocument(observeShifts);
+      if (local.length) await page.evaluateOnNewDocument((kv) => kv.forEach(([k, v]) => localStorage.setItem(k, v)), local);
       await page.goto(app + path, { waitUntil: 'networkidle2', timeout: 60000 }).catch((err) => errors.push(`goto: ${err.message}`));
       await new Promise((r) => setTimeout(r, watch));
       const shifts = await page.evaluate(() => window.__shifts);

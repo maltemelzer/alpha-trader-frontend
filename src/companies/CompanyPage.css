@@ -71,6 +71,14 @@
   }
 }
 
+/* Same with the chat sidebar docked: the page column is 340 px narrower than the viewport */
+@media (max-width: 1439px) {
+  .shell--chat .companies__body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+}
+
 .companies__body:has(> :only-child) {
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);

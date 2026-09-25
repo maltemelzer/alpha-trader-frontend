@@ -1,15 +1,27 @@
-import { useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { DS } from '../ds';
-import { useMe, usePortfolio, useUnreadChats } from '../api/queries';
+import { useChatUnread, useMe, usePortfolio } from '../api/queries';
+import type { ChatView, MessageView } from '../api/types';
 import { bookValue } from '../organisation/derive';
 import { useAuth } from '../auth/AuthProvider';
-import { useIsPhone } from '../lib/useMediaQuery';
+import { primeLayoutInset, setLayoutInset, useIsPhone, useViewportQuery } from '../lib/useMediaQuery';
 import { AREAS, areaOf } from './nav';
 import { Notifications } from './Notifications';
 import { GlobalSearch } from './GlobalSearch';
 import { MarketTape } from './MarketTape';
 import { tickClass, useTick } from '../lib/useTick';
+import { ChatLive } from '../chat/ChatLive';
+import { CHAT_SIDEBAR_ID, ChatSidebar } from '../chat/ChatSidebar';
+import {
+  CHAT_SIDEBAR_MIN_VIEWPORT,
+  CHAT_SIDEBAR_WIDTH,
+  isChatShortcut,
+  setChatSidebarOpen,
+  sidebarDocks,
+  useChatSidebarOpen,
+} from '../chat/sidebarState';
+import { incomingNotice, titleWithUnread } from '../chat/unread';
 import './AppShell.css';
 import './layout.css';
 
@@ -23,12 +35,57 @@ export function AppShell() {
   const book = portfolio.data ? bookValue(portfolio.data) : undefined;
   const [moreOpen, setMoreOpen] = useState(false);
   const valueTick = useTick(book);
-  const unreadChats = useUnreadChats();
-  const badges: Record<string, number | undefined> = { community: unreadChats || undefined, '/nachrichten': unreadChats || undefined };
+  const unread = useChatUnread().messages;
+  const badges: Record<string, number | undefined> = { community: unread || undefined, '/nachrichten': unread || undefined };
 
   const current = areaOf(pathname);
   // Securities pages on the phone bring their own top bar and the TradeBar – no second bar at the bottom.
   const bare = isPhone && pathname.startsWith('/wertpapier/');
+
+  // Chat sidebar: docked right on wide screens, never on the chat page itself. Pages size their layout by
+  // the viewport – the inset shifts their width queries by the sidebar (see useMediaQuery).
+  const wide = useViewportQuery(`(min-width: ${CHAT_SIDEBAR_MIN_VIEWPORT}px)`);
+  const sidebarOpen = useChatSidebarOpen();
+  const canDock = sidebarDocks(pathname, wide);
+  const docked = canDock && sidebarOpen;
+  const [sidebarChat, setSidebarChat] = useState<string>();
+  primeLayoutInset(docked ? CHAT_SIDEBAR_WIDTH : 0);
+  useLayoutEffect(() => setLayoutInset(docked ? CHAT_SIDEBAR_WIDTH : 0), [docked]);
+  const onChatPage = pathname === '/nachrichten' || pathname.startsWith('/nachrichten/');
+  const toggleChat = useCallback(() => {
+    if (canDock) setChatSidebarOpen(!sidebarOpen);
+    else if (!onChatPage) navigate('/nachrichten');
+  }, [canDock, sidebarOpen, onChatPage, navigate]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (canDock && isChatShortcut(e)) {
+        e.preventDefault();
+        setChatSidebarOpen(!sidebarOpen);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canDock, sidebarOpen]);
+
+  // „(3) Alpha-Trader“ in the tab.
+  useEffect(() => {
+    document.title = titleWithUnread(document.title, unread);
+  }, [unread]);
+
+  // A notice for a new message – unless it is on screen already (chat page, open sidebar).
+  const [notice, setNotice] = useState<{ chatId: string; title: string; text: string; key: string }>();
+  const onFresh = (chat: ChatView, m: MessageView) => {
+    if (onChatPage || docked) return;
+    setNotice({ chatId: chat.id, key: m.id ?? String(m.dateSent), ...incomingNotice(chat, m) });
+  };
+  const openNotice = () => {
+    if (!notice) return;
+    if (canDock) {
+      setSidebarChat(notice.chatId);
+      setChatSidebarOpen(true);
+    } else navigate(`/nachrichten/${notice.chatId}`);
+    setNotice(undefined);
+  };
 
   const items = AREAS.map((a) => ({
     label: a.label,
@@ -46,6 +103,18 @@ export function AppShell() {
     </span>,
     <DS.HeaderStat key="b" label="Bargeld" value={portfolio.data?.cash ?? pending} />,
   ];
+
+  const chatButton = (
+    <DS.NotificationBell
+      icon="chat"
+      label="Nachrichten"
+      count={unread}
+      pressed={canDock ? docked : undefined}
+      controls={docked ? CHAT_SIDEBAR_ID : undefined}
+      title={canDock ? (docked ? 'Chat ausblenden (C)' : 'Chat einblenden (C)') : 'Nachrichten'}
+      onClick={toggleChat}
+    />
+  );
 
   const menu = (
     <DS.PlayerMenu
@@ -88,13 +157,22 @@ export function AppShell() {
   };
 
   return (
-    <div className={`shell${bare ? ' shell--bare' : ''}${isPhone && !bare ? ' shell--tabbar' : ''}`}>
+    <div className={`shell${bare ? ' shell--bare' : ''}${isPhone && !bare ? ' shell--tabbar' : ''}${docked ? ' shell--chat' : ''}`}>
       {!bare && (
         <DS.AppHeader
           brand="Alpha-Trader"
           brandHref="/"
           items={items}
-          meta={[...(isPhone ? [] : [<GlobalSearch key="s" />]), ...stats, <Notifications key="n" />, menu]}
+          className="shell__header"
+          meta={[
+            ...(isPhone ? [] : [<GlobalSearch key="s" />]),
+            ...stats,
+            <span key="n" className="shell__icons">
+              {chatButton}
+              <Notifications />
+            </span>,
+            menu,
+          ]}
           bottomNav={bottomNav}
           renderLink={(item, { key, ...props }, children) => (
             <Link key={key} to={item.href ?? '/'} {...props}>
@@ -107,6 +185,25 @@ export function AppShell() {
       <main className="shell__main">
         <Outlet />
       </main>
+      {docked && <ChatSidebar chatId={sidebarChat} onChatId={setSidebarChat} onClose={() => setChatSidebarOpen(false)} />}
+      {me.data?.username && <ChatLive me={me.data.username} onFresh={onFresh} />}
+      {notice && (
+        <DS.ToastRegion>
+          <DS.Toast
+            key={notice.key}
+            title={notice.title}
+            duration={8000}
+            onClose={() => setNotice(undefined)}
+            action={
+              <DS.Button variant="ghost" size="sm" onClick={openNotice}>
+                Öffnen
+              </DS.Button>
+            }
+          >
+            {notice.text}
+          </DS.Toast>
+        </DS.ToastRegion>
+      )}
       <DS.Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Mehr">
         <MoreList onPick={() => setMoreOpen(false)}>
           <Link to="/highscores">Highscores</Link>

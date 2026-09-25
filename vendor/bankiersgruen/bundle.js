@@ -2492,8 +2492,11 @@
   /* NotificationBell + NotificationList — Benachrichtigungen (API: /v2/notifications, NotificationView). */
   var NotificationBell = React.forwardRef(function NotificationBell(props, ref) {
     var n = props.count || 0;
-    return h('button', { ref: ref, type: 'button', className: cx('bnk-bell', props.className), onClick: props.onClick,
-        'aria-label': 'Benachrichtigungen' + (n ? ', ' + n + ' ungelesen' : ''), 'aria-expanded': props.expanded != null ? String(!!props.expanded) : undefined, 'aria-haspopup': props.haspopup ? 'dialog' : undefined },
+    var label = props.label || 'Benachrichtigungen';
+    return h('button', { ref: ref, type: 'button', className: cx('bnk-bell', props.className), onClick: props.onClick, title: props.title,
+        'aria-label': label + (n ? ', ' + n + ' ungelesen' : ''), 'aria-expanded': props.expanded != null ? String(!!props.expanded) : undefined,
+        'aria-pressed': props.pressed != null ? String(!!props.pressed) : undefined, 'aria-controls': props.controls, 'aria-haspopup': props.haspopup ? 'dialog' : undefined },
+      props.icon ? h(Icon, { name: props.icon, size: 20, className: 'bnk-bell__icon' }) :
       h('svg', { className: 'bnk-bell__icon', 'aria-hidden': 'true', viewBox: '0 0 20 20', width: 20, height: 20, fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' },
         h('path', { d: 'M5 14V9a5 5 0 0 1 10 0v5l1.5 1.5h-13z' }), h('path', { d: 'M8.5 17.5a1.6 1.6 0 0 0 3 0' })),
       n ? h('span', { className: 'bnk-bell__count', 'aria-hidden': 'true' }, n > 99 ? '99+' : n) : null);

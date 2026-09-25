@@ -2697,3 +2697,48 @@ export function useHelpComment(identifier: string, enabled = true) {
     retry: 1,
   });
 }
+
+// ---------- Chat: unread messages everywhere (header, tab title, sidebar) ----------
+// (import kept here with the hooks that use it – this file is only appended to)
+import { applyIncoming, unreadSummary } from '../chat/unread';
+
+/** Unread direct and group messages (`messages`) and chats with any (`chats` = `/my/chats/unread/count`). */
+export function useChatUnread() {
+  return unreadSummary(useMyChats().data);
+}
+
+/**
+ * Live messages of one joined chat, open or not: the list gets it as `lastMessage` and, from someone
+ * else, one more unread message right away (the chat page's own subscription only covers the open chat).
+ * `onFresh` gets each new message from someone else, e.g. for a notice.
+ */
+export function useChatInboxTopic(chatId: string, me: string, onFresh?: (m: MessageView) => void) {
+  const qc = useQueryClient();
+  useTopic<MessageView>(`/user/topic/chatmessages/${chatId}`, (m) => {
+    if (m.chatId !== chatId) return;
+    let fresh = false;
+    qc.setQueryData<ChatView[]>(chatKeys.list, (old) => {
+      if (!old) return old;
+      const r = applyIncoming(old, m, me);
+      fresh = r.fresh;
+      return r.chats;
+    });
+    qc.setQueryData<MessagePages>(chatKeys.messages(chatId), (old) => (old ? upsertMessage(old, m) : old));
+    if (fresh) onFresh?.(m);
+  });
+}
+
+let chatListSync: number | undefined;
+/**
+ * Chat updates pushed to `/user/topic/my/chats` replace the chat in the list (useMyChats). Whether their
+ * unread count is the receiver's is unconfirmed – so the list is fetched again shortly after, bundled.
+ */
+export function useChatListSync() {
+  const qc = useQueryClient();
+  useTopic<ChatView>('/user/topic/my/chats', (c) => {
+    if (c.publicChat) return;
+    window.clearTimeout(chatListSync);
+    chatListSync = window.setTimeout(() => void qc.invalidateQueries({ queryKey: chatKeys.list, exact: true }), 1500);
+  });
+  useEffect(() => () => window.clearTimeout(chatListSync), []);
+}

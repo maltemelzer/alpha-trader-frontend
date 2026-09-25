@@ -41,6 +41,13 @@
   }
 }
 
+/* Same with the chat sidebar docked (page column 340 px narrower) */
+@media (max-width: 1439px) {
+  .shell--chat .spons__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
 @media (max-width: 719px) {
   .spons__card .bnk-card__header {
     display: none;

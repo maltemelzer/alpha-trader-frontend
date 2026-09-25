@@ -37,6 +37,12 @@
   align-self: flex-end;
 }
 
+/* The title is one short word: a small basis keeps the market pulse beside it down to ~900 px page width.
+   With the default 360 px it wrapped under the title once the numbers arrived and pushed the page down. */
+.market .bnk-ph__text {
+  flex-basis: 120px;
+}
+
 .market__hint {
   flex: 0 0 auto !important;
   margin: 0;

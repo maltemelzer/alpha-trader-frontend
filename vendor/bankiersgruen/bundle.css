@@ -320,7 +320,7 @@ a.bnk-hdr__wordmark:focus-visible { outline: var(--rule) solid var(--brass); out
 .bnk-hdr__link.is-active { color: var(--text-primary); }
 .bnk-hdr__link.is-active::after { content: ""; position: absolute; left: var(--space-3); right: var(--space-3); bottom: 0; height: var(--rule); background: var(--brass); }
 .bnk-hdr__link:focus-visible { outline: var(--rule) solid var(--brass); outline-offset: -8px; border-radius: var(--radius-sm); }
-.bnk-hdr__badge { min-width: 18px; padding: 0 5px; box-sizing: border-box; border-radius: var(--radius-sm); background: var(--bg-raised); font-family: var(--font-mono); font-size: 11px; line-height: 18px; font-weight: 500; text-align: center; color: var(--text-primary); }
+.bnk-hdr__badge { min-width: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--text-primary); font-family: var(--font-sans); font-size: 11px; line-height: 18px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; color: var(--bg-page); }
 .bnk-hdr__meta { display: flex; align-items: center; gap: var(--space-6); margin-left: auto; flex: none; }
 .bnk-hdr__stat { display: flex; flex-direction: column; align-items: flex-end; }
 .bnk-hdr__stat-label { font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
@@ -1472,7 +1472,7 @@ button.bnk-ob__btn:focus-visible { outline: var(--rule) solid var(--brass); outl
 
 /* NotificationBell */
 .bnk-bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; margin: 0; padding: 0; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-secondary); cursor: pointer; }
-.bnk-bell:hover, .bnk-bell[aria-expanded="true"] { background: var(--bg-raised); color: var(--text-primary); }
+.bnk-bell:hover, .bnk-bell[aria-expanded="true"], .bnk-bell[aria-pressed="true"] { background: var(--bg-raised); color: var(--text-primary); }
 .bnk-bell:focus-visible { outline: var(--rule) solid var(--brass); outline-offset: 2px; }
 .bnk-bell__icon { display: block; }
 .bnk-bell__count {
