@@ -978,6 +978,8 @@ export interface SecurityHeaderProps {
   notice?: React.ReactNode;
   tabs?: React.ReactNode;
   as?: 'h1' | 'h2';
+  /** Kompakt für Ein-Bildschirm-Seiten: weniger Abstand oben, Kurszeile und Eckdaten in einer Zeile, ohne Spread */
+  compact?: boolean;
   currency?: string; className?: string;
 }
 export declare function SecurityHeader(props: SecurityHeaderProps): React.ReactElement;

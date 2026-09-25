@@ -124,7 +124,6 @@ Inoffizielles Web-Frontend für die Börsensimulation [Alpha-Trader](https://alp
   - Screenshots öffnen Seiten wirklich: ein geöffneter Chat wird als gelesen markiert (`PUT /api/v2/my/chats/read`).
 
 ## Vorschläge fürs Design-System
-- `SecurityHeader` braucht eine kompakte Variante (Kurszeile und Eckdaten in einer Zeile, weniger Abstand oben). Bis dahin seitenweise Überschreibung in `SecurityPage.css`.
 - Anteilseigner als waagerechte Balken (größte 4 + „Übrige“) statt Ring – liest sich bei niedriger Höhe besser.
 - Trades als Punktwolke (Kurs über Zeit, Fläche ∝ Volumen) statt Tabelle.
 - Umgesetzt (Version 47): `Tooltip` hängt die Blase per Portal an `body` (`position: fixed`), damit scrollende Panels/Tabellen sie nicht abschneiden; `Amount` zeigt den vollen Wert als Blase (Hover/Antippen) statt nur per `title`.
@@ -132,12 +131,12 @@ Inoffizielles Web-Frontend für die Börsensimulation [Alpha-Trader](https://alp
 - Umgesetzt (Version 43): `UserPicker`, `Card fill`, `MarketPulse` mit `trades24h`/`volume24h`, `MarketResults defaultSort`, `PollList` ohne Sammelabstimmung bei leerer Liste.
 - Umgesetzt (Version 48/49, Qualitätsrunde): Anrede überall „du“ (Regel im Markenbuch); `TradeBar` ohne Überlauf; Touch-Tippflächen ≥ 44 px hoch per `::before` (nur in der Höhe), Segmente/kleine Felder höher, Felder 16 px gegen iOS-Zoom; `MarketFilterBar` hält die Trefferzeile beim Laden; `DataTable` ohne Sortierung bei 0–1 Zeilen; `ProgressBar` „79 %“; `NewsItem` brief mit Datum; `format.price` unter 0,01 € mit zwei gültigen Ziffern; `SecurityHeader` %-notierte Veränderung in Pp.; `ProfileHeader` Logos `contain`, 3 Kennzahlen am Handy nebeneinander.
 - Offen (Börsenband): `MarketTape` als DS-Komponente; `SecurityHeader`/`HeaderStat` mit eingebautem Aufleuchten bei Kursänderung (statt Überschreiben von `.bnk-sech__price`).
+- Umgesetzt (Version 55): `SecurityHeader compact` (kein Abstand oben, Geld/Brief + Eckdaten in einer Zeile, ohne Spread; unter 720 px Container brechen die Eckdaten in eine eigene Zeile) – die Wertpapierseite nutzt es, in `SecurityPage.css` bleiben nur Handy (Geld/Brief, Kennzeile, Logo aus) und Index (ohne Geld/Brief); `Input numeric` −/+ auf Touch 44 px breit + 44 px Tippfläche; `ChatComposer` am Handy (≤ 480 px) mit Senden in der Zeile, Zusatzaktionen darunter; `BankingPanel`-Kennzahlen per Container Query (4 → 2 Spalten unter 760 px Panelbreite, kleinere Schrift bis 420 px, 1 Spalte unter 280 px).
 - Umgesetzt (Version 53): Touch – kleine Segmente 44 × 44 px, Autor-/Herausgeber-Links mit Tippfläche.
 - Umgesetzt (Version 52): `NewsItem/NewsFeed authorHref, publisherHref` (Zeitung verlinkt Autor → `?autor=`, Herausgeber → `?unternehmen=`), Kurzliste 64 px Zeitspalte; `DataTable`-Zelllinks über dem Zeilenlink; Tippflächen für Thread-Titel, Eyebrow-Links, Hashtags.
 - Umgesetzt (Version 51): `Textarea` mit Zeichenzähler (`AllianceForm` nutzt sie).
 - Umgesetzt (Version 50): `MarketResults extraColumns` (Markt „Anleihen“: Spalte Rendite / Tag, Liste nach `byYield` sortiert – ohne letzte Stunde, `defaultSort` auf die Spalte); `BankingPanel takenLoans` (Kredit genutzt von max.), letzte Zinszahlung als Zahlung an alle Banken beschriftet; Kupon heißt „Zins bis Fälligkeit“ (BondFacts, BondList, BondIssueForm).
-- Offen: `Input numeric` – Stepper-Knöpfe (−/+) sind am Handy nur 36×34 px, unter der 44-px-Tippfläche.
-- Offen: `ProfileHeader`-Tags kommen bei Unternehmen erst mit `capabilities` (Zeile springt ~28 px); Namenslinks in Listen als ganze Zeile klickbar; `BankingPanel` – Kennzahl-Beschriftungen stoßen unter ~760 px Breite aneinander; `Plot`-Klick auf Balken → Wertpapierseite (Gewinner/Verlierer); `SecurityHeader compact`; `LiveTicker` mit Namen-Nachschlag, wenn nur ASINs bekannt sind; `ChatComposer` am Handy mit Senden-Knopf in der Zeile.
+- Offen: `ProfileHeader`-Tags kommen bei Unternehmen erst mit `capabilities` (Zeile springt ~28 px); Namenslinks in Listen als ganze Zeile klickbar; `Plot`-Klick auf Balken → Wertpapierseite (Gewinner/Verlierer); `LiveTicker` mit Namen-Nachschlag, wenn nur ASINs bekannt sind; `SecurityHeader compact` schneidet überzählige Eckdaten mitten im Wort ab (bei 1280 px „Market Maker“) – besser ganze Eckdaten ausblenden.
 
 ## Konventionen
 - Code, Bezeichner, Commits auf Englisch; UI-Texte und diese Datei auf Deutsch. Begriffe der Oberfläche siehe Design-System („Meine Organisation“ statt „Imperium“).

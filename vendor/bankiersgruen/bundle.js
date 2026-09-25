@@ -1905,7 +1905,7 @@
         btn);
     }
     var facts = (props.facts || []).filter(Boolean);
-    return h('header', { className: cx('bnk-sech', props.className) },
+    return h('header', { className: cx('bnk-sech', props.compact && 'bnk-sech--compact', props.className) },
       h('div', { className: 'bnk-sech__top' },
         h('div', { className: 'bnk-sech__id' },
           company && company.logoUrl ? h('img', { className: 'bnk-sech__logo', src: company.logoUrl, alt: '' }) : null,

@@ -348,6 +348,7 @@ function ClassHeader({
   return (
     <DS.SecurityHeader
       {...rest}
+      compact
       className={[rest.className, tick && `tick-price--${tick}`].filter(Boolean).join(' ') || undefined}
       facts={useClassFacts(profile, cls, compact, sideFacts)}
     />
