@@ -37,6 +37,14 @@ export function changeText(pct: number): string {
   return pct > 0 ? `▲ +${v} %` : `▼ −${v} %`;
 }
 
+/** Like changeText, but from 1.000 % on without decimals and from a million in short form: „▲ +4,19 Mio. %“. */
+export function changeShort(pct: number): string {
+  const a = Math.abs(pct);
+  if (a < 1000) return changeText(pct);
+  const v = a >= 1e6 ? short(a) : a.toLocaleString('de-DE', { maximumFractionDigits: 0 });
+  return pct > 0 ? `▲ +${v}\u00a0%` : `▼ −${v}\u00a0%`;
+}
+
 /** #RRGGBB + alpha → rgba() for flat translucent fills. */
 export function alpha(hex: string, a: number): string {
   const m = hex.trim().match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);

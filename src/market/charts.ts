@@ -1,6 +1,6 @@
 // Plotly figures for the market page.
 import type { plotlyTheme } from '../charts/plotlyTheme';
-import { changeText, clip, euro, mix, short } from '../lib/format';
+import { changeShort, changeText, clip, euro, mix, short } from '../lib/format';
 import { heatShare, tileArea, TYPE_LABEL, wrapLabel, type HeatTile, type Mover, type VolumeRow } from './derive';
 
 type Theme = ReturnType<typeof plotlyTheme>;
@@ -21,12 +21,13 @@ export function moversChart(t: Theme, w: number, rows: Mover[]) {
         y: shown.map((r) => clip(r.name, narrow ? 14 : 24)),
         x: shown.map((r) => Math.max(-CAP, Math.min(CAP, r.change))),
         marker: { color: shown.map((r) => v(r.change >= 0 ? 'gain' : 'loss')) },
-        text: shown.map((r) => changeText(r.change)),
+        text: shown.map((r) => changeShort(r.change)),
+        hovertext: shown.map((r) => changeText(r.change)),
         textposition: 'outside',
         cliponaxis: false,
         textfont: { family: v('font-mono'), size: 11, color: shown.map((r) => v(r.change >= 0 ? 'gain' : 'loss')) },
         customdata: shown.map((r) => r.asin),
-        hovertemplate: `%{y} (%{customdata})<br>%{text}<extra></extra>`,
+        hovertemplate: `%{y} (%{customdata})<br>%{hovertext}<extra></extra>`,
       },
     ],
     layout: {
@@ -34,7 +35,7 @@ export function moversChart(t: Theme, w: number, rows: Mover[]) {
       hovermode: 'closest',
       bargap: 0.35,
       margin: { l: 0, r: 8, t: 4, b: 0 },
-      xaxis: { ...t.layout.xaxis, visible: false, showspikes: false, range: [-CAP * 1.9, CAP * 1.9] },
+      xaxis: { ...t.layout.xaxis, visible: false, showspikes: false, range: [-CAP * 2.3, CAP * 2.3] },
       yaxis: {
         ...t.layout.yaxis,
         side: 'left',

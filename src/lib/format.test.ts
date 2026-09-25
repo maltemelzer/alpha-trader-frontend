@@ -1,4 +1,13 @@
-import { alpha, changeText, clip, euro, mix, short, ratePct, span } from './format';
+import { alpha, changeText, clip, euro, mix, short, ratePct, span, changeShort } from './format';
+
+describe('changeShort', () => {
+  it('keeps small changes and shortens huge ones', () => {
+    expect(changeShort(12.345)).toBe('▲ +12,35 %');
+    expect(changeShort(479450)).toBe('▲ +479.450\u00a0%');
+    expect(changeShort(4186450)).toBe('▲ +4,19\u00a0Mio.\u00a0%');
+    expect(changeShort(-60)).toBe('▼ −60,00 %');
+  });
+});
 
 describe('span', () => {
   it('reads like the game', () => {
