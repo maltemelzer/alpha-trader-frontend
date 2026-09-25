@@ -2697,3 +2697,35 @@ export function useHelpComment(identifier: string, enabled = true) {
     retry: 1,
   });
 }
+
+// ---------- Market screener ----------
+
+/**
+ * All listings with a price change: the big-movers list both ways, 1.000 each. Only a few hundred
+ * listings move on a day, so when both lists end at 0 every other listing is unchanged (`changeLookup`).
+ */
+export function useAllPriceChanges(enabled = true) {
+  return useQuery({
+    queryKey: ['movers', 'all'],
+    enabled,
+    queryFn: async () => {
+      const [winners, losers] = await Promise.all([
+        getPage<MarketRow>('/api/v2/securitieswithbigpricechanges', { losersFirst: false, pageable: { page: 0, size: 1000 } }),
+        getPage<MarketRow>('/api/v2/securitieswithbigpricechanges', { losersFirst: true, pageable: { page: 0, size: 1000 } }),
+      ]);
+      return { winners: winners.content, losers: losers.content };
+    },
+    refetchInterval: SLOW,
+  });
+}
+
+/** Book values of the 1.000 largest companies (company highscore BOOK_VALUE), only when asked for. */
+export function useTopBookValues(enabled: boolean) {
+  return useQuery({
+    queryKey: ['highscores', 'company', 'BOOK_VALUE', 'top1000'],
+    enabled,
+    queryFn: () =>
+      getPage<HighscoreEntry>('/api/v2/companyhighscores', { highscoreType: 'BOOK_VALUE', pageable: { page: 0, size: 1000 } }),
+    staleTime: SLOW,
+  });
+}

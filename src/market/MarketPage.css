@@ -8,12 +8,23 @@
 }
 
 .market__side {
-  /* the chart card gets a little more than the ticker, so ten bars still fit at 1280×720 */
+  /* the turnover card gets a little more than the ticker, so ten bars still fit at 1280×720 */
   grid-template-rows: minmax(0, 1.25fr) minmax(0, 1fr);
 }
 
-.market__filter {
-  padding: var(--space-3) var(--space-4) 0;
+@media (max-width: 1379.98px) {
+  .market--wide .market__body {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+}
+
+/* Marktkarte: the map takes the room, the side column only holds the live trades */
+.market--wide .market__body--map {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.market__body--map .market__side {
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .market__pages {
@@ -46,7 +57,7 @@
 }
 
 .market .bnk-card__action .bnk-seg {
-  min-width: 150px;
+  min-width: 180px;
 }
 
 .market__heat-note {
@@ -75,55 +86,15 @@
   height: 12px;
 }
 
+.market__legend-suffix {
+  font-family: var(--font-sans);
+}
+
 .market__legend-note {
   margin-left: auto;
   font-family: var(--font-sans);
   color: var(--text-muted);
 }
-
-/* Phone: compact filter so the results get the screen – search on one line, type and „Weitere Filter“
-   on the next; field labels only for screen readers (the placeholder and value say enough). */
-@media (max-width: 719.98px) {
-  .market .bnk-mfilter {
-    gap: var(--space-2);
-  }
-
-  .market .bnk-mfilter__row {
-    gap: var(--space-2);
-  }
-
-  .market .bnk-mfilter__search {
-    flex: 1 1 100%;
-  }
-
-  .market .bnk-mfilter__type {
-    flex: 1 1 0;
-  }
-
-  .market .bnk-mfilter__more {
-    flex: none !important;
-    margin-bottom: 0;
-  }
-
-  .market .bnk-mfilter .bnk-field__label,
-  .market .bnk-table__msort .bnk-field__label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
-
-  .market .bnk-table__msort {
-    padding: var(--space-2) var(--space-3);
-  }
-
-  .market__hint {
-    display: none;
-  }
-}
-
 
 /* Real estate and warrant views in the results area (RealEstateView, WarrantMarket) */
 .estate,
@@ -189,4 +160,412 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ---------- Screener (ScreenerPanel) ---------- */
+
+.scr-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-2);
+}
+
+.scr-bar__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.scr-bar__search {
+  flex: 1;
+  min-width: 0;
+}
+
+.scr-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: var(--space-2);
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  border: var(--hairline) solid var(--line-strong);
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  font: 600 11px/1 var(--font-mono);
+}
+
+/* Type toggles: several can be on – the look of the segmented control, but independent buttons */
+.scr-types {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: var(--border) solid var(--line-control);
+  border-radius: var(--radius-md);
+  background: var(--bg-page);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.scr-types::-webkit-scrollbar {
+  display: none;
+}
+
+.scr-types__opt {
+  flex: 1 0 auto;
+  height: 28px;
+  margin: 0;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 600 13px/1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.scr-types__opt:hover:not([aria-pressed='true']) {
+  color: var(--text-primary);
+}
+
+.scr-types__opt[aria-pressed='true'] {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  box-shadow: inset 0 calc(-1 * var(--rule)) 0 var(--brass);
+}
+
+.scr-types__opt:focus-visible,
+.scr-chip button:focus-visible,
+.scr-chips__clear:focus-visible,
+.scr-preset:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: 1px;
+}
+
+/* Active filters as chips */
+.scr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.scr-chip {
+  display: inline-flex;
+  align-items: stretch;
+  height: 26px;
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--bg-raised);
+  font: 500 13px/1 var(--font-sans);
+  color: var(--text-primary);
+}
+
+.scr-chip button {
+  position: relative;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.scr-chip__label {
+  padding: 0 var(--space-1) 0 var(--space-3);
+  white-space: nowrap;
+}
+
+.scr-chip__x {
+  width: 26px;
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  color: var(--text-secondary) !important;
+  font-size: 16px !important;
+}
+
+.scr-chip__x:hover {
+  color: var(--text-primary) !important;
+}
+
+.scr-chips__clear {
+  position: relative;
+  margin: 0;
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 600 13px/26px var(--font-sans);
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Count, source note, sort (phone) */
+.scr-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 32px;
+  padding: 0 var(--space-4) var(--space-2);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.scr-status__count {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 13px/20px var(--font-sans);
+  color: var(--text-primary);
+}
+
+.scr-status__note {
+  margin-left: var(--space-2);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.scr-status__note::before {
+  content: '· ';
+}
+
+/* Table cells */
+.scr-quote {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 18px;
+}
+
+.scr-quote__size {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.scr-vol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.scr-vol__bar {
+  display: block;
+  width: 32px;
+  height: 6px;
+  background: var(--bg-raised);
+}
+
+.scr-vol__bar i {
+  display: block;
+  height: 100%;
+  background: var(--chart-2);
+}
+
+.scr-issuer {
+  position: relative;
+  z-index: 1;
+  color: var(--text-primary);
+}
+
+.scr-table .bnk-table__td,
+.scr-table .bnk-table__th {
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}
+
+.scr-table .bnk-table__td.is-first,
+.scr-table .bnk-table__th:first-child {
+  padding-left: var(--space-4);
+}
+
+/* long names (bonds carry issuer, rate and date) end in „…“ – the full name is on the security page */
+.scr-table .bnk-table__name {
+  display: block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Filter sheet */
+.scr-sheet__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.scr-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0 0 var(--space-4);
+  border: 0;
+  border-bottom: var(--hairline) solid var(--line);
+  min-width: 0;
+}
+
+.scr-sec:last-child {
+  border-bottom: 0;
+}
+
+.scr-sec__title {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  font: 600 12px/16px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.scr-range__label {
+  margin-bottom: var(--space-1);
+  font: 600 13px/18px var(--font-sans);
+  color: var(--text-primary);
+}
+
+.scr-range__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.scr-hist {
+  margin-top: var(--space-2);
+}
+
+.scr-hist__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 28px;
+  border-bottom: var(--hairline) solid var(--line-strong);
+}
+
+.scr-hist__bars i {
+  flex: 1;
+  background: var(--chart-2);
+}
+
+.scr-hist__bars i.is-out {
+  background: var(--line-strong);
+}
+
+.scr-hist__axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  font: 11px/14px var(--font-mono);
+  color: var(--text-muted);
+}
+
+.scr-range__hint {
+  margin-top: var(--space-1);
+  font: 12px/16px var(--font-sans);
+  color: var(--text-muted);
+}
+
+.scr-sizes,
+.scr-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2) var(--space-3);
+}
+
+.scr-sheet__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.scr-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.scr-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 44px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.scr-preset[aria-pressed='true'] {
+  background: var(--bg-raised);
+  box-shadow: inset 0 calc(-1 * var(--rule)) 0 var(--brass);
+}
+
+.scr-preset__label {
+  font: 600 14px/18px var(--font-sans);
+}
+
+.scr-preset__desc {
+  font: 12px/16px var(--font-sans);
+  color: var(--text-muted);
+}
+
+.scr-list {
+  margin: 0;
+  padding: 0;
+}
+
+/* Touch: 44 px hit areas without changing the look */
+@media (pointer: coarse) {
+  .scr-types {
+    padding: 0;
+  }
+
+  .scr-types__opt {
+    height: 44px;
+  }
+
+  .scr-chip button::before,
+  .scr-chips__clear::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 44px;
+    transform: translateY(-50%);
+  }
+}
+
+@media (max-width: 719.98px) {
+  .scr-bar {
+    padding: var(--space-3) var(--space-3) var(--space-2);
+  }
+
+  .scr-status {
+    padding: 0 var(--space-3) var(--space-2);
+  }
+
+  /* chips scroll sideways instead of stacking – the results keep the screen */
+  .scr-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .scr-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scr-chip {
+    flex: none;
+  }
 }

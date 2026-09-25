@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import {
-  useBigMovers,
+  useAllPriceChanges,
   useBiggestTraded,
   useBond,
   useBondList,
@@ -11,46 +11,54 @@ import {
   useMinimalStats,
   useMostTraded,
   useSpreadSearch,
+  useTopBookValues,
   useTradingMatrix,
-  type MarketRow,
 } from '../api/queries';
 import { Plot, type PlotPoint } from '../charts/Plot';
 import { short } from '../lib/format';
-import { useDebounced } from '../lib/useDebounced';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
-import { heatmapChart, moversChart, volumeChart } from './charts';
-import { applyFilter, bondRows, byYield, heatTiles, movers, tickerItems, toResult, TYPE_LABEL, uniqueRows, volumeRows } from './derive';
-import { ratePct } from '../lib/format';
-import type { MarketFilterValue, MarketResult, MarketResultColumn } from '../../vendor/bankiersgruen';
+import { useNow } from '../lib/useNow';
+import { useUrlSearch } from '../lib/useUrlSearch';
+import { heatmapChart, marketMapChart, volumeChart } from './charts';
+import { heatTiles, tickerItems, tileArea, TYPE_LABEL, volumeRows } from './derive';
+import {
+  applyScreen,
+  bookLookup,
+  changeLookup,
+  chips,
+  defaultSort,
+  fromBonds,
+  fromMarketRow,
+  groupOf,
+  marketMap,
+  matchesText,
+  mergeRows,
+  readScreen,
+  sortRows,
+  tradesLookup,
+  visibleColumns,
+  volumeLookup,
+  type ScreenRow,
+} from './screener';
+import { Screener } from './ScreenerPanel';
 import { RealEstateView } from './RealEstateView';
 import { WarrantMarket } from './WarrantMarket';
 import './MarketPage.css';
 
 const PAGE = 50;
+const UNIVERSE = 1000;
+const SEARCH = 500;
 const href = (asin: string) => `/wertpapier/${asin}`;
 
 /**
- * Market – search/filter all listings; winners and losers; live trades.
- * Wide: results left, charts and ticker right. Phone: one view at a time.
+ * Market – a screener over everything the fast lists deliver (search, types, ranges, presets, sort,
+ * columns – all in the URL), turnover heatmap and live trades beside it; the „Marktkarte“ tab shows
+ * all securities traded in 24 h grouped by type. Phone: one view at a time.
+ *
+ * Views: ?ansicht=suche|karte (wide tabs) plus umsatz|live on the phone; old `heatmap` → karte,
+ * old `bewegung` → umsatz. Side card ?diagramm=heatmap|liste (old `umsatz` → liste).
  */
-/** Bonds: yield per day at the ask – the coupon is paid once for the whole term, only per day compares. */
-const yieldOf = (r: MarketResult) => (r as MarketResult & { yieldPerDay?: number | null }).yieldPerDay;
-const YIELD_COLUMNS: MarketResultColumn[] = [
-  {
-    key: 'yieldPerDay',
-    label: 'Rendite / Tag',
-    mobileLabel: 'Rendite / Tag',
-    type: 'number',
-    sortable: true,
-    sortValue: (r) => yieldOf(r) ?? -Infinity,
-    render: (r) => {
-      const y = yieldOf(r);
-      return y == null ? '–' : ratePct(y);
-    },
-  },
-];
-
 export function MarketPage() {
   const isWide = useMediaQuery('(min-width: 1100px)');
   const isPhone = useIsPhone();
@@ -74,88 +82,151 @@ export function MarketPage() {
     [setParams],
   );
 
-  // Filter: type and search live in the URL, the rest only in the page.
-  const [more, setMore] = useState<MarketFilterValue>({});
-  const art = params.get('art');
-  const type = art == null ? 'STOCK' : art === 'alle' ? '' : art;
-  // The search text lives in the page and follows into the URL after a pause: a field bound to the
-  // URL loses keystrokes, because the router updates the URL asynchronously.
-  const [text, setText] = useState(() => params.get('q') ?? '');
-  const value: MarketFilterValue = useMemo(() => ({ ...more, type, search: text }), [more, type, text]);
-  const search = useDebounced(text, 250);
-  const urlQ = params.get('q') ?? '';
-  useEffect(() => {
-    if (search !== urlQ) setParam({ q: search || null, seite: null });
-  }, [search, urlQ, setParam]);
-  const searching = search.trim().length >= 2;
-  // Sources: the spread search does not list bonds and repos, and „most traded“ is empty for them,
-  // so bonds come from their own list (plus a direct lookup by ASIN); indexes from the index list.
-  const bondish = type === 'BOND' || type === 'REPO';
-  const found = useSpreadSearch(bondish ? '' : search);
-  const bonds = useBondList(bondish || (type === '' && searching));
-  const asinBond = useBond(bondish && /^(BO|SB|RE|SR)[A-Z0-9]{8}$/i.test(search.trim()) ? search.trim().toUpperCase().replace(/^RE/, 'BO').replace(/^SR/, 'SB') : undefined, search.trim().toUpperCase().startsWith('S') ? 'SYSTEM_BOND' : 'BOND');
-  const indexes = useIndexes(type === 'INDEX' && !searching);
-  const stats = useMinimalStats();
-  const winners = useBigMovers(false);
-  const losers = useBigMovers(true);
-  const mostTraded = useMostTraded(value.type || undefined, 50);
-  const now = bonds.dataUpdatedAt;
-  const source: { rows: MarketRow[]; isLoading: boolean; error: Error | null; label: string | null } = useMemo(() => {
-    if (bondish) {
-      const list = [...(asinBond.data ? [asinBond.data] : []), ...(bonds.data ?? [])];
-      return {
-        rows: type === 'REPO' ? uniqueRows(bondRows(list, now, true)) : byYield(uniqueRows(bondRows(list, now)), now),
-        isLoading: bonds.isLoading,
-        error: bonds.error,
-        label: searching
-          ? null
-          : type === 'REPO'
-            ? 'Repos der zuletzt fälligen laufenden Anleihen.'
-            : 'Höchste Rendite pro Tag zuerst (zum Brief, ohne die letzte Stunde vor Fälligkeit), dazu alle Systemanleihen.',
-      };
-    }
-    if (type === 'INDEX' && !searching) {
-      const rows = (indexes.data?.content ?? []).map((i) => ({ listing: { ...i.listing, type: 'INDEX' } }));
-      return { rows, isLoading: indexes.isLoading, error: indexes.error, label: 'Alle Indizes – sie werden berechnet, nicht gehandelt.' };
-    }
-    if (searching) {
-      const extra = type === '' ? bondRows(bonds.data ?? [], now) : [];
-      return { rows: uniqueRows(found.data?.content ?? [], extra), isLoading: found.isLoading, error: found.error, label: null };
-    }
-    return {
-      rows: mostTraded.data?.content ?? [],
-      isLoading: mostTraded.isLoading,
-      error: mostTraded.error,
-      label: 'Die meistgehandelten Wertpapiere.',
-    };
-  }, [bondish, type, searching, asinBond.data, bonds.data, bonds.isLoading, bonds.error, now, indexes.data, indexes.isLoading, indexes.error, found.data, found.isLoading, found.error, mostTraded.data, mostTraded.isLoading, mostTraded.error]);
-  const rows = useMemo(() => applyFilter(source.rows, value), [source.rows, value]);
+  const screen = useMemo(() => readScreen(params), [params]);
+  const [text, setText] = useUrlSearch('q', 300, ['seite']);
+  const q = screen.q.trim();
+  const searching = q.length >= 2;
+  const types = screen.types;
+  const all = !types.length;
+  const wantsBonds = all || types.includes('BOND') || types.includes('REPO');
+  const onlyWarrants = types.length === 1 && types[0] === 'WARRANT';
+  const now = useNow(60_000);
+
+  // Sources. Without a search: everything traded recently (24 h volumes, trade counts); with a
+  // search: the spread search over all listings. Bonds, repos and indexes come from their own lists.
+  const volumes = useBiggestTraded('', UNIVERSE);
+  const frequent = useMostTraded(undefined, UNIVERSE);
+  const changes = useAllPriceChanges();
+  const found = useSpreadSearch(searching ? q : '', SEARCH);
+  const bonds = useBondList(wantsBonds && !onlyWarrants);
+  const upper = q.toUpperCase();
+  const asinBond = useBond(
+    wantsBonds && /^(BO|SB|RE|SR)[A-Z0-9]{8}$/.test(upper) ? upper.replace(/^RE/, 'BO').replace(/^SR/, 'SB') : undefined,
+    upper.startsWith('S') ? 'SYSTEM_BOND' : 'BOND',
+  );
+  const indexes = useIndexes(types.includes('INDEX'));
+  const cols = visibleColumns(screen);
+  const needBook = !!screen.ranges.bw || cols.includes('bw') || screen.sort?.key === 'bw';
+  const book = useTopBookValues(needBook);
+
+  const universe: ScreenRow[] = useMemo(() => {
+    const bondList = [...(asinBond.data ? [asinBond.data] : []), ...(bonds.data ?? [])];
+    const bondRowsAll = [...fromBonds(bondList, now), ...fromBonds(bondList, now, true)];
+    const indexRows = (indexes.data?.content ?? []).map((i) =>
+      fromMarketRow({ listing: { name: i.listing.name, securityIdentifier: i.listing.securityIdentifier, type: 'INDEX' } }),
+    );
+    const lists = searching
+      ? [
+          (found.data?.content ?? []).map(fromMarketRow),
+          bondRowsAll.filter((r) => matchesText(r, q)),
+          indexRows.filter((r) => r && matchesText(r, q)),
+        ]
+      : [(volumes.data?.content ?? []).map((r) => fromMarketRow(r as never)), (frequent.data?.content ?? []).map(fromMarketRow), bondRowsAll, indexRows];
+    return mergeRows(lists, {
+      volume: volumeLookup(volumes.data?.content, volumes.data?.totalElements),
+      trades: tradesLookup(frequent.data?.content, frequent.data?.totalElements),
+      change: changeLookup(changes.data?.winners, changes.data?.losers),
+      book: bookLookup(book.data?.content),
+    });
+  }, [searching, q, found.data, volumes.data, frequent.data, bonds.data, asinBond.data, indexes.data, changes.data, book.data, now]);
+
+  const sort = screen.sort ?? defaultSort(types);
+  const base = useMemo(() => applyScreen(universe, { ...screen, ranges: {}, quote: '', issuer: '', sizes: [] }, now), [universe, screen, now]);
+  const rows = useMemo(() => sortRows(applyScreen(universe, screen, now), sort), [universe, screen, now, sort]);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   const page = Math.min(Math.max(0, Number(params.get('seite') ?? 1) - 1), pages - 1);
-  const results = useMemo(() => rows.slice(page * PAGE, (page + 1) * PAGE).map(toResult), [rows, page]);
-  const trades = useMarketTrades();
+  const pageRows = useMemo(() => rows.slice(page * PAGE, (page + 1) * PAGE), [rows, page]);
+  const maxVolume = useMemo(() => rows.reduce((m, r) => Math.max(m, r.volume ?? 0), 0), [rows]);
+  const loading = searching ? found.isLoading : volumes.isLoading || frequent.isLoading || (types.includes('INDEX') && indexes.isLoading);
+  const loadingBonds = wantsBonds && bonds.isLoading;
+  const error = (searching ? found.error : volumes.error ?? frequent.error) ?? null;
 
-  const moverRows = useMemo(
-    () => movers(winners.data?.content ?? [], losers.data?.content ?? []),
-    [winners.data, losers.data],
-  );
-  // Names for the ticker: whatever lists are already loaded.
+  // Where the rows come from – said once, next to the count.
+  const note = useMemo(() => {
+    const parts: string[] = [];
+    if (searching) {
+      const total = found.data?.totalElements ?? 0;
+      parts.push(total > SEARCH ? `die ersten ${SEARCH} von ${total.toLocaleString('de-DE')} Suchtreffern – such genauer` : 'Suche über alle Wertpapiere');
+    } else {
+      parts.push(`aus ${universe.length.toLocaleString('de-DE')} zuletzt gehandelten Wertpapieren${wantsBonds ? ' und laufenden Anleihen' : ''}`);
+      parts.push('andere über die Suche');
+    }
+    if (loadingBonds) parts.push('Anleihen laden …');
+    if (needBook) parts.push('Buchwert nur für die 1.000 größten Unternehmen');
+    return parts.join(' · ');
+  }, [searching, found.data, universe.length, wantsBonds, loadingBonds, needBook]);
+
+  // Own views in the results area: warrants per underlying; buildings as an overview unless filtered.
+  const estate = types.length === 1 && types[0] === 'BUILDING' && !searching;
+  const estateOverview = estate && (params.get('immo') === 'uebersicht' || (params.get('immo') !== 'liste' && !chips(screen).length && !screen.sort));
+  const special = onlyWarrants ? (
+    <WarrantMarket searching={searching} found={found.data?.content} />
+  ) : estateOverview ? (
+    <RealEstateView />
+  ) : null;
+  const estateSwitch = estate ? (
+    <DS.SegmentedControl
+      size="sm"
+      fullWidth={false}
+      aria-label="Immobilien"
+      value={estateOverview ? 'uebersicht' : 'liste'}
+      onChange={(v) => setParam({ immo: v })}
+      options={[
+        { value: 'uebersicht', label: 'Übersicht' },
+        { value: 'liste', label: 'Liste' },
+      ]}
+    />
+  ) : null;
+
+  const stats = useMinimalStats();
+  const trades = useMarketTrades();
+  // Names for the ticker: whatever lists are already loaded (the traded lists cover nearly every trade).
   const names = useMemo(() => {
     const out: Record<string, { name: string; type: string }> = {};
-    const add = (l?: { securityIdentifier: string; name: string; type?: string }) => {
-      if (l) out[l.securityIdentifier] = { name: l.name, type: l.type ?? '' };
+    const add = (l?: { securityIdentifier?: string; name?: string; type?: string }) => {
+      if (l?.securityIdentifier && l.name) out[l.securityIdentifier] = { name: l.name, type: l.type ?? '' };
     };
-    [found.data, winners.data, losers.data, mostTraded.data].forEach((p) => p?.content.forEach((r) => add(r.listing)));
-    source.rows.forEach((r) => add(r.listing));
+    volumes.data?.content.forEach((r) => add(r.listing));
+    [frequent.data, found.data].forEach((p) => p?.content.forEach((r) => add(r.listing)));
+    for (const r of universe) out[r.asin] = { name: r.name, type: r.type };
     return out;
-  }, [found.data, winners.data, losers.data, mostTraded.data, source.rows]);
+  }, [volumes.data, frequent.data, found.data, universe]);
   const ticker = useMemo(() => tickerItems(trades.data ?? [], names), [trades.data, names]);
 
-  // Market overview: heatmap of the top 100, biggest 24 h volumes of the chosen type.
+  // Turnover: heatmap of the top 100 (24 h change) or ranking bars of the chosen types.
   const matrix = useTradingMatrix();
-  const tiles = useMemo(() => heatTiles(matrix.data ?? []), [matrix.data]);
-  const biggest = useBiggestTraded(type, 10);
-  const volumes = useMemo(() => volumeRows(biggest.data?.content ?? [], 8), [biggest.data]);
+  // Tile colour = the same change as in the table and the map (to the previous day); the matrix's own
+  // 24 h change only where the movers lists are not loaded yet.
+  const changeMap = useMemo(() => changeLookup(changes.data?.winners, changes.data?.losers), [changes.data]);
+  const tiles = useMemo(
+    () =>
+      heatTiles(matrix.data ?? []).map((t) =>
+        changeMap ? { ...t, change: changeMap.map.get(t.asin) ?? (changeMap.complete ? 0 : t.change) } : t,
+      ),
+    [matrix.data, changeMap],
+  );
+  const ranking = useMemo(
+    () =>
+      volumeRows(
+        (volumes.data?.content ?? []).filter((r) => {
+          const g = groupOf(r.listing?.type ?? r.type);
+          return !!g && (all || types.includes(g));
+        }),
+        10,
+      ),
+    [volumes.data, all, types],
+  );
+  // Market map: all securities with 24 h volume, independent of the screener filter.
+  const allTraded = useMemo(
+    () =>
+      mergeRows([(volumes.data?.content ?? []).map((r) => fromMarketRow(r as never))], {
+        volume: volumeLookup(volumes.data?.content, volumes.data?.totalElements),
+        change: changeLookup(changes.data?.winners, changes.data?.losers),
+      }),
+    [volumes.data, changes.data],
+  );
+  const mapAll = useMemo(() => marketMap(allTraded, tileArea), [allTraded]);
+
   const navigate = useNavigate();
   const openPoint = useCallback(
     (p: PlotPoint) => {
@@ -164,101 +235,87 @@ export function MarketPage() {
     },
     [navigate],
   );
-  const heatFigure = useCallback((t: Parameters<typeof heatmapChart>[0], w: number) => heatmapChart(t, w, tiles), [tiles]);
-  const moverFigure = useCallback((t: Parameters<typeof moversChart>[0], w: number) => moversChart(t, w, moverRows), [moverRows]);
-  const volumeFigure = useCallback(
-    (t: Parameters<typeof volumeChart>[0], w: number) => volumeChart(t, w, volumes, !type),
-    [volumes, type],
-  );
+  type Theme = Parameters<typeof heatmapChart>[0];
+  const heatFigure = useCallback((t: Theme, w: number) => heatmapChart(t, w, tiles), [tiles]);
+  const rankFigure = useCallback((t: Theme, w: number) => volumeChart(t, w, ranking, types.length !== 1), [ranking, types.length]);
+  const mapFigure = useCallback((t: Theme, w: number) => marketMapChart(t, w, mapAll), [mapAll]);
 
-  // Views live in the URL: ?ansicht=suche|heatmap|bewegung|live (wide: suche|heatmap), ?diagramm=umsatz.
-  const chart = params.get('diagramm') === 'umsatz' ? 'umsatz' : 'bewegung';
-  const view = params.get('ansicht') ?? 'suche';
-  // Own views in the results area: buildings by size (without search) and warrants per underlying.
-  const special = type === 'WARRANT' ? 'warrants' : type === 'BUILDING' && !searching ? 'estate' : null;
+  const rawView = params.get('ansicht') ?? 'suche';
+  const view = rawView === 'heatmap' ? 'karte' : rawView === 'bewegung' ? 'umsatz' : rawView;
+  const chart = params.get('diagramm') === 'liste' || params.get('diagramm') === 'umsatz' ? 'liste' : 'heatmap';
+  const typeText = types.length === 1 ? (TYPE_LABEL[types[0]] ?? types[0]) : all ? 'Alle Arten' : types.map((t) => TYPE_LABEL[t] ?? t).join(', ');
 
   const searchPanel = (
     <DS.Card flush className="panel market__search">
-      <div className="market__filter">
-        <DS.MarketFilterBar
-          value={value}
-          total={source.isLoading || special ? undefined : rows.length}
-          onChange={(v) => {
-            setMore({ minPrice: v.minPrice, maxPrice: v.maxPrice, withAsk: v.withAsk, withBid: v.withBid });
-            // „Alle“ is the empty type; it must stay in the URL, otherwise the default (Aktien) comes back.
-            setText(v.search ?? '');
-            if ((v.type ?? '') !== type) setParam({ art: v.type || 'alle', seite: null });
-          }}
-        />
-      </div>
-      <div className="panel__fill scroll market__results">
-        {special === 'estate' ? (
-          <RealEstateView />
-        ) : special === 'warrants' ? (
-          <WarrantMarket searching={searching} found={found.data?.content} />
-        ) : source.label ? (
-          <p className="market__hint">{source.label}</p>
-        ) : null}
-        {special ? null : source.isLoading ? (
-          <DS.Loading rows={10} label="Wertpapiere werden geladen" />
-        ) : source.error ? (
-          <DS.Banner variant="error">Suche fehlgeschlagen: {source.error?.message}</DS.Banner>
-        ) : (
-          <DS.MarketResults
-            results={results}
-            extraColumns={type === 'BOND' ? YIELD_COLUMNS : undefined}
-            defaultSort={type === 'BOND' ? { key: 'yieldPerDay', dir: 'desc' } : undefined}
-            hrefFor={(r) => href(r.id)}
-            density="sm"
-          />
-        )}
-      </div>
-      {pages > 1 && !special && (
-        <div className="market__pages">
-          <DS.Pagination
-            page={page + 1}
-            pages={pages}
-            total={`${rows.length.toLocaleString('de-DE')} Treffer`}
-            onChange={(p) => setParam({ seite: p > 1 ? String(p) : null })}
-          />
-        </div>
-      )}
+      <Screener
+        screen={screen}
+        base={base}
+        params={params}
+        setParam={setParam}
+        text={text}
+        setText={setText}
+        pageRows={pageRows}
+        total={loading ? undefined : rows.length}
+        sort={sort}
+        now={now}
+        maxVolume={maxVolume}
+        loading={loading}
+        error={error}
+        note={note}
+        isPhone={isPhone}
+        special={special}
+        estateSwitch={estateSwitch}
+        pagination={
+          pages > 1 && !special ? (
+            <div className="market__pages">
+              <DS.Pagination
+                page={page + 1}
+                pages={pages}
+                total={isPhone ? undefined : `${rows.length.toLocaleString('de-DE')} Treffer`}
+                onChange={(n) => setParam({ seite: n > 1 ? String(n) : null })}
+              />
+            </div>
+          ) : null
+        }
+      />
     </DS.Card>
   );
 
-  const charts = (
+  const turnover = (
     <DS.Card
-      className="panel"
-      title={chart === 'bewegung' ? 'Bewegung' : 'Umsatz 24 h'}
+      className="panel market__turnover"
+      title="Umsatz 24 h"
       action={
         <DS.SegmentedControl
           size="sm"
-          aria-label="Diagramm"
+          aria-label="Darstellung"
           value={chart}
-          onChange={(v) => setParam({ diagramm: v === 'umsatz' ? v : null })}
+          onChange={(v) => setParam({ diagramm: v === 'liste' ? v : null })}
           options={[
-            { value: 'bewegung', label: 'Kurs' },
-            { value: 'umsatz', label: 'Umsatz' },
+            { value: 'heatmap', label: 'Heatmap' },
+            { value: 'liste', label: 'Rangliste' },
           ]}
         />
       }
-      footer={
-        chart === 'bewegung'
-          ? 'Aktien mit den größten Kursbewegungen.'
-          : `${type ? (TYPE_LABEL[type] ?? type) : 'Alle Arten'} mit dem größten Umsatz in 24 h.`
-      }
+      footer={chart === 'heatmap' ? <HeatLegend note="Top 100 · Fläche nach Umsatz" suffix="zum Vortag" /> : `${typeText} mit dem größten Umsatz in 24 h.`}
     >
       <div className="panel__fill market__chart">
-        {chart === 'bewegung' ? (
-          moverRows.length ? (
-            <Plot aria-label="Gewinner und Verlierer; ein Balken öffnet das Wertpapier" figure={moverFigure} onPointClick={openPoint} />
+        {chart === 'heatmap' ? (
+          matrix.error ? (
+            <DS.Banner variant="error">Heatmap nicht geladen: {matrix.error.message}</DS.Banner>
+          ) : tiles.length ? (
+            <Plot
+              aria-label="Heatmap der 100 umsatzstärksten Wertpapiere: Fläche nach Umsatz, Farbe nach Veränderung zum Vortag; eine Kachel öffnet das Wertpapier"
+              figure={heatFigure}
+              onPointClick={openPoint}
+            />
           ) : (
-            <DS.Loading rows={5} />
+            <DS.Loading rows={6} label="Heatmap wird geladen" />
           )
-        ) : biggest.isLoading ? (
-          <DS.Loading rows={5} />
-        ) : volumes.length ? (
-          <Plot aria-label="Größte Umsätze in 24 Stunden; ein Balken öffnet das Wertpapier" figure={volumeFigure} onPointClick={openPoint} />
+        ) : volumes.isLoading ? (
+          <DS.Loading rows={6} />
+        ) : ranking.length ? (
+          <Plot aria-label="Größte Umsätze in 24 Stunden; ein Balken öffnet das Wertpapier" figure={rankFigure} onPointClick={openPoint} />
         ) : (
           <DS.EmptyState compact title="Keine Umsätze">In den letzten 24 Stunden wurde hier nichts gehandelt.</DS.EmptyState>
         )}
@@ -266,24 +323,24 @@ export function MarketPage() {
     </DS.Card>
   );
 
-  const heat = (
+  const map = (
     <DS.Card
-      className="panel market__heat"
-      title="Heatmap"
-      action={<span className="market__heat-note">Top 100 nach Umsatz 24 h</span>}
-      footer={<HeatLegend />}
+      className="panel market__map"
+      title="Marktkarte"
+      action={<span className="market__heat-note">{mapAll.filter((n) => n.asin).length.toLocaleString('de-DE')} Wertpapiere mit Umsatz in 24 h</span>}
+      footer={<HeatLegend note="Fläche nach Umsatz · Gruppe antippen zum Vergrößern" suffix="zum Vortag" />}
     >
       <div className="panel__fill market__chart">
-        {matrix.error ? (
-          <DS.Banner variant="error">Heatmap nicht geladen: {matrix.error.message}</DS.Banner>
-        ) : tiles.length ? (
+        {volumes.error ? (
+          <DS.Banner variant="error">Marktkarte nicht geladen: {volumes.error.message}</DS.Banner>
+        ) : mapAll.length ? (
           <Plot
-            aria-label="Heatmap der 100 umsatzstärksten Wertpapiere: Fläche nach Umsatz, Farbe nach Kursveränderung in 24 Stunden; eine Kachel öffnet das Wertpapier"
-            figure={heatFigure}
+            aria-label="Marktkarte aller in 24 Stunden gehandelten Wertpapiere nach Art: Fläche nach Umsatz, Farbe nach Veränderung zum Vortag; eine Gruppe vergrößert, eine Kachel öffnet das Wertpapier"
+            figure={mapFigure}
             onPointClick={openPoint}
           />
         ) : (
-          <DS.Loading rows={8} label="Heatmap wird geladen" />
+          <DS.Loading rows={8} label="Marktkarte wird geladen" />
         )}
       </div>
     </DS.Card>
@@ -298,6 +355,7 @@ export function MarketPage() {
   );
 
   const s = stats.data;
+  const wideView = view === 'karte' ? 'karte' : 'suche';
   return (
     <div className={`page market${isWide ? ' market--wide' : ''}`} onClick={onLinkClick}>
       <DS.PageHeader
@@ -318,11 +376,11 @@ export function MarketPage() {
             <DS.Tabs
               size="sm"
               aria-label="Ansicht"
-              value={view === 'heatmap' ? 'heatmap' : 'suche'}
-              onChange={(v) => setParam({ ansicht: v === 'heatmap' ? v : null })}
+              value={wideView}
+              onChange={(v) => setParam({ ansicht: v === 'karte' ? v : null })}
               items={[
                 { value: 'suche', label: 'Wertpapiere' },
-                { value: 'heatmap', label: 'Heatmap' },
+                { value: 'karte', label: 'Marktkarte' },
               ]}
             />
           ) : undefined
@@ -342,10 +400,10 @@ export function MarketPage() {
         }
       />
       {isWide ? (
-        <div className="page__body market__body">
-          {view === 'heatmap' ? heat : searchPanel}
+        <div className={`page__body market__body${wideView === 'karte' ? ' market__body--map' : ''}`}>
+          {wideView === 'karte' ? map : searchPanel}
           <div className="page__col market__side">
-            {charts}
+            {wideView === 'karte' ? null : turnover}
             {live}
           </div>
         </div>
@@ -354,24 +412,24 @@ export function MarketPage() {
           <DS.SegmentedControl
             aria-label="Ansicht"
             fullWidth
-            value={view}
+            value={['suche', 'umsatz', 'karte', 'live'].includes(view) ? view : 'suche'}
             onChange={(v) => setParam({ ansicht: v === 'suche' ? null : v })}
             options={[
               { value: 'suche', label: 'Suche' },
-              { value: 'heatmap', label: 'Heatmap' },
-              { value: 'bewegung', label: 'Charts' },
+              { value: 'umsatz', label: 'Umsatz' },
+              { value: 'karte', label: 'Karte' },
               { value: 'live', label: 'Live' },
             ]}
           />
-          {view === 'heatmap' ? heat : view === 'bewegung' ? charts : view === 'live' ? live : searchPanel}
+          {view === 'umsatz' ? turnover : view === 'karte' ? map : view === 'live' ? live : searchPanel}
         </div>
       )}
     </div>
   );
 }
 
-/** Colour key of the heatmap: the same mixes as the tiles (tint + up to 42 % gain/loss), via CSS tokens. */
-function HeatLegend() {
+/** Colour key of the heatmaps: the same mixes as the tiles (tint + up to 42 % gain/loss), via CSS tokens. */
+function HeatLegend({ note, suffix }: { note: string; suffix: string }) {
   const steps: [string, string][] = [
     ['loss', '42%'],
     ['loss', '21%'],
@@ -384,16 +442,12 @@ function HeatLegend() {
       <span>▼ −10 %</span>
       <span className="market__legend-scale" aria-hidden="true">
         {steps.map(([k, p], i) => (
-          <i
-            key={i}
-            style={{
-              background: k ? `color-mix(in srgb, var(--${k}) ${p}, var(--${k}-tint))` : 'var(--bg-raised)',
-            }}
-          />
+          <i key={i} style={{ background: k ? `color-mix(in srgb, var(--${k}) ${p}, var(--${k}-tint))` : 'var(--bg-raised)' }} />
         ))}
       </span>
       <span>▲ +10 %</span>
-      <span className="market__legend-note">Fläche nach Umsatz</span>
+      <span className="market__legend-suffix">{suffix}</span>
+      <span className="market__legend-note">{note}</span>
     </div>
   );
 }
