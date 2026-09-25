@@ -14,13 +14,13 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
+.org--focus .org__left {
+  grid-template-rows: minmax(0, 1fr);
+}
+
 .org__right {
   /* Fixed shares (no fit-content: that would jump when the suggestions arrive); room for three suggestions at 900 px. */
   grid-template-rows: minmax(0, 1.2fr) minmax(0, 1fr);
-}
-
-.org-trades__stats {
-  padding: 0 var(--space-4) var(--space-4);
 }
 
 .org-pad {
@@ -31,4 +31,47 @@
   margin: 0 0 var(--space-3);
   color: var(--text-secondary);
   font-size: 13px;
+}
+
+/* Performance tab: toolbar, key figures, then the bar chart fills the rest of the panel.
+   Below ~420 px panel height the panel scrolls instead of squeezing the chart. */
+.perf {
+  height: 100%;
+  min-height: 420px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.perf__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.perf__account {
+  margin-left: auto;
+  max-width: 260px;
+}
+
+.perf__caption {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.perf__chart {
+  flex: 1;
+  min-height: 200px;
+  position: relative;
+}
+
+@media (max-width: 719px) {
+  .perf {
+    gap: var(--space-2);
+    padding-inline: var(--space-3);
+  }
 }

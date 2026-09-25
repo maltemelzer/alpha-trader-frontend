@@ -2444,3 +2444,56 @@ export function useEtfManagement(asin: string) {
     fee: useMutation({ mutationFn: (percent: number) => setEtfManagementFee(asin, percent), onSuccess: done }),
   };
 }
+
+// ---------- Portfolio performance (trade statistics, share positions) ----------
+
+/** One closed trade of /api/v2/trades/stats/wins|losses|best|worst (losses have the same shape). */
+export type TradeResultView = Schemas['TradeWinView'];
+/** GET /api/v2/sharepositions – one of my positions in one security, per account. */
+export type SharePositionView = Schemas['SharePositionView'];
+
+/**
+ * Realised result of one securities account (private or company), optionally since `startDate` (ms).
+ * The endpoints answer for any account id, not only for one's own.
+ */
+export function useTradeSummarySince(securitiesAccountId: string | undefined, startDate?: number) {
+  return useQuery({
+    queryKey: ['tradesummary', securitiesAccountId, startDate ?? null],
+    enabled: !!securitiesAccountId,
+    queryFn: () =>
+      unwrap<TradeSummaryView>(api.GET('/api/v2/trades/stats/summary', { params: { query: { securitiesAccountId, startDate } } })),
+    staleTime: SLOW,
+  });
+}
+
+/**
+ * The `size` biggest winning (`wins`, by profitLoss desc) or losing trades (`losses`, asc).
+ * Without sort the API lists newest first; `sort=profitLoss,…` works.
+ */
+export function useTradeResults(kind: 'wins' | 'losses', securitiesAccountId: string | undefined, startDate?: number, size = 5) {
+  return useQuery({
+    queryKey: ['traderesults', kind, securitiesAccountId, startDate ?? null, size],
+    enabled: !!securitiesAccountId,
+    queryFn: () =>
+      getPage<TradeResultView>(`/api/v2/trades/stats/${kind}`, {
+        securitiesAccountId,
+        startDate,
+        pageable: { page: 0, size, sort: [kind === 'wins' ? 'profitLoss,desc' : 'profitLoss,asc'] },
+      }),
+    staleTime: SLOW,
+  });
+}
+
+/**
+ * My positions in one security across all my accounts (private + companies I lead), with
+ * numberOfShares and averageBuyingPrice – GET /api/v2/sharepositions?securityIdentifier= (without
+ * securitiesAccountId: the whole empire; other players' accounts answer with an empty list).
+ */
+export function useSharePositions(asin: string | undefined) {
+  return useQuery({
+    queryKey: ['sharepositions', asin],
+    enabled: !!asin,
+    queryFn: () => unwrap<SharePositionView[]>(api.GET('/api/v2/sharepositions', { params: { query: { securityIdentifier: asin! } } })),
+    staleTime: SLOW,
+  });
+}

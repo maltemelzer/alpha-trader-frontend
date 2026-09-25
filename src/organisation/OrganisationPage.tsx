@@ -10,10 +10,10 @@ import {
   usePortfolio,
   useSuggestions,
   useTakeovers,
-  useTradeSummary,
 } from '../api/queries';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { OpenOrders } from '../orders/OpenOrders';
+import { Performance } from './PerformancePanel';
 import { suggestionHref } from './derive';
 import { translate } from '../lib/messages';
 import type { PortfolioView } from '../../vendor/bankiersgruen';
@@ -40,7 +40,6 @@ export function OrganisationPage() {
   const account = portfolio.data?.securitiesAccountId;
   const suggestions = useSuggestions();
   const logs = useOrderLogs(account);
-  const summary = useTradeSummary(account);
   const development = useCompanyDevelopment();
   const shares = useEmpireShares();
   const takeovers = useTakeovers();
@@ -81,27 +80,21 @@ export function OrganisationPage() {
     trades: {
       label: 'Trades',
       content: (
-        <div className="org-trades">
-          {summary.data && summary.data.totalTrades > 0 && (
-            <div className="org-trades__stats">
-              <DS.TradeStats summary={summary.data} periodLabel="gesamt" />
-            </div>
-          )}
-          {logs.isLoading || !account ? (
-            <DS.Loading rows={5} />
-          ) : (
-            <DS.TradeLog
-              entries={logs.data?.content ?? []}
-              securitiesAccountId={account}
-              names={names}
-              density="sm"
-              hrefFor={(e) => href(e.securityIdentifier)}
-              empty={empty('Noch keine Trades')}
-            />
-          )}
-        </div>
+        logs.isLoading || !account ? (
+          <DS.Loading rows={5} />
+        ) : (
+          <DS.TradeLog
+            entries={logs.data?.content ?? []}
+            securitiesAccountId={account}
+            names={names}
+            density="sm"
+            hrefFor={(e) => href(e.securityIdentifier)}
+            empty={empty('Noch keine Trades')}
+          />
+        )
       ),
     },
+    performance: { label: 'Performance', content: <Performance /> },
     vorschlaege: {
       label: 'Vorschläge',
       count: suggestions.data?.content.length || undefined,
@@ -148,8 +141,8 @@ export function OrganisationPage() {
   type Key = keyof typeof tabs;
   const tabItems = (keys: Key[]) => keys.map((k) => ({ value: k, ...tabs[k] }));
   const leftKeys: Key[] = isWide
-    ? ['positionen', 'orders', 'trades']
-    : ['uebersicht', 'positionen', 'orders', 'trades', 'vorschlaege', 'unternehmen', 'beteiligungen', 'uebernahmen'];
+    ? ['positionen', 'performance', 'orders', 'trades']
+    : ['uebersicht', 'positionen', 'performance', 'orders', 'trades', 'vorschlaege', 'unternehmen', 'beteiligungen', 'uebernahmen'];
   const rightKeys: Key[] = ['unternehmen', 'beteiligungen', 'uebernahmen'];
   const pick = (keys: Key[], param: string) => {
     const v = params.get(param) as Key | null;
@@ -166,8 +159,11 @@ export function OrganisationPage() {
     );
 
   const ceoCount = ceo.data?.length ?? 0;
+  const leftTab = pick(leftKeys, 'ansicht');
+  // The performance charts need the height: on wide screens they take the summary card's place.
+  const focus = isWide && leftTab === 'performance';
   return (
-    <div className={`page org${isWide ? ' org--wide' : ''}`}>
+    <div className={`page org${isWide ? ' org--wide' : ''}${focus ? ' org--focus' : ''}`}>
       <DS.PageHeader
         size="md"
         title="Meine Organisation"
@@ -190,7 +186,7 @@ export function OrganisationPage() {
       />
       <div className="page__body org__body">
         <div className="page__col org__left">
-          {isWide && (
+          {isWide && !focus && (
             <DS.Card title="Privatportfolio" className="org__summary">
               {summaryView}
             </DS.Card>
@@ -201,7 +197,7 @@ export function OrganisationPage() {
                 size="sm"
                 aria-label="Portfolio"
                 items={tabItems(leftKeys)}
-                value={pick(leftKeys, 'ansicht')}
+                value={leftTab}
                 onChange={setTab('ansicht')}
               />
             </div>
