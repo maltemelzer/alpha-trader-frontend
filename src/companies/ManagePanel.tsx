@@ -13,6 +13,8 @@ import {
   type CompanyProfile,
   type IssueRequest,
 } from '../api/queries';
+import { LogoForm, SalaryPanel } from './CeoPanels';
+import { MarketMakerManage } from './Sponsorships';
 
 const ACTIONS = [
   { value: 'kapital', label: 'Kapitalmaßnahme beantragen' },
@@ -21,12 +23,16 @@ const ACTIONS = [
   { value: 'etf', label: 'ETF auflegen' },
   { value: 'optionsschein', label: 'Optionsschein ausgeben' },
   { value: 'bank', label: 'Bank (Lizenz, Reserven)' },
+  { value: 'marketmaker', label: 'Market Maker (Designated Sponsoring)' },
+  { value: 'gehalt', label: 'Gehalt und Rücktritt' },
+  { value: 'logo', label: 'Logo ändern' },
 ] as const;
 type Action = (typeof ACTIONS)[number]['value'];
 
 /**
  * „Führen“ for the CEO: one form at a time, chosen per select (?aktion=…). Corporate actions start a
- * poll of the shareholders; issues (bond, index, ETF, warrant) and banking act directly.
+ * poll of the shareholders; issues (bond, index, ETF, warrant) and banking act directly. Also market
+ * maker policy and mandates, salary (automatic payment, new wage via CEO poll, resigning) and logo.
  */
 export function ManagePanel({ company: c }: { company: CompanyProfile }) {
   const navigate = useNavigate();
@@ -183,6 +189,15 @@ export function ManagePanel({ company: c }: { company: CompanyProfile }) {
       );
       break;
     }
+    case 'marketmaker':
+      form = <MarketMakerManage company={c} onDone={setDone} />;
+      break;
+    case 'gehalt':
+      form = <SalaryPanel company={c} onDone={setDone} />;
+      break;
+    case 'logo':
+      form = <LogoForm company={c} onDone={setDone} />;
+      break;
   }
 
   return (

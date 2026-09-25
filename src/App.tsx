@@ -26,6 +26,7 @@ import { CompanyPage } from './companies/CompanyPage';
 import { CompaniesPage } from './companies/CompaniesPage';
 import { CapitalPage } from './capital/CapitalPage';
 import { CentralBankPage } from './centralbank/CentralBankPage';
+import { SponsoringPage } from './sponsoring/SponsoringPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,6 +74,7 @@ export function App() {
               <Route path="nachrichten/:chatId?" element={<ChatPage />} />
               <Route path="zeitung/:postId?" element={<NewsPage />} />
               <Route path="einstellungen" element={<SettingsPage />} />
+              <Route path="sponsoring" element={<SponsoringPage />} />
               <Route path="*" element={<PlaceholderPage title="Seite nicht gefunden" />} />
             </Route>
           </Routes>

@@ -43,6 +43,7 @@ const PAGES = [
   '/bank',
   '/nachrichten',
   '/zeitung',
+  '/sponsoring',
   '/einstellungen',
 ];
 

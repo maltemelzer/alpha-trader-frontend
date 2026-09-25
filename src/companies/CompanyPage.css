@@ -91,3 +91,209 @@
 .company__note a {
   color: var(--text-primary);
 }
+
+/* Polls: „Als CEO bewerben“ above the list */
+.company__ceo-poll {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: var(--space-2);
+}
+
+/* Market maker (designated sponsoring) */
+.mm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+}
+
+.mm__cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+.mm__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.mm__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mm-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.mm-row__name {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.mm-row__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mm-row__meta {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.mm-row__rating {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.mm-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mm-rating__cells {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.mm-rating__cell {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid var(--line-strong);
+  box-sizing: border-box;
+}
+
+.mm-rating__cell--on {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+.mm-rating__letter {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  min-width: 1ch;
+}
+
+.mm-manage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.mm-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 480px;
+  padding-top: var(--space-2);
+}
+
+.mm-new__check {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.mm-new__reasons {
+  margin: 0;
+  padding-left: var(--space-4);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* CEO: logo and salary */
+.ceo-logo,
+.ceo-salary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ceo-logo__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.ceo-logo__fig {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.ceo-logo__img {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  overflow: hidden;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ceo-logo__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ceo-logo__arrow {
+  color: var(--text-muted);
+}
+
+.ceo-logo__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 480px;
+}
+
+@media (max-width: 719px) {
+  .mm__cols {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+}
