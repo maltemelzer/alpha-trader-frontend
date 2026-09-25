@@ -41,6 +41,20 @@ const DE: Record<string, string> = {
   'Reach the top 50% in an alliance highscore': 'Kommt in einem Allianz-Highscore in die obere Hälfte.',
   'Reach the top 10% in an alliance highscore': 'Kommt in einem Allianz-Highscore unter die besten 10 %.',
   'Stay the best in a alliance highscore': 'Bleibt Erste in einem Allianz-Highscore.',
+  // History of a company/player (GET /api/v2/history)
+  '# founded #': '# hat # gegründet.',
+  '# became a bank': '# hat die Banklizenz erhalten.',
+  'The CEO # of # with a salary of # was replaced by # with a salary of #':
+    'CEO # von # (Gehalt # €) wurde durch # (Gehalt # €) ersetzt.',
+  '# changed the name from # to #': '# hat den Namen von # in # geändert.',
+  '# changed the logo of # from # to #': '# hat das Logo von # geändert.',
+  '# ended a capital increase with # pcs sold for a price of # and a resulting volume of #':
+    '# hat eine Kapitalerhöhung abgeschlossen: # Stück zu # € verkauft, Volumen # €.',
+  '# (#) was acquired by # (#) with a price of # per share and a resulting volume of #':
+    '# (#) wurde von # (#) übernommen: # € je Aktie, Volumen # €.',
+  '# launched the fund #': '# hat den Fonds # aufgelegt.',
+  '# could not fully repay bond # and had to issue # new stocks':
+    '# konnte die Anleihe # nicht voll zurückzahlen und musste # neue Aktien ausgeben.',
   // Errors
   'An unexpected error occurred. Please try again.': 'Ein unerwarteter Fehler ist aufgetreten. Bitte erneut versuchen.',
 };

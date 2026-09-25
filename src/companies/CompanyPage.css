@@ -297,3 +297,217 @@
     gap: var(--space-4);
   }
 }
+
+/* Phone: the tag row stays one line (scrolls sideways) – wrapping when the profile arrived made the key figures jump. */
+@media (max-width: 719.98px) {
+  .company .bnk-prof__tags {
+    position: relative;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .company .bnk-prof__tag {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+
+/* Einordnung and Chronik fill the tab panel; their lists scroll inside. */
+.company .bnk-tabs__panel:has(> .rank),
+.company .bnk-tabs__panel:has(> .chron) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rank {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+  gap: var(--space-6);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+}
+
+.rank__chart {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.rank__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.rank__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rank__place,
+.rank-row__place {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.rank__asof {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank__plot {
+  flex: 1;
+  min-height: 160px;
+}
+
+.rank__list {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.rank-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'label value' 'cells place';
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-bottom: var(--hairline) solid var(--line);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rank-row:hover,
+.rank-row[aria-pressed='true'] {
+  background: var(--bg-raised);
+}
+
+.rank-row[aria-pressed='true'] .rank-row__label {
+  font-weight: 600;
+}
+
+.rank-row__label {
+  grid-area: label;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.rank-row__value {
+  grid-area: value;
+  justify-self: end;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.rank-row__cells {
+  grid-area: cells;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.rank-row__cell {
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+  border: 1px solid var(--line-strong);
+  box-sizing: border-box;
+}
+
+.rank-row__cell--on {
+  background: var(--chart-2);
+  border-color: var(--chart-2);
+}
+
+.rank-row__place {
+  grid-area: place;
+  justify-self: end;
+  font-size: 11px;
+}
+
+.chron {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: clamp(120px, calc(var(--chron-lanes, 4) * 30px + 40px), 260px) minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) 0;
+}
+
+.chron__plot {
+  min-height: 0;
+}
+
+.chron__list {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Short windows (1280×720): a flatter timeline leaves room for the list. */
+@media (max-height: 800px) {
+  .chron {
+    grid-template-rows: clamp(110px, calc(var(--chron-lanes, 4) * 20px + 36px), 200px) minmax(0, 1fr);
+  }
+}
+
+/* Phone: the profile header leaves little height, so the tab panel scrolls as a whole again –
+   chart on top, the figures or events below (a tap on a figure scrolls its chart back into view). */
+@media (max-width: 719.98px) {
+  .company .bnk-tabs__panel:has(> .rank),
+  .company .bnk-tabs__panel:has(> .chron) {
+    display: block;
+    overflow: auto;
+  }
+  .rank {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .rank__plot {
+    flex: none;
+    height: 170px;
+    min-height: 0;
+  }
+  .rank__list {
+    overflow: visible;
+  }
+  .chron {
+    display: flex;
+    flex-direction: column;
+  }
+  .chron__plot {
+    flex: none;
+    height: calc(var(--chron-lanes, 4) * 20px + 36px);
+  }
+  .chron__list {
+    overflow: visible;
+  }
+}
