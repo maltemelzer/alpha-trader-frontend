@@ -122,37 +122,6 @@ export function dueChart(t: Theme, _w: number, days: { day: number; volume: numb
   };
 }
 
-/** Bids on the interest tender: volume per bid, the bid read as rate (98 % ≙ +2 %, 102 % ≙ −2 %). */
-export function tenderBidsChart(t: Theme, _w: number, bids: { rate: number; price: number; size: number }[]) {
-  const v = t.tokens;
-  const sorted = [...bids].sort((a, b) => b.rate - a.rate);
-  const max = Math.max(1, ...sorted.map((b) => b.size));
-  return {
-    data: [
-      {
-        type: 'bar',
-        x: sorted.map((b) => `${b.rate > 0 ? '+' : b.rate < 0 ? '−' : ''}${Math.abs(b.rate).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`),
-        y: sorted.map((b) => b.size),
-        marker: { color: v('chart-2'), line: { color: v('bg-card'), width: 2 } },
-        text: sorted.map((b) => short(b.size)),
-        textposition: 'outside',
-        cliponaxis: false,
-        textfont: { family: v('font-mono'), size: 12, color: v('text-primary') },
-        customdata: sorted.map((b) => b.price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })),
-        hovertemplate: 'Gebot %{customdata} % ≙ Zins %{x}<br>Volumen %{text}<extra></extra>',
-      },
-    ],
-    layout: {
-      hovermode: 'closest',
-      showlegend: false,
-      bargap: 0.45,
-      margin: { l: 0, r: 0, t: 20, b: 0 },
-      xaxis: { ...t.layout.xaxis, type: 'category', showspikes: false },
-      yaxis: { ...t.layout.yaxis, visible: false, range: [0, max * 1.2] },
-    },
-  };
-}
-
 /**
  * Money supply of the players against its target over the last snapshots (lines, no gain/loss
  * colours), below it the bond volume sold per snapshot. Snapshots come at irregular times.
