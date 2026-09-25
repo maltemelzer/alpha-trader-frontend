@@ -152,6 +152,14 @@ describe('rows from sources', () => {
     const l = changeLookup([mrow('A', 'STOCK', { priceChangeInPercent: 5 })], [mrow('B', 'STOCK', { priceChangeInPercent: -1 })])!;
     expect(l.complete).toBe(false);
   });
+  it('treats jumps beyond ×10 after a token-price transfer as unknown, not as a move', () => {
+    const l = changeLookup(
+      [mrow('SPIKE', 'STOCK', { priceChangeInPercent: 479450 }), mrow('UP', 'STOCK', { priceChangeInPercent: 150 }), mrow('Z', 'STOCK', { priceChangeInPercent: 0 })],
+      [mrow('CRASH', 'STOCK', { priceChangeInPercent: -99.9 }), mrow('Z2', 'STOCK', { priceChangeInPercent: 0 })],
+    );
+    const rows = mergeRows([[row('SPIKE', 'STOCK'), row('UP', 'STOCK'), row('CRASH', 'STOCK'), row('OTHER', 'STOCK')]], { change: l });
+    expect(rows.map((r) => r.change)).toEqual([null, 150, null, 0]);
+  });
 });
 
 describe('applyScreen / sortRows', () => {

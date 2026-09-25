@@ -183,13 +183,16 @@ export function tradesLookup(content: MarketRow[] | undefined, total: number | u
 
 /**
  * Changes from the big-movers lists (winners first and losers first). Every listing with a change
- * is in one of them when both lists reach a 0 – then all others are unchanged.
+ * is in one of them when both lists reach a 0 – then all others are unchanged. Jumps beyond ×10
+ * (a token-price transfer the day before) count as unknown, like the market tape does.
  */
 export function changeLookup(winners: MarketRow[] | undefined, losers: MarketRow[] | undefined): Lookup | null {
   if (!winners || !losers) return null;
   const entries: [string, number][] = [];
   for (const r of [...winners, ...losers]) {
-    if (r.priceChangeInPercent != null) entries.push([r.listing.securityIdentifier, r.priceChangeInPercent]);
+    // Beyond ×10 / ÷10 the previous close was a transfer at a token price (0,01 €), not a move: unknown (NaN).
+    const pct = r.priceChangeInPercent;
+    if (pct != null) entries.push([r.listing.securityIdentifier, pct > 900 || pct < -90 ? NaN : pct]);
   }
   const reachedZero = (rows: MarketRow[]) => !rows.length || (rows[rows.length - 1].priceChangeInPercent ?? 0) === 0;
   return lookup(entries, reachedZero(winners) && reachedZero(losers));
@@ -207,7 +210,8 @@ export function bookLookup(entries: HighscoreEntry[] | undefined): Lookup | null
 function pick(l: Lookup | null | undefined, asin: string): number | null {
   if (!l) return null;
   const v = l.map.get(asin);
-  return v != null ? v : l.complete ? 0 : null;
+  if (v != null) return Number.isNaN(v) ? null : v;
+  return l.complete ? 0 : null;
 }
 
 /** Merges row lists (first occurrence of an ASIN wins, later lists fill its gaps) and adds the lookups. */
