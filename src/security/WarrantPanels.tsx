@@ -2,18 +2,22 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { DS } from '../ds';
-import { useDailyHistory, useListingProfile, useWarrant, useWarrantsOn } from '../api/queries';
+import { useDailyHistory, useListingProfile, useWarrant, useWarrantAsks, useWarrantsOn } from '../api/queries';
 import type { ListingProfile } from '../api/types';
 import { Plot } from '../charts/Plot';
-import { span } from '../lib/format';
+import { parseDe, span } from '../lib/format';
 import { useNow } from '../lib/useNow';
 import { useParamState } from '../lib/useParamState';
+import { useUrlSearch } from '../lib/useUrlSearch';
+import { movePicks, PAYOUT_MODEL, priceInput, scenarioLabels } from './payoff';
 import { recentPrices } from './derive';
 import { Panel } from './Panel';
 import { corridorChart, corridorHeight, warrantChart } from './warrantCharts';
 import { callPutCount, corridors, mergeWarrants, toWarrantView, warrantEnd, warrantPosition } from './warrants';
 
 const DAY = 86_400_000;
+/** Asks are looked up for at most this many warrants of one underlying (one request each). */
+const MAX_SPREADS = 40;
 type Theme = Parameters<typeof warrantChart>[0];
 const signed = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 
@@ -90,15 +94,60 @@ export function WarrantsOnView({ asin }: { asin: string }) {
   const spot = profile.data?.lastPrice?.value;
   const rows = useMemo(() => list.map(toWarrantView), [list]);
   const bars = useMemo(() => corridors(list, () => spot), [list, spot]);
-  const figure = useCallback((t: Theme, width: number) => corridorChart(t, width, bars), [bars]);
+  // „Wenn … dann …“ for all warrants at once: what each pays at an assumed price and the result at its ask.
+  const asins = useMemo(() => list.slice(0, MAX_SPREADS).flatMap((w) => (w.listing?.securityIdentifier ? [w.listing.securityIdentifier] : [])), [list]);
+  const asks = useWarrantAsks(asins);
+  const [text, setText] = useUrlSearch('wenn', 400, []);
+  const typed = parseDe(text);
+  const s = Number.isFinite(typed) && typed > 0 ? typed : spot;
+  const scenario = useMemo(
+    () => (s && spot ? { pct: (s / spot - 1) * 100, labels: scenarioLabels(list, s, (a) => asks[a]) } : undefined),
+    [s, spot, list, asks],
+  );
+  const figure = useCallback((t: Theme, width: number) => corridorChart(t, width, bars, scenario), [bars, scenario]);
   if (isLoading) return <DS.Skeleton variant="rows" />;
   const { calls, puts } = callPutCount(list);
+  const name = profile.data?.name ?? 'der Basiswert';
+  const picks = movePicks(spot);
+  const same = (a: number, b: number) => Math.abs(a / b - 1) < 1e-4;
   return (
     <div className="scroll class__list warrants">
       {rows.length > 0 && (
         <p className="class__note warrants__note">
-          {calls.toLocaleString('de-DE')} Calls · {puts.toLocaleString('de-DE')} Puts · Balken von Referenzkurs bis Cap, gemessen am Kurs jetzt
+          {calls.toLocaleString('de-DE')} Calls · {puts.toLocaleString('de-DE')} Puts · Balken: Referenzkurs bis Cap in % vom Kurs jetzt · daneben{' '}
+          <DS.Term title="Auszahlung (Annahme)" definition={PAYOUT_MODEL}>
+            Auszahlung je Schein
+          </DS.Term>{' '}
+          und Ergebnis zum Brief
         </p>
+      )}
+      {bars.length > 0 && spot != null && (
+        <div className="warrants__if">
+          <span className="warrants__q">Wenn {name} am Ende bei</span>
+          <DS.Input
+            aria-label={`Kurs von ${name} am Ende`}
+            size="sm"
+            numeric
+            suffix="€"
+            value={text}
+            placeholder={priceInput(spot)}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <span className="warrants__q">steht:</span>
+          <div className="scn__picks" role="group" aria-label="Schnellauswahl">
+            {picks.map((q) => (
+              <button
+                key={q.label}
+                type="button"
+                className="scn__pick"
+                aria-pressed={s != null && same(s, q.value)}
+                onClick={() => setText(q.label === 'unverändert' ? '' : priceInput(q.value))}
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
       {bars.length > 0 && (
         <div className="warrants__chart" style={{ height: corridorHeight(bars.length) }}>

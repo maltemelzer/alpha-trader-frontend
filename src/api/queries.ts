@@ -2939,3 +2939,23 @@ export function useDailyHistoriesState(asins: string[]) {
     }),
   });
 }
+
+/**
+ * Asks of many warrants for the „Wenn … dann …“ labels on an underlying (one request each, so only
+ * every minute – the warrant page itself polls its own spread every 15 s).
+ */
+export function useWarrantAsks(asins: string[]) {
+  return useQueries({
+    queries: asins.map((asin) => ({
+      queryKey: ['pricespread', asin],
+      queryFn: () =>
+        unwrap<PriceSpreadView>(
+          api.GET('/api/pricespreads/{securityIdentifier}', { params: { path: { securityIdentifier: asin } } }),
+        ),
+      refetchInterval: SLOW,
+      staleTime: SLOW,
+    })),
+    combine: (results) =>
+      Object.fromEntries(asins.flatMap((a, i) => (results[i]?.data?.askPrice != null ? [[a, results[i].data!.askPrice!]] : []))) as Record<string, number>,
+  });
+}

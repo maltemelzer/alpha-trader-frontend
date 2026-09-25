@@ -40,6 +40,9 @@ import {
 import { candles, depthChart, holdersBars, priceLine, tradesChart } from './charts';
 import { Panel } from './Panel';
 import { WarrantPanel, WarrantTabs, WithWarrants } from './WarrantPanels';
+import { WarrantScenarioPanel } from './WarrantScenario';
+import { readTicketDraft, type Draft } from './payoff';
+import { parseDe } from '../lib/format';
 import { ratioText, warrantEnd } from './warrants';
 import { QuotePanel } from '../companies/QuotePanel';
 import type { Sponsorship } from '../companies/derive';
@@ -88,6 +91,12 @@ export function SecurityPage() {
   const [pick, setPick] = useState<Pick | null>(null);
   const [sheet, setSheet] = useState(false);
   const [toast, setToast] = useState<Result | null>(null);
+  // Warrants: what the player types in the ticket (number, buy limit) feeds the „Wenn … dann …“ scenario.
+  const [draft, setDraft] = useState<Draft>({});
+  const onDraft = useCallback(
+    (d: Draft) => setDraft((prev) => (prev.shares === d.shares && prev.limit === d.limit ? prev : d)),
+    [],
+  );
   const openOrder = useCallback(
     (p: Pick) => {
       setPick(p);
@@ -160,6 +169,7 @@ export function SecurityPage() {
       spread={sp}
       change={ch?.pct}
       pick={pick}
+      onDraft={cls === 'warrant' ? onDraft : undefined}
       onResult={(r) => {
         setToast(r);
         if (r.ok) setSheet(false);
@@ -237,7 +247,7 @@ export function SecurityPage() {
         <DS.MobileTopBar title={p.name} eyebrow={p.securityIdentifier} onBack={() => navigate(-1)} backText="Zurück" />
         <div className="sec__phone-scroll">
           {header}
-          <PhonePanels asin={asin} profile={p} cls={cls} onPick={openOrder} ownsEtf={ownsEtf} />
+          <PhonePanels asin={asin} profile={p} cls={cls} onPick={openOrder} ownsEtf={ownsEtf} draft={draft} />
         </div>
         {sp && tradable && (
           <DS.TradeBar
@@ -261,7 +271,14 @@ export function SecurityPage() {
       <div className="sec__body">
         <div className="sec__main">
           {/* Bonds and repos: the price hardly moves around 100 %, the yield is the story – it takes the wide slot. */}
-          {yieldFirst ? <BondPanel profile={p} /> : <PricePanel asin={asin} profile={p} />}
+          {yieldFirst ? (
+            <BondPanel profile={p} />
+          ) : cls === 'warrant' ? (
+            // A warrant hardly trades – its own price line is empty; the payoff at maturity is the story.
+            <WarrantScenarioPanel profile={p} draft={draft} />
+          ) : (
+            <PricePanel asin={asin} profile={p} />
+          )}
           <div className="sec__lower">
             {cls === 'index' ? <IndexWeightsPanel asin={asin} /> : <MarketPanel asin={asin} profile={p} onPick={openOrder} />}
             {yieldFirst ? <PricePanel asin={asin} profile={p} /> : <ClassPanel asin={asin} profile={p} cls={cls} />}
@@ -596,7 +613,7 @@ function phoneViews(cls: AssetClass) {
     case 'building':
       return [price, { value: 'compare', label: 'Vergleich' }, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }];
     case 'warrant':
-      return [price, { value: 'basis', label: 'Basiswert' }, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }];
+      return [{ value: 'szenario', label: 'Szenario' }, { value: 'basis', label: 'Basiswert' }, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }];
     default:
       return [price, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }, { value: 'holders', label: 'Eigner' }];
   }
@@ -608,12 +625,14 @@ function PhonePanels({
   cls,
   onPick,
   ownsEtf = false,
+  draft,
 }: {
   asin: string;
   profile: ListingProfile;
   cls: AssetClass;
   onPick: (p: Pick) => void;
   ownsEtf?: boolean;
+  draft?: Draft;
 }) {
   const views = phoneViews(cls);
   const [view, setView] = useParamState('ansicht', views[0].value, views);
@@ -640,6 +659,7 @@ function PhonePanels({
         {view === 'tracking' && <EtfTrackingPanel profile={profile} bare />}
         {view === 'compare' && <BuildingPanel profile={profile} bare />}
         {view === 'basis' && <WarrantPanel profile={profile} bare />}
+        {view === 'szenario' && <WarrantScenarioPanel profile={profile} draft={draft} bare />}
         {view === 'units' && (
           <div>
             {ownsEtf ? (
@@ -671,6 +691,7 @@ function Ticket({
   change,
   pick,
   onResult,
+  onDraft,
 }: {
   profile: ListingProfile;
   listing: React.ComponentProps<typeof DS.OrderTicket>['listing'];
@@ -678,6 +699,8 @@ function Ticket({
   change?: number;
   pick: Pick | null;
   onResult: (r: Result) => void;
+  /** Warrants: reports the ticket's draft (number, buy limit) – the DS ticket has no change callback. */
+  onDraft?: (d: Draft) => void;
 }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -754,7 +777,7 @@ function Ticket({
 
   if (!accounts.length) return <DS.Skeleton variant="block" />;
   return (
-    <>
+    <TicketDraft onDraft={onDraft} price={spread?.askPrice ?? undefined}>
       <DS.OrderTicket
         listing={listing}
         spread={spread}
@@ -783,6 +806,27 @@ function Ticket({
       >
         Außerbörslich (OTC) an einen Spieler …
       </DS.Button>
-    </>
+    </TicketDraft>
+  );
+}
+
+/**
+ * Wrapper that reads the ticket's inputs after every input or click inside (and once after mounting,
+ * for the prefilled number) and reports them. `display: contents` keeps the ticket's layout.
+ */
+function TicketDraft({ onDraft, price, children }: { onDraft?: (d: Draft) => void; price?: number; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const read = useCallback(() => {
+    if (!onDraft) return;
+    requestAnimationFrame(() => {
+      if (ref.current) onDraft(readTicketDraft(ref.current, price, parseDe));
+    });
+  }, [onDraft, price]);
+  useLayoutEffect(read, [read]);
+  if (!onDraft) return <>{children}</>;
+  return (
+    <div ref={ref} className="sec__draft" onInput={read} onClick={read} onKeyUp={read}>
+      {children}
+    </div>
   );
 }
