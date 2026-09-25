@@ -71,3 +71,10 @@ export function span(ms: number): string {
   const rest = h % 24;
   return rest ? `${d}\u00a0T ${rest}\u00a0Std.` : `${d}\u00a0T`;
 }
+
+/** Number typed in German format (\u201e1.234,5\u201c, \u201e12,50\u201c, \u201e 7 \u201c) \u2192 1234.5; NaN when it isn't one. */
+export function parseDe(s: string): number {
+  const t = s.trim().replace(/[\s\u00a0]/g, '');
+  if (!/^[+-]?[\d.]*,?\d*$/.test(t) || !/\d/.test(t)) return NaN;
+  return Number(t.replace(/\./g, '').replace(',', '.'));
+}

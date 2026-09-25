@@ -1,3 +1,134 @@
 .orders__body {
   grid-template-rows: auto minmax(0, 1fr);
 }
+
+/* „OTC“ is a short label: keep the tab at least 44 px wide for touch. */
+.orders .bnk-tabs__tab {
+  min-width: 44px;
+}
+
+/* ---------- OTC ---------- */
+
+.otc__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-2);
+}
+
+/* Offer vs. market: diverging bar around the centre line, neutral colours. */
+.otc-prem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.otc-prem--none {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.otc-prem__track {
+  position: relative;
+  width: 64px;
+  height: 8px;
+  flex: none;
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+}
+
+.otc-prem__track::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--line-control);
+}
+
+.otc-prem__bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  background: var(--text-muted);
+  border-radius: var(--radius-sm);
+}
+
+.otc-prem__bar.is-pos {
+  left: 50%;
+}
+
+.otc-prem__bar.is-neg {
+  right: 50%;
+}
+
+.otc-prem--good .otc-prem__bar {
+  background: var(--text-primary);
+}
+
+.otc-prem__txt {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.2;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.otc-prem__txt small {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: normal;
+}
+
+/* Keeps the action column visible at 1280 px: the comparison wraps instead of widening the table. */
+.otc-table .otc-prem__txt {
+  max-width: 96px;
+}
+
+.otc-prem--good .otc-prem__txt small {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Accept dialog */
+.otc-accept {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.otc-accept__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.otc-accept__market {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* New OTC order (Sheet) */
+.otc-new {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.otc-new__asin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: calc(-1 * var(--space-3));
+}
+
+.otc-new__hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}

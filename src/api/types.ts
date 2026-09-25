@@ -14,6 +14,10 @@ export type UserAccountView = S['UserAccountView'];
 export type CompanyView = S['CompanyView'];
 export type SearchResult = S['SearchResult'];
 export type OrderCheck = S['OrderCheck'];
+/** GET /api/securityorders/counterparty/{id} – OTC orders addressed to an account */
+export type SecurityOrderWithVolumeView = S['SecurityOrderWithVolumeView'];
+/** GET /api/v2/securitiesaccountdetails?search= – possible OTC counterparties */
+export type SecuritiesAccountDetailsView = S['SecuritiesAccountDetailsView'];
 
 export interface PricePoint {
   value: number;

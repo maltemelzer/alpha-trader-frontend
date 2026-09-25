@@ -263,3 +263,8 @@
 .sec__lower .panel--price .panel__actions .bnk-chg {
   display: none;
 }
+
+/* Link from the order ticket to a new OTC order on /orders */
+.sec__otc {
+  margin-top: var(--space-2);
+}

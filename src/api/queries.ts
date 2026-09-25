@@ -10,12 +10,15 @@ import type {
   ListingView,
   MessageView,
   ListingProfile,
+  OrderCheck,
   OrderbookView,
   PortfolioSummary,
   PortfolioView,
   PriceSpreadView,
   SearchResult,
+  SecuritiesAccountDetailsView,
   SecurityOrderLogEntryView,
+  SecurityOrderWithVolumeView,
   ShareholderView,
   UserAccountView,
   UsernameView,
@@ -23,6 +26,7 @@ import type {
 import { useEffect } from 'react';
 import type { ApiMessage } from '../lib/messages';
 import { mergeTrades } from '../app/tape';
+import type { AddOrderQuery } from '../orders/derive';
 import type {
   AchievementItem,
   AllianceMembership,
@@ -1716,4 +1720,98 @@ function pageableSerializer(q: Record<string, unknown>) {
     }
   }
   return out.toString();
+}
+
+// ---------- OTC orders ----------
+// An OTC order names one counterparty securities account; only that account can execute it,
+// by placing the opposite order with the offerer as counterparty (see src/orders/derive.ts).
+
+/** Unfilled OTC orders addressed to each account (GET /api/securityorders/counterparty/{id}), in the given order. */
+export function useCounterOtcOrders(securitiesAccountIds: string[]) {
+  return useQueries({
+    queries: securitiesAccountIds.map((id) => ({
+      queryKey: ['orders', 'otc', id],
+      queryFn: () =>
+        unwrap<SecurityOrderWithVolumeView[]>(
+          api.GET('/api/securityorders/counterparty/{securitiesAccountId}', { params: { path: { securitiesAccountId: id } } }),
+        ),
+      refetchInterval: LIVE,
+    })),
+    combine: (results) => ({
+      data: results.map((r) => r.data),
+      isLoading: results.some((r) => r.isLoading),
+      isError: results.some((r) => r.isError),
+    }),
+  });
+}
+
+/** Possible OTC counterparties: private and company securities accounts by name (GET /api/v2/securitiesaccountdetails). */
+export function useOtcCounterparties(search: string) {
+  const q = search.trim();
+  return useQuery({
+    queryKey: ['securitiesaccountdetails', q],
+    enabled: q.length >= 2,
+    queryFn: () =>
+      unwrap<SecuritiesAccountDetailsView[]>(api.GET('/api/v2/securitiesaccountdetails', { params: { query: { search: q } } })),
+    placeholderData: (prev) => prev,
+    staleTime: SLOW,
+  });
+}
+
+/** Portfolio (cash, positions) of one of my accounts – also company accounts (GET /api/portfolios/{id}). */
+export function useAccountPortfolio(securitiesAccountId: string | undefined) {
+  return useQuery({
+    queryKey: ['portfolio', 'account', securitiesAccountId],
+    enabled: !!securitiesAccountId,
+    queryFn: () =>
+      unwrap<PortfolioView>(
+        api.GET('/api/portfolios/{securitiesAccountId}', { params: { path: { securitiesAccountId: securitiesAccountId! } } }),
+      ),
+    refetchInterval: SLOW,
+  });
+}
+
+/** Spreads of several listings; shares the cache with usePriceSpread. */
+export function usePriceSpreads(asins: string[]) {
+  return useQueries({
+    queries: asins.map((asin) => ({
+      queryKey: ['pricespread', asin],
+      queryFn: () =>
+        unwrap<PriceSpreadView>(
+          api.GET('/api/pricespreads/{securityIdentifier}', { params: { path: { securityIdentifier: asin } } }),
+        ),
+      refetchInterval: LIVE,
+    })),
+    combine: (results) =>
+      Object.fromEntries(asins.flatMap((a, i) => (results[i]?.data ? [[a, results[i].data]] : []))) as Record<string, PriceSpreadView>,
+  });
+}
+
+/**
+ * Read-only order check (GET /api/securityorders/check, deprecated but without side effects). It
+ * knows no counterparty, so for OTC it only validates cash, shares and limits – not a match.
+ */
+export async function checkOrder(q: Omit<AddOrderQuery, 'counterparty' | 'checkOrderOnly' | 'goodAfterDate' | 'goodTillDate' | 'hourlyChange' | 'expectedPrice'>) {
+  const { owner, securityIdentifier, action, type, price, numberOfShares } = q;
+  return unwrap<OrderCheck>(
+    api.GET('/api/securityorders/check', { params: { query: { owner, securityIdentifier, action, type, price, numberOfShares } } }),
+  );
+}
+
+/**
+ * POST /api/securityorders – places an order; with `counterparty` an OTC order. The opposite order
+ * addressed back to an OTC offerer executes that offer. Writes to the live game.
+ */
+export function useAddOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (query: AddOrderQuery) => unwrap(api.POST('/api/securityorders', { params: { query } })),
+    onSuccess: (_, q) => {
+      void qc.invalidateQueries({ queryKey: ['orders'] });
+      void qc.invalidateQueries({ queryKey: ['portfolio'] });
+      void qc.invalidateQueries({ queryKey: ['orderlogs'] });
+      void qc.invalidateQueries({ queryKey: ['pricespread', q.securityIdentifier] });
+      void qc.invalidateQueries({ queryKey: ['orderbook', q.securityIdentifier] });
+    },
+  });
 }

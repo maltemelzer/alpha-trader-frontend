@@ -578,6 +578,7 @@ function Ticket({
   onResult: (r: Result) => void;
 }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const me = useMe();
   const portfolio = usePortfolio();
   const companies = useMyCompanies(me.data?.id);
@@ -643,24 +644,35 @@ function Ticket({
 
   if (!accounts.length) return <DS.Skeleton variant="block" />;
   return (
-    <DS.OrderTicket
-      listing={listing}
-      spread={spread}
-      change={change}
-      changeSuffix="24 h"
-      accounts={accounts}
-      accountId={accountId ?? accounts[0].id}
-      onAccountChange={setAccountId}
-      position={pos ? { numberOfShares: pos.numberOfShares - pos.committedShares, averageBuyingPrice: pos.averageBuyingPrice } : undefined}
-      faceValue={profile.bond?.faceValue}
-      premium={!!me.data?.userCapabilities?.premium}
-      defaultAction={pick?.side ?? 'BUY'}
-      defaultType={pick?.type ?? 'MARKET'}
-      defaultPrice={pick?.type === 'LIMIT' ? pick.price : undefined}
-      defaultShares={shares}
-      onCheck={onCheck}
-      onSubmit={onSubmit}
-      loading={sending}
-    />
+    <>
+      <DS.OrderTicket
+        listing={listing}
+        spread={spread}
+        change={change}
+        changeSuffix="24 h"
+        accounts={accounts}
+        accountId={accountId ?? accounts[0].id}
+        onAccountChange={setAccountId}
+        position={pos ? { numberOfShares: pos.numberOfShares - pos.committedShares, averageBuyingPrice: pos.averageBuyingPrice } : undefined}
+        faceValue={profile.bond?.faceValue}
+        premium={!!me.data?.userCapabilities?.premium}
+        defaultAction={pick?.side ?? 'BUY'}
+        defaultType={pick?.type ?? 'MARKET'}
+        defaultPrice={pick?.type === 'LIMIT' ? pick.price : undefined}
+        defaultShares={shares}
+        onCheck={onCheck}
+        onSubmit={onSubmit}
+        loading={sending}
+      />
+      <DS.Button
+        variant="ghost"
+        size="sm"
+        fullWidth
+        className="sec__otc"
+        onClick={() => navigate(`/orders?ansicht=otc&neu=${profile.securityIdentifier}`)}
+      >
+        Außerbörslich (OTC) an einen Spieler …
+      </DS.Button>
+    </>
   );
 }

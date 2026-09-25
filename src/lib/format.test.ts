@@ -1,4 +1,4 @@
-import { alpha, changeText, clip, euro, short, ratePct, span } from './format';
+import { alpha, changeText, clip, euro, parseDe, short, ratePct, span } from './format';
 
 describe('span', () => {
   it('reads like the game', () => {
@@ -39,5 +39,17 @@ describe('format', () => {
   it('alpha and clip', () => {
     expect(alpha('#578ED4', 0.16)).toBe('rgba(87,142,212,0.16)');
     expect(clip('Hanse Beteiligungs AG')).toBe('Hanse Bete…');
+  });
+});
+
+describe('parseDe', () => {
+  it('reads German input', () => {
+    expect(parseDe('1.234,5')).toBe(1234.5);
+    expect(parseDe(' 12,50 ')).toBe(12.5);
+    expect(parseDe('7')).toBe(7);
+    expect(parseDe('1.000')).toBe(1000);
+    expect(parseDe('')).toBeNaN();
+    expect(parseDe('abc')).toBeNaN();
+    expect(parseDe('1,2,3')).toBeNaN();
   });
 });
