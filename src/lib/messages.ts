@@ -38,6 +38,9 @@ const DE: Record<string, string> = {
   'Write your first posting in a message board': 'Schreib deinen ersten Forenbeitrag.',
   'Write a news for the newspaper': 'Schreib einen Artikel für die Zeitung.',
   'Write a news for the newspaper once a week': 'Schreib jede Woche einen Artikel für die Zeitung.',
+  'Reach the top 50% in an alliance highscore': 'Kommt in einem Allianz-Highscore in die obere Hälfte.',
+  'Reach the top 10% in an alliance highscore': 'Kommt in einem Allianz-Highscore unter die besten 10 %.',
+  'Stay the best in a alliance highscore': 'Bleibt Erste in einem Allianz-Highscore.',
   // Errors
   'An unexpected error occurred. Please try again.': 'Ein unerwarteter Fehler ist aufgetreten. Bitte erneut versuchen.',
 };

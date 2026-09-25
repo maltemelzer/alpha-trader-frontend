@@ -490,6 +490,7 @@ export interface UserProfile {
 export function useUserProfile(username: string) {
   return useQuery({
     queryKey: ['userprofile', username],
+    enabled: !!username,
     queryFn: () =>
       unwrap<UserProfile>(api.GET('/api/userprofiles/{username}', { params: { path: { username } } })),
     staleTime: SLOW,
@@ -606,10 +607,11 @@ export interface PostView {
   parent?: string | null;
 }
 
-export function useNews(search: string) {
+export function useNews(search: string, enabled = true) {
   const q = search.trim();
   return useInfiniteQuery({
     queryKey: ['news', q],
+    enabled,
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       getPage<PostView>('/api/v2/news', { search: q || undefined, pageable: { page: pageParam, size: 20, sort: ['dateCreated,desc'] } }),
@@ -830,6 +832,8 @@ export interface BoardView {
   numberOfSubboards?: number;
   numberOfMembers?: number;
   parent?: { id: string; name: string } | null;
+  /** top board of a sub-board – memberships (and member counts) belong to it */
+  root?: { id: string; name: string; publicBoard?: boolean } | null;
   latestPost?: PostView | null;
   publicBoard?: boolean;
   dateCreated?: number;
@@ -1923,4 +1927,216 @@ export function useAddOrder() {
       void qc.invalidateQueries({ queryKey: ['orderbook', q.securityIdentifier] });
     },
   });
+}
+
+// ---------- Community (alliances, news, forum) ----------
+
+/** Alliance achievements: reached ones and the progress of the open ones (both public). */
+export function useAllianceAchievements(allianceId: string) {
+  return useQuery({
+    queryKey: ['alliance', allianceId, 'achievements'],
+    enabled: !!allianceId,
+    queryFn: async () => {
+      const [done, progress] = await Promise.all([
+        unwrap<AchievementItem[]>(
+          api.GET('/api/v2/allianceachievements/{allianceID}', { params: { path: { allianceID: allianceId } } }),
+        ),
+        unwrap<AchievementItem[]>(
+          api.GET('/api/v2/allianceachievementprogress/{allianceId}', { params: { path: { allianceId } } }),
+        ),
+      ]);
+      return { done, progress };
+    },
+    staleTime: SLOW,
+  });
+}
+
+/** Reached but unclaimed achievements of the player's own alliance (only for members). */
+export function useUnclaimedAllianceAchievements(enabled: boolean) {
+  return useQuery({
+    queryKey: ['alliance', 'achievements', 'unclaimed'],
+    enabled,
+    queryFn: () => unwrap<AchievementItem[]>(api.GET('/api/v2/my/notyetclaimedallianceachievements')),
+    staleTime: SLOW,
+  });
+}
+
+export const claimAllianceAchievement = (achievementId: string) =>
+  unwrap(api.PUT('/api/v2/my/allianceachievementclaim/{achievementId}', { params: { path: { achievementId } } }));
+/** Claims all reached achievements of the player's own alliance (no parameter). */
+export const claimAllAllianceAchievements = () => unwrap(api.PUT('/api/v2/my/allianceachievementclaim'));
+
+export function useClaimAllianceAchievements() {
+  const qc = useQueryClient();
+  const done = () => {
+    void qc.invalidateQueries({ queryKey: ['alliance'] });
+    void qc.invalidateQueries({ queryKey: ['portfolio'] });
+  };
+  return {
+    one: useMutation({ mutationFn: claimAllianceAchievement, onSuccess: done }),
+    all: useMutation({ mutationFn: claimAllAllianceAchievements, onSuccess: done }),
+  };
+}
+
+/** Where a filtered news feed comes from; the whole newspaper is useNews. */
+export type NewsSource =
+  | { kind: 'author'; userId: string }
+  | { kind: 'hashtag'; tag: string }
+  | { kind: 'company'; companyId: string }
+  | { kind: 'alliance'; allianceId: string };
+
+/** GET path of a news feed. */
+export function newsSourcePath(s: NewsSource): string {
+  switch (s.kind) {
+    case 'author':
+      return `/api/v2/authors/${encodeURIComponent(s.userId)}/news`;
+    case 'hashtag':
+      return `/api/v2/hashtags/${encodeURIComponent(s.tag)}/news`;
+    case 'company':
+      return `/api/v2/companies/${encodeURIComponent(s.companyId)}/news`;
+    case 'alliance':
+      return `/api/v2/alliances/${encodeURIComponent(s.allianceId)}/news`;
+  }
+}
+
+const FEED_SIZE = 20;
+
+/** News of one author, hashtag, company or alliance, newest first. */
+export function useNewsFeed(source: NewsSource | null) {
+  return useInfiniteQuery({
+    queryKey: ['news', 'feed', source],
+    enabled: !!source,
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      getPage<PostView>(newsSourcePath(source!), { pageable: { page: pageParam, size: FEED_SIZE, sort: ['dateCreated,desc'] } }),
+    getNextPageParam: (last, all) => (all.length * FEED_SIZE < last.totalElements ? all.length : undefined),
+    staleTime: SLOW,
+  });
+}
+
+/**
+ * Interest = a number the server keeps per player and author/company/hashtag/post (a post's parts
+ * add up to `interestSum`). Never seen ones answer 200 with interest 0 and version null.
+ */
+export interface InterestView {
+  id?: string;
+  version?: number | null;
+  interest: number;
+}
+export type FollowKind = 'authors' | 'companies' | 'hashtags';
+
+export const interestPath = (kind: FollowKind, id: string) => `/api/v2/my/interests/${kind}/${encodeURIComponent(id)}`;
+
+export function useInterest(kind: FollowKind, id: string | undefined) {
+  return useQuery({
+    queryKey: ['interest', kind, id],
+    enabled: !!id,
+    queryFn: () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return unwrap<InterestView>((api.GET as any)(interestPath(kind, id!), {}));
+    },
+    staleTime: SLOW,
+  });
+}
+
+/** The parts of the player's interest in a post (GET /api/v2/my/interests/posts/{postId}). */
+export type PostInterestView = Record<string, { interest?: number } | { interest?: number }[] | null>;
+
+export function usePostInterest(postId: string | undefined) {
+  return useQuery({
+    queryKey: ['interest', 'post', postId],
+    enabled: !!postId,
+    queryFn: () =>
+      unwrap<PostInterestView>(api.GET('/api/v2/my/interests/posts/{postId}', { params: { path: { postId: postId! } } })),
+    staleTime: SLOW,
+  });
+}
+
+/** Follow (SUBSCRIBE), hide (IGNORE) or reset (null → DELETE) the news of an author, company or hashtag. */
+export function setSubscription(kind: FollowKind, id: string, action: 'SUBSCRIBE' | 'IGNORE' | null) {
+  if (kind === 'authors') {
+    const path = { userId: id };
+    return action
+      ? unwrap(api.PUT('/api/v2/my/subscriptions/authors/{userId}', { params: { path, query: { action } } }))
+      : unwrap(api.DELETE('/api/v2/my/subscriptions/authors/{userId}', { params: { path } }));
+  }
+  if (kind === 'companies') {
+    const path = { companyId: id };
+    return action
+      ? unwrap(api.PUT('/api/v2/my/subscriptions/companies/{companyId}', { params: { path, query: { action } } }))
+      : unwrap(api.DELETE('/api/v2/my/subscriptions/companies/{companyId}', { params: { path } }));
+  }
+  const path = { hashtag: id };
+  return action
+    ? unwrap(api.PUT('/api/v2/my/subscriptions/hashtags/{hashtag}', { params: { path, query: { action } } }))
+    : unwrap(api.DELETE('/api/v2/my/subscriptions/hashtags/{hashtag}', { params: { path } }));
+}
+
+export function useSubscription(kind: FollowKind, id: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (action: 'SUBSCRIBE' | 'IGNORE' | null) => setSubscription(kind, id!, action),
+    onSuccess: (data) => {
+      const d = data as Partial<InterestView> | undefined;
+      if (d && typeof d.interest === 'number') qc.setQueryData(['interest', kind, id], d);
+      void qc.invalidateQueries({ queryKey: ['interest'] });
+      void qc.invalidateQueries({ queryKey: ['news', 'feed'] });
+    },
+  });
+}
+
+/** Boards the player is a member of („Meine Foren“). */
+export function useMyBoards() {
+  return useQuery({
+    queryKey: ['forum', 'mine'],
+    queryFn: () => getPage<BoardView>('/api/v2/my/messageboards', { pageable: { page: 0, size: 100 } }),
+    staleTime: SLOW,
+  });
+}
+
+/**
+ * „Most interesting news“ = the newest threads (not comments, not newspaper articles) of all boards
+ * and sub-boards the player is a member of.
+ */
+export function useBoardNews() {
+  return useInfiniteQuery({
+    queryKey: ['forum', 'boardnews'],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      getPage<PostView & { messageBoard?: { id: string; name: string } | null }>('/api/v2/my/boardnews', {
+        pageable: { page: pageParam, size: 30, sort: ['dateCreated,desc'] },
+      }),
+    getNextPageParam: (last, all) => (all.length * 30 < last.totalElements ? all.length : undefined),
+    staleTime: SLOW,
+  });
+}
+
+/** Adds the player to a board as reader. */
+export const joinBoard = (userId: string, messageBoardId: string) =>
+  unwrap(api.POST('/api/v2/messageboardmemberships', { params: { query: { userId, messageBoardId, role: 'READER' } } }));
+/** Removes the player's own membership of a board. */
+export const leaveBoard = (boardId: string) =>
+  unwrap(api.DELETE('/api/v2/messageboardmemberships', { params: { query: { boardId } } }));
+
+export function useBoardMembership() {
+  const qc = useQueryClient();
+  const done = () => void qc.invalidateQueries({ queryKey: ['forum'] });
+  return {
+    join: useMutation({ mutationFn: (v: { userId: string; boardId: string }) => joinBoard(v.userId, v.boardId), onSuccess: done }),
+    leave: useMutation({ mutationFn: leaveBoard, onSuccess: done }),
+  };
+}
+
+export type ComplaintType = 'COMPANY_LOGO' | 'COMPANY_NAME' | 'ALLIANCE_LOGO' | 'MESSAGE' | 'MESSAGE_BOARD' | 'POST' | 'USER_NAME';
+
+/** Reports content to the moderators (POST /api/complaints – everything in the query, no body). */
+export const createComplaint = (v: { subjectMatterId: string; subjectMatterType: ComplaintType; text?: string }) =>
+  unwrap(
+    api.POST('/api/complaints', {
+      params: { query: { subjectMatterId: v.subjectMatterId, subjectMatterType: v.subjectMatterType, text: v.text?.trim() || undefined } },
+    }),
+  );
+
+export function useComplaint() {
+  return useMutation({ mutationFn: createComplaint });
 }

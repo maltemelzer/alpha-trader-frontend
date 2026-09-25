@@ -1,12 +1,24 @@
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { DS } from '../ds';
-import { useAlliance, useAllianceActions, useAllianceMembers, useMyChats } from '../api/queries';
+import {
+  useAlliance,
+  useAllianceAchievements,
+  useAllianceActions,
+  useAllianceMembers,
+  useClaimAllianceAchievements,
+  useMyChats,
+  useNewsFeed,
+  useUnclaimedAllianceAchievements,
+} from '../api/queries';
 import type { UsernameView } from '../api/types';
 import type { AllianceMembership } from '../../vendor/bankiersgruen';
 import { UserPicker } from '../chat/UserPicker';
 import { AllianceForm } from './AllianceForm';
+import { allianceAchievements, belongsTo } from './derive';
+import { toPost } from '../news/derive';
 import { htmlToText } from '../lib/html';
+import { translate } from '../lib/messages';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import './AlliancePage.css';
@@ -25,6 +37,11 @@ export function AlliancePage() {
   const members = useAllianceMembers(id);
   const chats = useMyChats();
   const act = useAllianceActions();
+  const achievements = useAllianceAchievements(id);
+  const isMemberHere = !!members.data?.some((m) => m.member.myUser);
+  const unclaimed = useUnclaimedAllianceAchievements(isMemberHere);
+  const claim = useClaimAllianceAchievements();
+  const news = useNewsFeed(id ? { kind: 'alliance', allianceId: id } : null);
   const sheet = params.get('bearbeiten') ? 'edit' : params.get('aufnehmen') ? 'add' : null;
   const [picked, setPicked] = useState<UsernameView[]>([]);
   const [confirm, setConfirm] = useState<{ kind: 'leave' } | { kind: 'remove'; m: AllianceMembership } | null>(null);
@@ -78,6 +95,48 @@ export function AlliancePage() {
     </DS.Button>
   ) : undefined;
 
+  const open = isMember ? (unclaimed.data ?? []).filter((u) => belongsTo(u, id)) : [];
+  const achievementBoard = achievements.isLoading ? (
+    <DS.Loading rows={4} />
+  ) : (
+    <div className="alliance__pad">
+      {(claim.one.isError || claim.all.isError) && <DS.Banner variant="error">Abholen fehlgeschlagen.</DS.Banner>}
+      <DS.AchievementBoard
+        achievements={allianceAchievements(achievements.data, open, translate)}
+        label="Erfolge der Allianz"
+        openFirst={isMember}
+        onClaim={isMember ? (x) => x.id && claim.one.mutate(x.id) : undefined}
+        onClaimAll={isMember && open.length > 1 ? () => claim.all.mutate() : undefined}
+      />
+    </div>
+  );
+  const posts = news.data?.pages.flatMap((p) => p.content) ?? [];
+  const newsTotal = news.data?.pages[0]?.totalElements ?? 0;
+  const press = news.isLoading ? (
+    <DS.Loading rows={4} />
+  ) : posts.length ? (
+    <div className="alliance__pad">
+      <DS.NewsFeed items={posts.map(toPost)} hrefFor={(p) => `/zeitung/${p.id}`} tagHref={(t) => `/zeitung?tag=${encodeURIComponent(t)}`} />
+      {news.hasNextPage && (
+        <div className="alliance__more">
+          <DS.Button variant="secondary" size="sm" loading={news.isFetchingNextPage} onClick={() => news.fetchNextPage()}>
+            Ältere Artikel
+          </DS.Button>
+        </div>
+      )}
+    </div>
+  ) : (
+    <DS.EmptyState compact as="h3" title="Noch keine Artikel der Allianz" />
+  );
+  const achievementCount = a ? `${a.achievementCount ?? 0}/${a.achievementTotal ?? 0}` : undefined;
+  const infoTabs = [
+    { value: 'ueber', label: 'Über uns', content: <div className="alliance__about">{about}</div> },
+    { value: 'erfolge', label: 'Erfolge', count: open.length ? `${open.length} neu` : achievementCount, content: achievementBoard },
+    { value: 'presse', label: 'Presse', count: newsTotal || undefined, content: press },
+  ];
+  const view = params.get('ansicht');
+  const setView = (v: string) => setParams({ ansicht: v }, { replace: true });
+
   return (
     <div className="page alliance" onClick={onLinkClick}>
       <DS.ProfileHeader
@@ -119,8 +178,16 @@ export function AlliancePage() {
       />
       {isWide ? (
         <div className="page__body alliance__body">
-          <DS.Card className="panel" title="Über die Allianz">
-            {about}
+          <DS.Card flush className="panel">
+            <div className="panel__tabs">
+              <DS.Tabs
+                size="sm"
+                aria-label="Allianz"
+                value={infoTabs.some((t) => t.value === view) ? view! : 'ueber'}
+                onChange={setView}
+                items={infoTabs}
+              />
+            </div>
           </DS.Card>
           <DS.Card className="panel" title="Mitglieder" action={addButton}>
             <div className="panel__fill scroll">{memberList}</div>
@@ -132,13 +199,12 @@ export function AlliancePage() {
             <DS.Tabs
               size="sm"
               aria-label="Allianz"
-              value={params.get('ansicht') ?? 'mitglieder'}
-              onChange={(v) => setParams({ ansicht: v }, { replace: true })}
+              value={view ?? 'mitglieder'}
+              onChange={setView}
               items={[
                 {
                   value: 'mitglieder',
                   label: 'Mitglieder',
-                  count: list.length,
                   content: (
                     <>
                       {addButton && <div className="alliance__add">{addButton}</div>}
@@ -146,7 +212,7 @@ export function AlliancePage() {
                     </>
                   ),
                 },
-                { value: 'ueber', label: 'Über uns', content: <div className="alliance__about">{about}</div> },
+                ...infoTabs,
               ]}
             />
           </div>

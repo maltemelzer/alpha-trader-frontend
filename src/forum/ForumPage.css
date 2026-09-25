@@ -11,6 +11,46 @@
   white-space: pre-line;
 }
 
+.forum__tag {
+  display: inline-block;
+  margin-right: var(--space-1);
+  padding: 0 var(--space-1);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font: 600 11px/16px var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.forum .bnk-ph__actions > .forum__views {
+  flex: 0 0 auto;
+  min-width: 380px;
+}
+
+@media (max-width: 719.98px) {
+  .forum .bnk-ph__actions {
+    flex-wrap: wrap;
+  }
+
+  .forum .bnk-ph__actions > .forum__views {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  /* Board: [Abonnieren] [Neues Thema] in one row, search below */
+  .forum .bnk-ph__actions > .bnk-field {
+    order: 1;
+    flex: 1 1 100%;
+  }
+}
+
+.forum__more {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4) 0;
+}
+
 .forum__subs {
   padding: var(--space-2) var(--space-4) var(--space-4);
 }
