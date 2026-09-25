@@ -1,43 +1,74 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { DS } from '../ds';
-import { useHotNews, useNews, type PostView } from '../api/queries';
+import {
+  useCompanyByAsin,
+  useHotNews,
+  useNews,
+  useNewsFeed,
+  useUserProfile,
+  type NewsSource,
+  type PostView,
+} from '../api/queries';
 import { useDebounced } from '../lib/useDebounced';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { Article } from './Article';
-import { toPost } from './derive';
+import { FollowControl } from './FollowControl';
+import { newsFilter, newsHref, toPost } from './derive';
 import './NewsPage.css';
 
 /**
  * Newspaper: latest news as a feed (lead story on top), popular ones on the side.
- * An article opens at /zeitung/:postId – beside the feed on wide screens, alone on narrow ones.
+ * ?autor= / ?tag= / ?unternehmen= filter the feed and offer „Folgen“ / „Ausblenden“.
+ * An article opens at /zeitung/:postId (the filter stays) – beside the feed on wide screens.
  */
 export function NewsPage() {
   const { postId } = useParams();
+  const { search: query } = useLocation();
+  const [params] = useSearchParams();
   const navigate = useNavigate();
   const isWide = useMediaQuery('(min-width: 1100px)');
   const onLinkClick = useInternalLinks();
+  const filter = newsFilter(params);
   const [q, setQ] = useState('');
   const search = useDebounced(q, 300);
-  const news = useNews(search);
+
+  const profile = useUserProfile(filter.kind === 'author' ? filter.username : '');
+  const company = useCompanyByAsin(filter.kind === 'company' ? filter.asin : '');
+  const authorId = profile.data?.user.id;
+  const source: NewsSource | null =
+    filter.kind === 'hashtag'
+      ? { kind: 'hashtag', tag: filter.tag }
+      : filter.kind === 'author' && authorId
+        ? { kind: 'author', userId: authorId }
+        : filter.kind === 'company' && company.data?.id
+          ? { kind: 'company', companyId: company.data.id }
+          : null;
+  const latest = useNews(search, filter.kind === 'all');
+  const filtered = useNewsFeed(source);
+  const news = filter.kind === 'all' ? latest : filtered;
   const hot = useHotNews(8);
 
   const posts = useMemo(() => news.data?.pages.flatMap((p) => p.content) ?? [], [news.data]);
-  const total = news.data?.pages[0]?.totalElements ?? 0;
-  const href = (p: { id: string }) => `/zeitung/${p.id}`;
+  const total = news.data?.pages[0]?.totalElements;
+  const href = (p: { id: string }) => `/zeitung/${p.id}${query}`;
+  const withLead = filter.kind === 'all' && !search;
+  const notFound = profile.isError || company.isError;
+  const loading = !notFound && (news.isLoading || (filter.kind !== 'all' && !source));
 
   const feed = (
     <DS.Card flush className="panel">
       <div className="panel__fill scroll news__feed">
-        {news.isLoading ? (
+        {loading ? (
           <DS.Loading rows={8} label="Zeitung wird geladen" />
         ) : posts.length ? (
           <>
             <DS.NewsFeed
-              lead={search ? undefined : toPost(posts[0])}
-              items={(search ? posts : posts.slice(1)).map(toPost)}
+              lead={withLead ? toPost(posts[0]) : undefined}
+              items={(withLead ? posts.slice(1) : posts).map(toPost)}
               hrefFor={href}
+              tagHref={(tag) => newsHref({ kind: 'hashtag', tag })}
               onComments={(p) => navigate(href(p))}
             />
             {news.hasNextPage && (
@@ -49,7 +80,11 @@ export function NewsPage() {
             )}
           </>
         ) : (
-          <DS.EmptyState compact as="h3" title={search ? 'Nichts gefunden' : 'Noch keine Artikel'} />
+          <DS.EmptyState
+            compact
+            as="h3"
+            title={notFound ? 'Nicht gefunden' : search ? 'Nichts gefunden' : 'Noch keine Artikel'}
+          />
         )}
       </div>
     </DS.Card>
@@ -59,7 +94,12 @@ export function NewsPage() {
     <DS.Card className="panel" title="Beliebt">
       <div className="panel__fill scroll">
         {hot.data ? (
-          <DS.NewsFeed items={hot.data.map((p: PostView) => toPost(p))} variant="brief" hrefFor={href} />
+          <DS.NewsFeed
+            items={hot.data.map((p: PostView) => toPost(p))}
+            variant="brief"
+            hrefFor={href}
+            tagHref={(tag) => newsHref({ kind: 'hashtag', tag })}
+          />
         ) : (
           <DS.Loading rows={6} />
         )}
@@ -70,19 +110,73 @@ export function NewsPage() {
   const article = postId && (
     <DS.Card flush className="panel">
       <div className="panel__fill scroll news__article">
-        <Article postId={postId} onClose={() => navigate('/zeitung')} />
+        <Article postId={postId} onClose={() => navigate(`/zeitung${query}`)} />
       </div>
     </DS.Card>
   );
 
-  return (
-    <div className="page news" onClick={onLinkClick}>
+  const count = total == null ? '\u00a0' : total === 1 ? '1 Artikel' : `${total.toLocaleString('de-DE')} Artikel`;
+  const back = (
+    <DS.Button variant="ghost" size="sm" onClick={() => navigate('/zeitung')}>
+      ✕ Alle Artikel
+    </DS.Button>
+  );
+  const header =
+    filter.kind === 'author' ? (
+      <DS.PageHeader
+        size="md"
+        eyebrow={<a href="/zeitung">Zeitung · Autor</a>}
+        title={filter.username}
+        meta={<span>{count}</span>}
+        actions={
+          <>
+            <FollowControl kind="authors" id={authorId} name={filter.username} />
+            {back}
+          </>
+        }
+      />
+    ) : filter.kind === 'hashtag' ? (
+      <DS.PageHeader
+        size="md"
+        eyebrow={<a href="/zeitung">Zeitung · Hashtag</a>}
+        title={`#${filter.tag}`}
+        meta={<span>{count}</span>}
+        actions={
+          <>
+            <FollowControl kind="hashtags" id={filter.tag} name={`#${filter.tag}`} />
+            {back}
+          </>
+        }
+      />
+    ) : filter.kind === 'company' ? (
+      <DS.PageHeader
+        size="md"
+        eyebrow={
+          <>
+            <a href="/zeitung">Zeitung</a> · <a href={`/unternehmen/${encodeURIComponent(filter.asin)}`}>{filter.asin}</a>
+          </>
+        }
+        title={company.data?.name ?? filter.asin}
+        meta={<span>{count}</span>}
+        actions={
+          <>
+            <FollowControl kind="companies" id={company.data?.id} name={company.data?.name ?? filter.asin} />
+            {back}
+          </>
+        }
+      />
+    ) : (
       <DS.PageHeader
         size="md"
         title="Zeitung"
-        meta={total ? <span>{total.toLocaleString('de-DE')} Artikel</span> : '\u00a0'}
+        meta={<span>{count}</span>}
         actions={<DS.Input aria-label="Artikel suchen" placeholder="Artikel suchen" size="sm" value={q} onChange={(e) => setQ(e.target.value)} />}
       />
+    );
+
+  return (
+    <div className={`page news${!isWide && postId ? ' news--reading' : ''}`} onClick={onLinkClick}>
+      {(isWide || !postId) && header}
       <div className={`page__body news__body${isWide ? ' news__body--wide' : ''}`}>
         {isWide ? (
           <>

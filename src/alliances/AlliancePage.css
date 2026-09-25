@@ -99,6 +99,16 @@
   background: var(--bg-raised);
 }
 
+.alliance__pad {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.alliance__more {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4) 0 0;
+}
+
 .alliance__add {
   display: flex;
   justify-content: flex-end;
