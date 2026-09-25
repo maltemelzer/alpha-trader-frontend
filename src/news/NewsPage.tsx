@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import {
@@ -10,9 +10,10 @@ import {
   type NewsSource,
   type PostView,
 } from '../api/queries';
-import { useDebounced } from '../lib/useDebounced';
+import { useHighlight } from '../lib/highlight';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useMediaQuery } from '../lib/useMediaQuery';
+import { useUrlSearch } from '../lib/useUrlSearch';
 import { Article } from './Article';
 import { FollowControl } from './FollowControl';
 import { newsFilter, newsHref, toPost } from './derive';
@@ -21,7 +22,8 @@ import './NewsPage.css';
 /**
  * Newspaper: latest news as a feed (lead story on top), popular ones on the side.
  * ?autor= / ?tag= / ?unternehmen= filter the feed and offer „Folgen“ / „Ausblenden“.
- * An article opens at /zeitung/:postId (the filter stays) – beside the feed on wide screens.
+ * ?suche= searches title and text (any part of a word); hits are highlighted.
+ * An article opens at /zeitung/:postId (the filter and the search stay) – beside the feed on wide screens.
  */
 export function NewsPage() {
   const { postId } = useParams();
@@ -31,8 +33,10 @@ export function NewsPage() {
   const isWide = useMediaQuery('(min-width: 1100px)');
   const onLinkClick = useInternalLinks();
   const filter = newsFilter(params);
-  const [q, setQ] = useState('');
-  const search = useDebounced(q, 300);
+  const [q, setQ, urlSearch] = useUrlSearch('suche', 400, []);
+  const search = filter.kind === 'all' ? urlSearch : '';
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useHighlight(bodyRef, search);
 
   const profile = useUserProfile(filter.kind === 'author' ? filter.username : '');
   const company = useCompanyByAsin(filter.kind === 'company' ? filter.asin : '');
@@ -175,14 +179,23 @@ export function NewsPage() {
         size="md"
         title="Zeitung"
         meta={<span>{count}</span>}
-        actions={<DS.Input aria-label="Artikel suchen" placeholder="Artikel suchen" size="sm" value={q} onChange={(e) => setQ(e.target.value)} />}
+        actions={
+          <DS.Input
+            type="search"
+            aria-label="Artikel suchen"
+            placeholder="Artikel suchen"
+            size="sm"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        }
       />
     );
 
   return (
     <div className={`page news${!isWide && postId ? ' news--reading' : ''}`} onClick={onLinkClick}>
       {(isWide || !postId) && header}
-      <div className={`page__body news__body${isWide ? ' news__body--wide' : ''}`}>
+      <div ref={bodyRef} className={`page__body news__body${isWide ? ' news__body--wide' : ''}`}>
         {isWide ? (
           <>
             {feed}

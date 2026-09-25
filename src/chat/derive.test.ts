@@ -1,6 +1,6 @@
-import { chatTitle, dayLabel, listTime, systemText, toConversations, toThread } from './derive';
+import { canManageChat, canRemoveMember, chatNameError, chatTitle, dayLabel, listTime, myChatRole, systemText, toConversations, toThread } from './derive';
 import { upsertMessage } from '../api/queries';
-import type { ChatView, MessageView } from '../api/types';
+import type { ChatMembershipView, ChatView, MessageView } from '../api/types';
 
 // Thursday, 24.9.2026, 18:00 local time
 const now = new Date(2026, 8, 24, 18, 0).getTime();
@@ -122,5 +122,47 @@ describe('upsertMessage', () => {
   it('replaces known and drops deleted messages', () => {
     expect(upsertMessage(data, msg('2', 'A', 'B', 3)).pages[0][1].content).toBe('B');
     expect(upsertMessage(data, msg('2', 'A', 'b', 3, { status: 'DELETED' })).pages[0]).toHaveLength(1);
+  });
+});
+
+describe('group management', () => {
+  const member = (username: string, role: ChatMembershipView['role']): ChatMembershipView => ({
+    id: `m-${username}`,
+    chatId: 'g',
+    online: false,
+    role,
+    member: user(username),
+  });
+  const members = [member('Chef', 'OWNER'), member('Vize', 'DEPUTY'), member('Mod', 'MODERATOR'), member('Ich', 'AUTHOR')];
+
+  it('finds my role in the member list, else via the owner field', () => {
+    expect(myChatRole({ owner: user('Chef') }, members, 'Vize')).toBe('DEPUTY');
+    expect(myChatRole({ owner: user('Chef') }, undefined, 'Chef')).toBe('OWNER');
+    expect(myChatRole({ owner: user('Chef') }, undefined, 'Ich')).toBeUndefined();
+    expect(myChatRole({ owner: user('Chef') }, members, undefined)).toBeUndefined();
+  });
+  it('only owner and deputy manage, and only groups', () => {
+    expect(canManageChat('group', 'OWNER')).toBe(true);
+    expect(canManageChat('group', 'DEPUTY')).toBe(true);
+    expect(canManageChat('group', 'MODERATOR')).toBe(false);
+    expect(canManageChat('public', 'OWNER')).toBe(false);
+    expect(canManageChat('direct', 'OWNER')).toBe(false);
+    expect(canManageChat('group', undefined)).toBe(false);
+  });
+  it('removes only members below the own role, never oneself', () => {
+    const [chef, vize, mod, ich] = members;
+    expect(canRemoveMember('group', 'OWNER', vize, 'Chef')).toBe(true);
+    expect(canRemoveMember('group', 'OWNER', chef, 'Chef')).toBe(false);
+    expect(canRemoveMember('group', 'DEPUTY', chef, 'Vize')).toBe(false);
+    expect(canRemoveMember('group', 'DEPUTY', vize, 'Vize')).toBe(false);
+    expect(canRemoveMember('group', 'DEPUTY', mod, 'Vize')).toBe(true);
+    expect(canRemoveMember('group', 'MODERATOR', ich, 'Mod')).toBe(false);
+    expect(canRemoveMember('public', 'OWNER', ich, 'Chef')).toBe(false);
+  });
+  it('checks a new name', () => {
+    expect(chatNameError('  ', 'Alt')).toBe('Gib einen Namen ein.');
+    expect(chatNameError(' Alt ', 'Alt')).toBe('Der Name ist unverändert.');
+    expect(chatNameError('x'.repeat(61), 'Alt')).toBe('Höchstens 60 Zeichen.');
+    expect(chatNameError('Neu', null)).toBeNull();
   });
 });

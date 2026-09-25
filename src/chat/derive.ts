@@ -1,6 +1,6 @@
 // Pure mapping from API chats/messages to the design system's chat props.
 import type { ChatMessage, Conversation } from '../../vendor/bankiersgruen';
-import type { ChatRoomView, ChatView, MessageView } from '../api/types';
+import type { ChatMembershipView, ChatRoomView, ChatView, MessageView } from '../api/types';
 
 const DAY = 86_400_000;
 const WEEKDAYS = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
@@ -149,4 +149,37 @@ export function toConversations(
     { label: '', items: sorted.map(item) },
     { label: 'Öffentliche Räume', items: rooms },
   ].filter((g) => g.items.length > 0);
+}
+
+// ---------- Managing a group ----------
+
+type Role = ChatMembershipView['role'];
+const RANK: Record<Role, number> = { READER: 0, AUTHOR: 1, MODERATOR: 2, DEPUTY: 3, OWNER: 4 };
+
+/** My role in a chat: from the member list, else the chat's owner field. */
+export function myChatRole(chat: Pick<ChatView, 'owner'>, members: ChatMembershipView[] | undefined, me?: string): Role | undefined {
+  if (!me) return undefined;
+  const mine = members?.find((m) => m.member.username === me)?.role;
+  return mine ?? (chat.owner?.username === me ? 'OWNER' : undefined);
+}
+
+/** Only groups are managed here (not lobbies, not direct chats) – by the owner or the deputy. */
+export function canManageChat(kind: ChatKind, role: Role | undefined): boolean {
+  return kind === 'group' && !!role && RANK[role] >= RANK.DEPUTY;
+}
+
+/** Remove a member: managers remove members below their own role, never themselves (that is „Verlassen“). */
+export function canRemoveMember(kind: ChatKind, role: Role | undefined, target: ChatMembershipView, me?: string): boolean {
+  return canManageChat(kind, role) && target.member.username !== me && RANK[role!] > RANK[target.role];
+}
+
+export const CHAT_NAME_MAX = 60;
+
+/** Problem with a new chat name, or null. */
+export function chatNameError(name: string, current?: string | null): string | null {
+  const v = name.trim();
+  if (!v) return 'Gib einen Namen ein.';
+  if (v.length > CHAT_NAME_MAX) return `Höchstens ${CHAT_NAME_MAX} Zeichen.`;
+  if (v === (current ?? '').trim()) return 'Der Name ist unverändert.';
+  return null;
 }

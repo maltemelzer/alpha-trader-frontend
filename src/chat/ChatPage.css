@@ -92,3 +92,13 @@
     border-radius: 0;
   }
 }
+
+/* Rename a group: field and button in one row */
+.chat-rename {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.chat-rename > .bnk-banner {
+  grid-column: 1 / -1;
+}

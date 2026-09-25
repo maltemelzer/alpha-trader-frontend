@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { DS } from '../ds';
-import { useAddChatMember, useChatMembers } from '../api/queries';
-import type { ChatMembershipView, UsernameView } from '../api/types';
+import { useAddChatMember, useChatAdmin, useChatMembers } from '../api/queries';
+import type { ChatMembershipView, ChatView, UsernameView } from '../api/types';
+import { CHAT_NAME_MAX, canManageChat, canRemoveMember, chatNameError, myChatRole, type ChatKind } from './derive';
 import { UserPicker } from './UserPicker';
 
 const ROLES: Record<ChatMembershipView['role'], string> = {
@@ -14,21 +15,33 @@ const ROLES: Record<ChatMembershipView['role'], string> = {
 };
 const ORDER: ChatMembershipView['role'][] = ['OWNER', 'DEPUTY', 'MODERATOR', 'AUTHOR', 'READER'];
 
-/** Members of a group or lobby: online first, then by role and name. Owners of groups can invite. */
+/**
+ * Members of a group or lobby: online first, then by role and name. Owners of groups can invite;
+ * owner and deputy of a group can rename it and remove members below their own role (with confirmation).
+ */
 export function MembersSheet({
   open,
   onClose,
-  chatId,
+  chat,
+  kind,
+  me,
   canInvite,
 }: {
   open: boolean;
   onClose: () => void;
-  chatId: string;
+  chat: ChatView;
+  kind: ChatKind;
+  me?: string;
   canInvite: boolean;
 }) {
+  const chatId = chat.id;
   const members = useChatMembers(chatId, open);
   const add = useAddChatMember();
+  const admin = useChatAdmin(chatId);
   const [invite, setInvite] = useState<UsernameView[]>([]);
+  const [removing, setRemoving] = useState<ChatMembershipView | null>(null);
+  const role = myChatRole(chat, members.data, me);
+  const manage = canManageChat(kind, role);
 
   const sorted = useMemo(
     () =>
@@ -44,6 +57,7 @@ export function MembersSheet({
 
   return (
     <DS.Sheet open={open} onClose={onClose} title="Mitglieder" side="auto" width={380}>
+      {manage && <RenameForm key={chat.chatName ?? ''} chat={chat} rename={admin.rename} />}
       {canInvite && (
         <div className="chat-form">
           <UserPicker
@@ -82,12 +96,71 @@ export function MembersSheet({
                 </Link>
                 {m.online && <span className="chat-members__online">online</span>}
                 {ROLES[m.role] && <span className="chat-members__role">{ROLES[m.role]}</span>}
+                {canRemoveMember(kind, role, m, me) && (
+                  <DS.Button variant="ghost" size="sm" aria-label={`${m.member.username} entfernen`} onClick={() => setRemoving(m)}>
+                    Entfernen
+                  </DS.Button>
+                )}
               </li>
             ))}
           </ul>
           {sorted.length > 300 && <p className="chat-members__count">… und {sorted.length - 300} weitere</p>}
         </>
       )}
+      <DS.Dialog
+        open={!!removing}
+        role="alertdialog"
+        size="sm"
+        onClose={() => !admin.remove.isPending && setRemoving(null)}
+        title={`${removing?.member.username ?? ''} entfernen?`}
+        description={`${removing?.member.username ?? ''} wird aus „${chat.chatName ?? 'der Gruppe'}“ entfernt und sieht keine neuen Nachrichten mehr.`}
+        actions={
+          <>
+            <DS.Button variant="ghost" disabled={admin.remove.isPending} onClick={() => setRemoving(null)}>
+              Abbrechen
+            </DS.Button>
+            <DS.Button
+              variant="danger"
+              loading={admin.remove.isPending}
+              onClick={() => removing && admin.remove.mutate(removing.id, { onSuccess: () => setRemoving(null) })}
+            >
+              Entfernen
+            </DS.Button>
+          </>
+        }
+      >
+        {admin.remove.isError && <DS.Banner variant="error">Nicht entfernt: {admin.remove.error.message}</DS.Banner>}
+      </DS.Dialog>
     </DS.Sheet>
+  );
+}
+
+/** Rename the group; the field starts with the current name (remounted when it changes). */
+function RenameForm({ chat, rename }: { chat: ChatView; rename: ReturnType<typeof useChatAdmin>['rename'] }) {
+  const [name, setName] = useState(chat.chatName ?? '');
+  const [touched, setTouched] = useState(false);
+  const error = chatNameError(name, chat.chatName);
+  const changed = name.trim() !== (chat.chatName ?? '').trim();
+  return (
+    <form
+      className="chat-form chat-rename"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setTouched(true);
+        if (!error) rename.mutate({ chat, name: name.trim() });
+      }}
+    >
+      <DS.Input
+        label="Name der Gruppe"
+        value={name}
+        maxLength={CHAT_NAME_MAX}
+        onChange={(e) => setName(e.target.value)}
+        error={touched && changed && error ? error : undefined}
+      />
+      <DS.Button type="submit" variant="secondary" size="sm" disabled={!changed} loading={rename.isPending}>
+        Umbenennen
+      </DS.Button>
+      {rename.isError && <DS.Banner variant="error">Nicht umbenannt: {rename.error.message}</DS.Banner>}
+    </form>
   );
 }

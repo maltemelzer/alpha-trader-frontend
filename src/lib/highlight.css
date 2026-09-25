@@ -1,0 +1,7 @@
+/* Search terms in results (useHighlight): quiet tint plus a brass underline – not a button, not a price move. */
+::highlight(suche) {
+  background-color: var(--bg-raised);
+  color: var(--text-primary);
+  text-decoration: underline var(--brass) 2px;
+  text-underline-offset: 3px;
+}
