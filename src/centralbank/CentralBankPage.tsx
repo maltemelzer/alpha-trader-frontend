@@ -12,6 +12,7 @@ import {
   useReservesPayment,
   useSystemBonds,
 } from '../api/queries';
+import { HelpTerm } from '../app/HelpTerm';
 import { Plot } from '../charts/Plot';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
@@ -75,9 +76,9 @@ export function CentralBankPage() {
 
   const stats = (
     <DS.StatGroup columns="repeat(4, minmax(0, 1fr))" aria-label="Zinsen der Zentralbank">
-      <DS.StatTile label="Leitzins" value={pct(main.data?.value)} hint="Ø der Zinstender, 30 Tage" />
+      <DS.StatTile label={<HelpTerm id="mainInterestRate">Leitzins</HelpTerm>} value={pct(main.data?.value)} hint="aus dem Zinstender" />
       <DS.StatTile label="Einlagezins" value={reserveRate != null ? `${pct(reserveRate)} / Tag` : '–'} hint="auf Zentralbankeinlagen, + Boost" />
-      <DS.StatTile label="Systemanleihe" value={pct(systemRate)} hint="Kredit der Zentralbank · Leitzins + 1" />
+      <DS.StatTile label={<HelpTerm id="systemBond">Systemanleihe</HelpTerm>} value={pct(systemRate)} hint="Kredit der Zentralbank · Leitzins + 1" />
       <DS.StatTile
         label="Zuletzt ausgezahlt"
         value={payment.data ? payment.data.paidInterest : '–'}

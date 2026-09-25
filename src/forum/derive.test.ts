@@ -1,4 +1,5 @@
-import { boardNewsThread, membershipBoard, sortBoards, toCategory, toThread } from './derive';
+import { boardFacets, boardNewsThread, membershipBoard, sortBoards, toCategory, toSearchRow, toThread } from './derive';
+import { termPattern } from '../lib/highlight';
 import type { BoardView } from '../api/queries';
 
 const now = new Date(2026, 8, 24, 18, 0).getTime();
@@ -53,5 +54,36 @@ describe('boardNewsThread', () => {
     );
     expect(t).toMatchObject({ href: '/forum/b2/p', author: { name: 'Vorschläge · km' } });
     expect(boardNewsThread({ id: 'p', title: 'x' }, now)).toMatchObject({ href: undefined, author: { name: '?' } });
+  });
+});
+
+describe('toSearchRow', () => {
+  const pattern = termPattern(['leitzins'], true);
+  const board = { id: 'b1', name: 'Wissenswertes' };
+  it('links a thread into its board with an excerpt', () => {
+    const r = toSearchRow(
+      { id: 'p', title: 'Zinstender', content: '<p>Täglich wird der <b>Leitzins</b> bestimmt.</p>', author: { username: 'km' }, messageBoard: board, numberOfComments: 3, dateCreated: now },
+      pattern,
+      now,
+    );
+    expect(r).toMatchObject({ href: '/forum/b1/p', answer: false, replies: 3, author: 'km', board, excerpt: 'Täglich wird der Leitzins bestimmt.' });
+  });
+  it('an answer opens its thread and loses the „Re:“', () => {
+    const r = toSearchRow({ id: 'c', title: 'Re: Re: Zinstender', comment: true, root: 'p', parent: 'p', messageBoard: board }, pattern, now);
+    expect(r).toMatchObject({ href: '/forum/b1/p', answer: true, title: 'Zinstender', replies: undefined, author: '?' });
+  });
+  it('no board → no link', () => {
+    expect(toSearchRow({ id: 'x', title: 'x' }, null, now).href).toBeUndefined();
+  });
+});
+
+describe('boardFacets', () => {
+  it('counts hits per board, most first', () => {
+    const a = { id: 'a', name: 'A' };
+    const b = { id: 'b', name: 'B' };
+    expect(boardFacets([{ board: b }, { board: a }, { board: b }, { board: undefined }])).toEqual([
+      { id: 'b', name: 'B', count: 2 },
+      { id: 'a', name: 'A', count: 1 },
+    ]);
   });
 });

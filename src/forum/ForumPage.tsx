@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import {
@@ -18,13 +18,18 @@ import {
 } from '../api/queries';
 import { ReportDialog, type ReportTarget } from './ReportDialog';
 import { htmlToText, textToHtml } from '../lib/html';
-import { useDebounced } from '../lib/useDebounced';
+import { useHighlight } from '../lib/highlight';
 import { useInternalLinks } from '../lib/useInternalLinks';
+import { useUrlSearch } from '../lib/useUrlSearch';
 import { replyTitle } from '../news/derive';
 import { boardNewsThread, membershipBoard, sortBoards, toCategory, toThread } from './derive';
+import { SearchResults } from './SearchResults';
 import './ForumPage.css';
 
-/** Forum: /forum (boards) · /forum/:boardId (sub-boards and threads) · /forum/:boardId/:postId (thread). */
+/**
+ * Forum: /forum (boards; ?suche= searches all posts) · /forum/:boardId (sub-boards and threads, ?suche= within)
+ * · /forum/:boardId/:postId (thread).
+ */
 export function ForumPage() {
   const { boardId, postId } = useParams();
   const onLinkClick = useInternalLinks();
@@ -39,6 +44,7 @@ function Boards() {
   const [params, setParams] = useSearchParams();
   const boards = useBoards();
   const mine = useMyBoards();
+  const [text, setText, search] = useUrlSearch('suche', 400, ['seite', 'forum']);
   const view = params.get('ansicht') === 'meine' ? 'meine' : params.get('ansicht') === 'neu' ? 'neu' : 'alle';
   const onlyMine = view === 'meine';
   const myIds = new Set((mine.data?.content ?? []).map((b) => b.id));
@@ -53,22 +59,35 @@ function Boards() {
         title="Forum"
         meta={<span>{boards.data && mine.data ? `${all.length} Foren · ${own.length} abonniert` : '\u00a0'}</span>}
         actions={
-          <DS.SegmentedControl
-            size="sm"
-            aria-label="Ansicht"
-            className="forum__views"
-            value={view}
-            onChange={(v) => setParams(v === 'alle' ? {} : { ansicht: v }, { replace: true })}
-            options={[
-              { value: 'alle', label: 'Alle Foren' },
-              { value: 'meine', label: 'Meine Foren' },
-              { value: 'neu', label: 'Neue Themen' },
-            ]}
-          />
+          <>
+            <DS.Input
+              type="search"
+              aria-label="Forum durchsuchen"
+              placeholder="Forum durchsuchen"
+              size="sm"
+              className="forum__search"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+            <DS.SegmentedControl
+              size="sm"
+              aria-label="Ansicht"
+              className="forum__views"
+              value={view}
+              onChange={(v) => setParams(v === 'alle' ? {} : { ansicht: v }, { replace: true })}
+              options={[
+                { value: 'alle', label: 'Alle Foren' },
+                { value: 'meine', label: 'Meine Foren' },
+                { value: 'neu', label: 'Neue Themen' },
+              ]}
+            />
+          </>
         }
       />
       <DS.Card fill flush>
-        {view === 'neu' ? (
+        {search ? (
+          <SearchResults query={search} />
+        ) : view === 'neu' ? (
           <BoardNews />
         ) : loading ? (
           <DS.Loading rows={8} />
@@ -119,10 +138,11 @@ function Board({ boardId }: { boardId: string }) {
   const navigate = useNavigate();
   const board = useBoard(boardId);
   const subs = useSubboards(boardId);
-  const [q, setQ] = useState('');
-  const search = useDebounced(q, 300);
+  const [q, setQ, search] = useUrlSearch();
   const page = Math.max(0, Number(params.get('seite') ?? 1) - 1);
   const posts = useBoardPosts(boardId, page, search);
+  const listRef = useRef<HTMLDivElement>(null);
+  useHighlight(listRef, search);
   const [writing, setWriting] = useState(false);
   const create = useCreatePost();
   const total = posts.data?.totalElements ?? 0;
@@ -143,7 +163,7 @@ function Board({ boardId }: { boardId: string }) {
         actions={
           <>
             <SubscribeButton board={b} />
-            <DS.Input aria-label="Themen durchsuchen" placeholder="Suchen" size="sm" value={q} onChange={(e) => setQ(e.target.value)} />
+            <DS.Input type="search" aria-label="Themen durchsuchen" placeholder="Suchen" size="sm" value={q} onChange={(e) => setQ(e.target.value)} />
             <DS.Button variant="primary" size="sm" onClick={() => setWriting(true)}>
               Neues Thema
             </DS.Button>
@@ -151,26 +171,44 @@ function Board({ boardId }: { boardId: string }) {
         }
       />
       <DS.Card fill flush>
+        {search && (
+          <p className="forum__elsewhere">
+            <a href={`/forum?suche=${encodeURIComponent(search)}`}>„{search}“ im ganzen Forum suchen, auch in Antworten</a>
+          </p>
+        )}
         {b?.description && !subs.isLoading && !posts.isLoading && <p className="forum__desc">{htmlToText(b.description)}</p>}
         {subs.data?.content.length && !board.isLoading && !posts.isLoading ? (
           <div className="forum__subs">
             <DS.ForumCategoryList label="Unterforen" categories={subs.data.content.map((s) => toCategory(s))} />
           </div>
         ) : null}
-        {posts.isLoading || board.isLoading || subs.isLoading ? (
-          <DS.Loading rows={8} />
-        ) : (
-          <DS.ThreadList
-            threads={(posts.data?.content ?? []).map((p) => toThread(p, boardId))}
-            emptyText={search ? 'Nichts gefunden.' : 'Noch keine Themen.'}
-          />
-        )}
+        <div ref={listRef}>
+          {posts.isLoading || board.isLoading || subs.isLoading ? (
+            <DS.Loading rows={8} />
+          ) : (
+            <DS.ThreadList
+              threads={(posts.data?.content ?? []).map((p) => toThread(p, boardId))}
+              emptyText={search ? 'Nichts gefunden.' : 'Noch keine Themen.'}
+            />
+          )}
+        </div>
+
         {total > 30 && (
           <div className="forum__pages">
             <DS.Pagination
               page={page + 1}
               pages={Math.ceil(total / 30)}
-              onChange={(p) => setParams(p > 1 ? { seite: String(p) } : {}, { replace: true })}
+              onChange={(p) =>
+                setParams(
+                  (prev) => {
+                    const next = new URLSearchParams(prev);
+                    if (p > 1) next.set('seite', String(p));
+                    else next.delete('seite');
+                    return next;
+                  },
+                  { replace: true },
+                )
+              }
             />
           </div>
         )}

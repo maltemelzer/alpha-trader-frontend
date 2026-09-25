@@ -168,7 +168,9 @@ export function ChatPage() {
         <MembersSheet
           open={membersOpen}
           onClose={() => setMembersOpen(false)}
-          chatId={chat.id}
+          chat={chat}
+          kind={kind}
+          me={me}
           canInvite={kind === 'group' && chat.owner?.username === me}
         />
       )}

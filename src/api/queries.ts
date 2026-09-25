@@ -2444,3 +2444,91 @@ export function useEtfManagement(asin: string) {
     fee: useMutation({ mutationFn: (percent: number) => setEtfManagementFee(asin, percent), onSuccess: done }),
   };
 }
+
+// ---------- Forum search, chat management, help texts ----------
+
+/** A hit of GET /api/v2/posts/search: forum threads and their answers (never newspaper articles). */
+export interface PostSearchHit extends PostView {
+  messageBoard?: { id: string; name: string; parent?: { id: string; name: string } | null } | null;
+  /** answer in a thread – the thread is `root` */
+  comment?: boolean;
+  root?: string | null;
+}
+
+const SEARCH_PAGE = 30;
+
+/**
+ * Full-text search in the forum. Whole words only (no prefixes, no stemming), several words = all of them.
+ * `boardId` limits to exactly that board (not its sub-boards); answers are included unless `comments` is false.
+ */
+export function usePostSearch(search: string, opts: { boardId?: string; comments?: boolean } = {}) {
+  const q = search.trim();
+  const comments = opts.comments ?? true;
+  return useInfiniteQuery({
+    queryKey: ['forum', 'search', q, opts.boardId ?? '', comments],
+    enabled: q.length >= 2,
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      getPage<PostSearchHit>('/api/v2/posts/search', {
+        q,
+        boardId: opts.boardId || undefined,
+        includeComments: String(comments),
+        pageable: { page: pageParam, size: SEARCH_PAGE },
+      }),
+    getNextPageParam: (last, all) => (all.length * SEARCH_PAGE < last.totalElements ? all.length : undefined),
+    placeholderData: (prev) => prev,
+    staleTime: SLOW,
+  });
+}
+
+/**
+ * Rename a group chat: PUT /api/v2/chats/{chatId}?chatName=. The endpoint also takes readonly/public –
+ * they are sent unchanged so a missing flag cannot reset them.
+ */
+export const renameChat = (chat: Pick<ChatView, 'id' | 'readonly' | 'publicChat'>, chatName: string) =>
+  unwrap(
+    api.PUT('/api/v2/chats/{chatId}', {
+      params: { path: { chatId: chat.id }, query: { chatName, readonly: chat.readonly, public: chat.publicChat } },
+    }),
+  );
+
+/** Remove a member from a chat by the id of the membership: DELETE /api/v2/chatmemberships/{membershipId}. */
+export const removeChatMember = (membershipId: string) =>
+  unwrap(api.DELETE('/api/v2/chatmemberships/{membershipId}', { params: { path: { membershipId } } }));
+
+export function useChatAdmin(chatId: string) {
+  const qc = useQueryClient();
+  return {
+    rename: useMutation({
+      mutationFn: ({ chat, name }: { chat: ChatView; name: string }) => renameChat(chat, name),
+      onSuccess: (_, { name }) => {
+        qc.setQueryData<ChatView[]>(chatKeys.list, (old) => old?.map((c) => (c.id === chatId ? { ...c, chatName: name } : c)));
+        void qc.invalidateQueries({ queryKey: chatKeys.list });
+      },
+    }),
+    remove: useMutation({
+      mutationFn: (membershipId: string) => removeChatMember(membershipId),
+      onSuccess: (_, membershipId) => {
+        qc.setQueryData<ChatMembershipView[]>(chatKeys.members(chatId), (old) => old?.filter((m) => m.id !== membershipId));
+        void qc.invalidateQueries({ queryKey: chatKeys.members(chatId) });
+        void qc.invalidateQueries({ queryKey: chatKeys.list });
+      },
+    }),
+  };
+}
+
+/**
+ * Help text of the game for a concept (GET /api/v2/helpcomments?identifier=&locale=), e.g. `spread`,
+ * `mainInterestRate`. Unknown identifiers answer 200 with „Es gibt keine Hilfe für diese Kennung“.
+ * Fetched only when asked for (`enabled`) and kept for the session – the server rate-limits (429).
+ */
+export function useHelpComment(identifier: string, enabled = true) {
+  return useQuery({
+    queryKey: ['help', identifier],
+    enabled: enabled && !!identifier,
+    queryFn: () => unwrap<{ text?: string }>(api.GET('/api/v2/helpcomments', { params: { query: { identifier, locale: 'de' } } })),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: 1,
+  });
+}
