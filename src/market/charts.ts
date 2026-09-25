@@ -1,51 +1,10 @@
 // Plotly figures for the market page.
 import type { plotlyTheme } from '../charts/plotlyTheme';
-import { changeShort, changeText, clip, euro, mix, short } from '../lib/format';
-import { heatShare, tileArea, TYPE_LABEL, wrapLabel, type HeatTile, type Mover, type VolumeRow } from './derive';
+import { changeText, clip, euro, mix, short } from '../lib/format';
+import { heatShare, tileArea, TYPE_LABEL, wrapLabel, type HeatTile, type VolumeRow } from './derive';
+import type { MapNode } from './screener';
 
 type Theme = ReturnType<typeof plotlyTheme>;
-
-/** Winners and losers as horizontal bars in gain/loss, change written at the bar (GewinnerVerlierer). */
-export function moversChart(t: Theme, w: number, rows: Mover[]) {
-  const v = t.tokens;
-  const narrow = w < 420;
-  const shown = [...rows].reverse(); // Plotly draws bottom-up
-  // Single moves reach thousands of percent; bars are capped at ±CAP so losers stay visible,
-  // the text always shows the real change.
-  const CAP = 100;
-  return {
-    data: [
-      {
-        type: 'bar',
-        orientation: 'h',
-        y: shown.map((r) => clip(r.name, narrow ? 14 : 24)),
-        x: shown.map((r) => Math.max(-CAP, Math.min(CAP, r.change))),
-        marker: { color: shown.map((r) => v(r.change >= 0 ? 'gain' : 'loss')) },
-        text: shown.map((r) => changeShort(r.change)),
-        hovertext: shown.map((r) => changeText(r.change)),
-        textposition: 'outside',
-        cliponaxis: false,
-        textfont: { family: v('font-mono'), size: 11, color: shown.map((r) => v(r.change >= 0 ? 'gain' : 'loss')) },
-        customdata: shown.map((r) => r.asin),
-        hovertemplate: `%{y} (%{customdata})<br>%{hovertext}<extra></extra>`,
-      },
-    ],
-    layout: {
-      showlegend: false,
-      hovermode: 'closest',
-      bargap: 0.35,
-      margin: { l: 0, r: 8, t: 4, b: 0 },
-      xaxis: { ...t.layout.xaxis, visible: false, showspikes: false, range: [-CAP * 2.3, CAP * 2.3] },
-      yaxis: {
-        ...t.layout.yaxis,
-        side: 'left',
-        showline: false,
-        showgrid: false,
-        tickfont: { family: v('font-sans'), size: 12, color: v('text-primary') },
-      },
-    },
-  };
-}
 
 /** Biggest 24 h volumes as bars (chart-2); one category per ASIN, so equal names (buildings) stay apart. */
 export function volumeChart(t: Theme, w: number, rows: VolumeRow[], showType = false) {
@@ -74,7 +33,7 @@ export function volumeChart(t: Theme, w: number, rows: VolumeRow[], showType = f
       showlegend: false,
       hovermode: 'closest',
       bargap: 0.35,
-      margin: { l: 0, r: 64, t: 4, b: 0 },
+      margin: { l: 0, r: 88, t: 4, b: 0 },
       xaxis: { ...t.layout.xaxis, visible: false, showspikes: false, rangemode: 'tozero' },
       yaxis: {
         ...t.layout.yaxis,
@@ -118,7 +77,7 @@ export function heatmapChart(t: Theme, w: number, tiles: HeatTile[]) {
         customdata: tiles.map((x) => [x.asin, change(x.change), priceText(x.last), `${short(x.volume)}\u00a0€`, x.name]),
         texttemplate: '%{label}<br>%{customdata[1]}',
         textposition: 'middle center',
-        hovertemplate: '%{customdata[4]} (%{customdata[0]})<br>%{customdata[1]} in 24 h · %{customdata[2]}<br>Umsatz 24 h: %{customdata[3]}<extra></extra>',
+        hovertemplate: '%{customdata[4]} (%{customdata[0]})<br>%{customdata[1]} zum Vortag · %{customdata[2]}<br>Umsatz 24 h: %{customdata[3]}<extra></extra>',
         sort: true,
         tiling: { pad: 0 },
         marker: {
@@ -128,6 +87,67 @@ export function heatmapChart(t: Theme, w: number, tiles: HeatTile[]) {
         },
         textfont: { family: v('font-sans'), size: narrow ? 11 : 13, color: v('text-primary') },
         pathbar: { visible: false },
+        root: { color: 'rgba(0,0,0,0)' },
+      },
+    ],
+    layout: {
+      margin: { l: 0, r: 0, t: 0, b: 0 },
+      showlegend: false,
+      hovermode: 'closest',
+      uniformtext: { minsize: narrow ? 9 : 10, mode: 'hide' },
+    },
+  };
+}
+
+/**
+ * Market map: every security traded in 24 h, grouped by type (buildings by size), area by volume
+ * (fourth root, see `marketMap`), colour by the day's change like the heatmap. Groups carry their
+ * total volume; a click on a group zooms in (Plotly), a click on a tile opens the security.
+ */
+export function marketMapChart(t: Theme, w: number, nodes: MapNode[]) {
+  const v = t.tokens;
+  const narrow = w < 560;
+  const color = (n: MapNode) => {
+    if (!n.asin) return v('bg-page');
+    const share = heatShare(n.change);
+    if (!share) return v('bg-raised');
+    const up = n.change! > 0;
+    return mix(v(up ? 'gain-tint' : 'loss-tint'), v(up ? 'gain' : 'loss'), share);
+  };
+  const change = (n: MapNode) => (n.change == null ? 'Veränderung unbekannt' : changeText(n.change));
+  const money = (n: number) => `${short(n)}\u00a0€`;
+  return {
+    data: [
+      {
+        type: 'treemap',
+        ids: nodes.map((n) => n.id),
+        parents: nodes.map((n) => n.parent),
+        labels: nodes.map((n) => (n.asin ? wrapLabel(n.label, narrow ? 13 : 16) : `${n.label} · ${money(n.volume)}`)),
+        values: nodes.map((n) => n.area),
+        branchvalues: 'remainder',
+        customdata: nodes.map((n) => [
+          n.asin,
+          n.asin ? change(n) : money(n.volume),
+          n.last == null ? '–' : priceText(n.last),
+          money(n.volume),
+          n.label,
+        ]),
+        texttemplate: nodes.map((n) => (n.asin ? '%{label}<br>%{customdata[1]}' : '%{label}')),
+        textposition: 'middle center',
+        hovertemplate: nodes.map((n) =>
+          n.asin
+            ? '%{customdata[4]} (%{customdata[0]})<br>%{customdata[1]} zum Vortag · %{customdata[2]}<br>Umsatz 24 h: %{customdata[3]}<extra></extra>'
+            : '%{customdata[4]}<br>Umsatz 24 h: %{customdata[3]}<extra></extra>',
+        ),
+        sort: true,
+        tiling: { pad: 0 },
+        marker: {
+          colors: nodes.map(color),
+          line: { color: v('bg-card'), width: 1 },
+          pad: { t: 20, l: 2, r: 2, b: 2 },
+        },
+        textfont: { family: v('font-sans'), size: narrow ? 11 : 13, color: v('text-primary') },
+        pathbar: { visible: true, side: 'top', thickness: 22, textfont: { family: v('font-sans'), size: 12, color: v('text-secondary') } },
         root: { color: 'rgba(0,0,0,0)' },
       },
     ],
