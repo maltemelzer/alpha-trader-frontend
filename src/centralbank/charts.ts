@@ -2,7 +2,8 @@
 import type { plotlyTheme } from '../charts/plotlyTheme';
 import type { InterestRateSnapshot } from '../api/queries';
 import { clip, short } from '../lib/format';
-import type { BankShare } from './derive';
+import { shortAxis } from '../charts/ticks';
+import { POT_SHORT, signedPct, type BankShare, type PotRow, type SupplyPoint } from './derive';
 
 type Theme = ReturnType<typeof plotlyTheme>;
 const NARROW = 520;
@@ -148,6 +149,119 @@ export function tenderBidsChart(t: Theme, _w: number, bids: { rate: number; pric
       margin: { l: 0, r: 0, t: 20, b: 0 },
       xaxis: { ...t.layout.xaxis, type: 'category', showspikes: false },
       yaxis: { ...t.layout.yaxis, visible: false, range: [0, max * 1.2] },
+    },
+  };
+}
+
+/**
+ * Money supply of the players against its target over the last snapshots (lines, no gain/loss
+ * colours), below it the bond volume sold per snapshot. Snapshots come at irregular times.
+ */
+export function moneySupplyChart(t: Theme, w: number, points: SupplyPoint[]) {
+  const v = t.tokens;
+  const narrow = w < NARROW;
+  const x = points.map((p) => new Date(p.date));
+  const levels = points.flatMap((p) => [p.supply, p.target]);
+  const maxSold = Math.max(1, ...points.map((p) => p.soldBondVolume));
+  const hover = points.map((p) => [
+    `${short(p.supply)} €`,
+    `${short(p.target)} €`,
+    signedPct(p.gapPct),
+    `${short(p.soldBondVolume)} €`,
+    `${p.ratePct.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`,
+  ]);
+  return {
+    data: [
+      {
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Ziel',
+        x,
+        y: points.map((p) => p.target),
+        line: { color: v('chart-2'), width: 2, dash: 'dot' },
+        marker: { size: 4, color: v('chart-2') },
+        hoverinfo: 'skip',
+      },
+      {
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Geldmenge',
+        x,
+        y: points.map((p) => p.supply),
+        line: { color: v('chart-1'), width: 3 },
+        marker: { size: 5, color: v('chart-1') },
+        customdata: hover,
+        hovertemplate:
+          '%{x|%d.%m. %H:%M}<br>Geldmenge %{customdata[0]} (%{customdata[2]} zum Ziel)<br>Ziel %{customdata[1]}<br>Anleihen verkauft %{customdata[3]} · Zins %{customdata[4]}<extra></extra>',
+      },
+      {
+        type: 'bar',
+        name: narrow ? 'Anleihen' : 'Anleihen verkauft',
+        x,
+        y: points.map((p) => p.soldBondVolume),
+        // Snapshots come at irregular times; a fixed width (4 h) keeps close ones from turning into hairlines.
+        width: points.map(() => 4 * 3_600_000),
+        yaxis: 'y2',
+        marker: { color: v('chart-4') },
+        customdata: hover,
+        hovertemplate: '%{x|%d.%m. %H:%M}<br>Anleihen verkauft %{customdata[3]}<br>Zins %{customdata[4]}<extra></extra>',
+      },
+    ],
+    layout: {
+      hovermode: 'closest',
+      showlegend: true,
+      legend: { orientation: 'h', x: 0, y: 1.02, yanchor: 'bottom', font: { size: narrow ? 10 : 11, color: v('text-secondary') } },
+      margin: { l: 0, r: 0, t: 24, b: 0 },
+      // One date axis at the bottom, under the bond bars; both panels share it.
+      xaxis: { ...t.layout.xaxis, type: 'date', tickformat: '%d.%m.', showspikes: false, nticks: narrow ? 4 : 7, anchor: 'y2' },
+      yaxis: { ...t.layout.yaxis, domain: [0.32, 1], ...shortAxis(levels, ' €') },
+      yaxis2: {
+        ...t.layout.yaxis,
+        domain: [0, 0.22],
+        range: [0, maxSold * 1.05],
+        showgrid: false,
+        tickvals: [maxSold],
+        ticktext: [`${short(maxSold)} €`],
+      },
+    },
+  };
+}
+
+/** Where the money is: each pot's share of all money as bars in %, the amount and accounts in the hover. */
+export function potsChart(t: Theme, w: number, rows: PotRow[]) {
+  const v = t.tokens;
+  const narrow = w < NARROW;
+  const bars = [...rows].reverse();
+  const pct = (n: number) => `${n.toLocaleString('de-DE', { minimumFractionDigits: n < 1 ? 2 : 1, maximumFractionDigits: n < 1 ? 2 : 1 })} %`;
+  return {
+    data: [
+      {
+        type: 'bar',
+        orientation: 'h',
+        y: bars.map((r) => `${narrow ? clip(POT_SHORT[r.pot] ?? r.label, 14) : r.label} (${r.accountCount.toLocaleString('de-DE')})`),
+        x: bars.map((r) => r.percent),
+        marker: { color: v('chart-1'), line: { color: v('bg-card'), width: 2 } },
+        text: bars.map((r) => `${pct(r.percent)} · ${short(r.cash)} €`),
+        textposition: 'outside',
+        cliponaxis: false,
+        textfont: { family: v('font-mono'), size: 11, color: v('text-primary') },
+        customdata: bars.map((r) => [r.label, `${short(r.cash)} €`, r.accountCount.toLocaleString('de-DE'), r.accountCount === 1 ? 'Konto' : 'Konten']),
+        hovertemplate: '%{customdata[0]}<br>%{customdata[1]} auf %{customdata[2]} %{customdata[3]}<extra></extra>',
+      },
+    ],
+    layout: {
+      hovermode: 'closest',
+      showlegend: false,
+      bargap: 0.3,
+      margin: { l: 0, r: 144, t: 4, b: 0 },
+      xaxis: { ...t.layout.xaxis, visible: false, range: [0, Math.max(1, ...rows.map((r) => r.percent))], showspikes: false },
+      yaxis: {
+        ...t.layout.yaxis,
+        side: 'left',
+        showgrid: false,
+        automargin: true,
+        tickfont: { family: v('font-sans'), size: 13, color: v('text-primary') },
+      },
     },
   };
 }

@@ -69,6 +69,11 @@
   height: 150px;
 }
 
+.cb__supply {
+  position: relative;
+  height: 230px;
+}
+
 .cb__credit {
   margin: 0;
   padding: 0;

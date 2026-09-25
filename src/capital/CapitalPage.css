@@ -1,9 +1,9 @@
 .capital__body {
-  grid-template-rows: auto minmax(180px, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(220px, 1.15fr) minmax(150px, 1fr);
 }
 
 .capital__chart {
-  min-height: 140px;
+  min-height: 0;
 }
 
 .capital__table {
@@ -15,6 +15,26 @@
   flex: none;
 }
 
+.capital__term {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.capital__term > :last-child {
+  color: var(--text-secondary);
+}
+
+/* Sits above the row link that covers the whole row. */
+.capital__link {
+  position: relative;
+  z-index: 1;
+  color: var(--text-primary);
+}
+
 @media (max-width: 719px) {
   .capital .bnk-ph__meta {
     display: none;
@@ -22,6 +42,9 @@
   .capital__body {
     grid-template-rows: auto 200px minmax(0, 1fr);
     gap: var(--space-3);
+  }
+  .capital__body--seg {
+    grid-template-rows: auto auto 230px minmax(0, 1fr);
   }
   .capital .bnk-statgrp {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
