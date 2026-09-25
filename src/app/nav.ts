@@ -42,6 +42,7 @@ export const AREAS: Area[] = [
       { label: 'Zeitung', href: '/zeitung' },
       { label: 'Forum', href: '/forum' },
       { label: 'Allianzen', href: '/allianzen' },
+      { label: 'Sponsoring', href: '/sponsoring', description: 'Spieler finanzieren Server und neue Funktionen' },
     ],
   },
 ];

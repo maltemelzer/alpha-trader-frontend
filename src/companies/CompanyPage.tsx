@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import {
@@ -19,12 +20,15 @@ import { toPost } from '../news/derive';
 import { achievementItems } from '../players/derive';
 import { developmentChart } from './charts';
 import { ManagePanel } from './ManagePanel';
+import { CeoPollButton } from './CeoPanels';
+import { MarketMakerFacts } from './Sponsorships';
 import { reserveIncome } from '../centralbank/derive';
 import './CompanyPage.css';
 
 /**
  * Company profile (/unternehmen/:asin): header with key figures; development chart, balance sheet,
- * press releases, polls and achievements as tabs. The CEO also gets „Führen“ (corporate actions).
+ * press releases, polls (with „Als CEO bewerben“), market makers and achievements as tabs. The CEO
+ * also gets „Führen“ (corporate actions, market maker, salary, logo).
  * Price and trading live on the securities page.
  */
 export function CompanyPage() {
@@ -40,6 +44,7 @@ export function CompanyPage() {
   const polls = useCompanyPolls(c?.id);
   const achievements = useCompanyAchievements(c?.id);
   const isCeo = !!c?.ceo?.myUser;
+  const [done, setDone] = useState<string | null>(null);
   const unclaimed = useUnclaimedCompanyAchievements(c?.id, isCeo);
   const claim = useClaimCompanyAchievements(c?.id);
   const sheetDate = params.get('bilanz') ? Number(params.get('bilanz')) : undefined;
@@ -100,11 +105,30 @@ export function CompanyPage() {
       label: 'Abstimmungen',
       count: polls.data?.length || undefined,
       content: (
-        <div className="company__pad">
+        <div className="company__pad company__polls">
+          {c && !isCeo && (
+            <div className="company__ceo-poll">
+              <p className="company__note">
+                {c.ceo?.username ? `Unzufrieden mit ${c.ceo.username}? ` : 'Das Unternehmen hat keinen CEO. '}
+                Als Aktionär kannst du dich zur Wahl stellen.
+              </p>
+              <CeoPollButton company={c} currentWage={c.ceoEmploymentAgreement?.dailyWage} label="Als CEO bewerben" onDone={setDone} />
+            </div>
+          )}
           <DS.PollList polls={polls.data ?? []} emptyText="Keine laufenden Abstimmungen." />
         </div>
       ),
     },
+    ...(c
+      ? [
+          {
+            value: 'marketmaker',
+            label: 'Market Maker',
+            count: (c.designatedSponsors?.length ?? 0) + (c.sponsoredListings?.length ?? 0) || undefined,
+            content: <MarketMakerFacts company={c} isCeo={isCeo} />,
+          },
+        ]
+      : []),
     ...(caps?.bank
       ? [
           {
@@ -167,6 +191,7 @@ export function CompanyPage() {
         tags={[
           ...(caps?.bank ? [{ label: 'Banklizenz' }] : []),
           ...(c?.marketMakerPolicy === 'OPEN' ? [{ label: 'Market Maker offen' }] : []),
+          ...(c?.sponsoredListings?.length ? [{ label: 'Designated Sponsor' }] : []),
           ...(isCeo ? [{ label: 'Du bist CEO' }] : []),
         ]}
         actions={
@@ -186,6 +211,13 @@ export function CompanyPage() {
           <DS.Tabs size="sm" aria-label="Unternehmen" items={items} value={tab} onChange={(v) => setParams({ ansicht: v }, { replace: true })} />
         </div>
       </DS.Card>
+      {done && c && (
+        <DS.ToastRegion>
+          <DS.Toast title={c.name} duration={5000} onClose={() => setDone(null)}>
+            {done}
+          </DS.Toast>
+        </DS.ToastRegion>
+      )}
     </div>
   );
 }

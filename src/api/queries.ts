@@ -45,6 +45,8 @@ import type {
   TradeLogEntry,
   TradeSummaryView,
 } from '../../vendor/bankiersgruen';
+import type { Sponsorship, WriteRequest } from '../companies/derive';
+import type { Sponsor, SponsoringGoal } from '../sponsoring/derive';
 
 const LIVE = 15_000; // prices, spread, order book
 const SLOW = 60_000;
@@ -123,6 +125,7 @@ export function useOrderbook(asin: string) {
 export function useShareholders(asin: string) {
   return useQuery({
     queryKey: ['shareholders', asin],
+    enabled: !!asin,
     queryFn: () =>
       unwrap<ShareholderView[]>(
         api.GET('/api/shareholders/{securityIdentifier}', { params: { path: { securityIdentifier: asin } } }),
@@ -1720,4 +1723,85 @@ function pageableSerializer(q: Record<string, unknown>) {
     }
   }
   return out.toString();
+}
+
+// ---------- CEO management and sponsoring ----------
+
+/** Designated sponsoring in the company profile (both directions; shape in src/companies/derive.ts). */
+export interface CompanyProfile {
+  /** listings this company quotes as designated sponsor (market maker) */
+  sponsoredListings?: Sponsorship[];
+  /** designated sponsors of this company's share */
+  designatedSponsors?: Sponsorship[];
+}
+
+/** Sends one of the `ceoRequests` (query parameters only, no body). */
+function sendWrite(r: WriteRequest) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return unwrap((api as any)[r.method](r.path, { params: r.params }));
+}
+
+/**
+ * Write actions for running a company (logo, market maker policy, salary settings, resigning,
+ * CEO poll, sponsorships). One instance per form so each has its own pending/error state.
+ */
+export function useCompanyWrite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: sendWrite,
+    onSuccess: () => {
+      for (const key of ['company', 'listingprofile', 'employments', 'polls', 'shareholders', 'companies'])
+        void qc.invalidateQueries({ queryKey: [key] });
+    },
+  });
+}
+
+/** Employment agreement of a company's CEO (id, payAutomatically, last payment) – GET /api/v2/employmentagreements?companyId=. */
+export function useCompanyEmployment(companyId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['employments', 'company', companyId],
+    enabled: !!companyId && enabled,
+    queryFn: async () =>
+      (await getPage<CompanyEmployment>('/api/v2/employmentagreements', { companyId, pageable: { page: 0, size: 5 } })).content[0] ??
+      null,
+    staleTime: SLOW,
+  });
+}
+
+export interface CompanyEmployment {
+  id: string;
+  startDate?: number;
+  dailyWage?: number;
+  payAutomatically?: boolean;
+  lastPayment?: { date?: number; nextPossiblePaymentDate?: number; salaryAmount?: number } | null;
+  company?: { id?: string; ceo?: UsernameView | null };
+}
+
+/** Salary a user could collect now – GET /api/v2/possibledailysalary/{userId} ({ value: null } when nothing is due). */
+export function usePossibleSalaryOf(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['employments', 'possiblesalary', userId],
+    enabled: !!userId,
+    queryFn: () =>
+      unwrap<{ value: number | null }>(api.GET('/api/v2/possibledailysalary/{userId}', { params: { path: { userId: userId! } } })),
+    refetchInterval: SLOW,
+  });
+}
+
+/** Players who sponsor the game with gold hours, most hours first. */
+export function useSponsors() {
+  return useQuery({
+    queryKey: ['sponsoring', 'sponsors'],
+    queryFn: () => getPage<Sponsor>('/api/v2/sponsors', { pageable: { page: 0, size: 50 } }),
+    staleTime: 10 * SLOW,
+  });
+}
+
+/** All sponsoring goals (running costs per month and features); ~280, most of them past months. */
+export function useSponsoringGoals() {
+  return useQuery({
+    queryKey: ['sponsoring', 'goals'],
+    queryFn: () => getPage<SponsoringGoal>('/api/v2/sponsoringgoals', { type: 'ALL', pageable: { page: 0, size: 500 } }),
+    staleTime: 10 * SLOW,
+  });
 }
