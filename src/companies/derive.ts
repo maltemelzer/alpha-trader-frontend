@@ -185,7 +185,7 @@ export interface Eligibility {
 
 /**
  * Whether a company may take up a mandate for a listing: at least 5 % of the outstanding shares,
- * the issuer allows market makers, not its own share twice. The server decides in the end.
+ * the issuer allows market makers, not twice, not for indexes and ETFs. The server decides in the end.
  */
 export function sponsorEligibility(o: {
   companyId: string;
@@ -193,8 +193,11 @@ export function sponsorEligibility(o: {
   stake: number | undefined;
   policy: string | undefined;
   sponsored: Sponsorship[];
+  /** listing type – indexes and ETFs have no order book a market maker could serve */
+  type?: string;
 }): Eligibility {
   const reasons: string[] = [];
+  if (o.type === 'INDEX' || o.type === 'ETF') reasons.push('Für Indizes und ETFs gibt es keine Market Maker.');
   if (o.sponsored.some((s) => s.listing.securityIdentifier === o.asin && s.designatedSponsor.id === o.companyId))
     reasons.push('Dein Unternehmen betreut dieses Wertpapier bereits.');
   if (o.policy === 'CLOSED') reasons.push('Der Emittent lässt keine Market Maker zu.');

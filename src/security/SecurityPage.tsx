@@ -41,6 +41,8 @@ import { candles, depthChart, holdersBars, priceLine, tradesChart } from './char
 import { Panel } from './Panel';
 import { WarrantPanel, WarrantTabs, WithWarrants } from './WarrantPanels';
 import { ratioText, warrantEnd } from './warrants';
+import { QuotePanel } from '../companies/QuotePanel';
+import type { Sponsorship } from '../companies/derive';
 import './SecurityPage.css';
 
 type Side = 'BUY' | 'SELL';
@@ -56,6 +58,9 @@ const RANGES = [
   { value: '14T', label: '14T' },
   { value: 'K', label: 'Kerzen' },
 ];
+
+/** Right column of a listing the player's company sponsors: order ticket or market maker quote (?handel=quote). */
+const HANDEL = [{ value: 'boerse' }, { value: 'quote' }];
 
 /**
  * Securities page – one screen, no page scroll. The frame is the same for every asset class; facts,
@@ -77,6 +82,8 @@ export function SecurityPage() {
   const spread = usePriceSpread(asin);
   const etf = useEtf(asin, profile.data?.type === 'ETF');
   const me = useMe();
+  const myCompanies = useMyCompanies(me.data?.id);
+  const [handel, setHandel] = useParamState('handel', 'boerse', HANDEL);
 
   const [pick, setPick] = useState<Pick | null>(null);
   const [sheet, setSheet] = useState(false);
@@ -111,6 +118,14 @@ export function SecurityPage() {
   const sp = toSpread(spread.data ?? p.currentSpread);
   const ch = change24h(p.prices14d);
   const ownsEtf = !!me.data?.username && etf.data?.owner?.username === me.data.username;
+  // A company the player runs is designated sponsor of this listing: it may quote here.
+  const mine = myCompanies.data ?? [];
+  const sponsoring = ((p as ListingProfile & { designatedSponsors?: Sponsorship[] }).designatedSponsors ?? []).find((s) =>
+    mine.some((c) => c.id === s.designatedSponsor.id),
+  );
+  const sponsorAccount = sponsoring
+    ? (sponsoring.designatedSponsor.securitiesAccountId ?? mine.find((c) => c.id === sponsoring.designatedSponsor.id)?.securitiesAccountId)
+    : undefined;
 
   const header = (
     <ClassHeader
@@ -169,6 +184,23 @@ export function SecurityPage() {
           ...(ownsEtf
             ? [{ value: 'verwalten', label: 'Verwalten', content: <EtfManagePanel profile={p} onDone={(ok, text) => setToast({ ok, text })} /> }]
             : []),
+        ]}
+      />
+    ) : sponsoring ? (
+      <DS.Tabs
+        size="sm"
+        aria-label="Handeln"
+        value={handel}
+        onChange={setHandel}
+        items={[
+          { value: 'boerse', label: 'Börse', content: ticket },
+          {
+            value: 'quote',
+            label: 'Quote',
+            content: (
+              <QuotePanel compact sponsorship={sponsoring} owner={sponsorAccount} onDone={(text) => setToast({ ok: true, text })} />
+            ),
+          },
         ]}
       />
     ) : (

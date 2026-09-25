@@ -10,6 +10,7 @@ export function Confirm({
   description,
   confirmLabel,
   danger,
+  alert,
   pending,
   confirmDisabled,
   error,
@@ -22,6 +23,8 @@ export function Confirm({
   description?: React.ReactNode;
   confirmLabel: string;
   danger?: boolean;
+  /** alertdialog without the danger button, e.g. before binding orders */
+  alert?: boolean;
   pending?: boolean;
   confirmDisabled?: boolean;
   error?: string | null;
@@ -32,7 +35,7 @@ export function Confirm({
   return (
     <DS.Dialog
       open={open}
-      role={danger ? 'alertdialog' : 'dialog'}
+      role={danger || alert ? 'alertdialog' : 'dialog'}
       size="sm"
       dismissible={!pending}
       onClose={onClose}

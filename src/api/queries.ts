@@ -2526,3 +2526,86 @@ export function useSharePositions(asin: string | undefined) {
     staleTime: SLOW,
   });
 }
+
+// ---------- Market maker quotes and own indexes ----------
+
+/** The company's securities account – the `owner` of its quotes. */
+export interface CompanyProfile {
+  securitiesAccountId?: string;
+}
+
+export type QuoteQuery = { owner: string; securityIdentifier: string; buyPrice: number; sellPrice: number; buyShares: number; sellShares: number };
+
+/**
+ * POST /api/securityorders/quote – a designated sponsor's paired buy/sell quote (two QUOTE orders).
+ * `owner` is the sponsor company's securities account. Writes to the live game.
+ */
+export const placeQuote = (query: QuoteQuery) => unwrap(api.POST('/api/securityorders/quote', { params: { query } }));
+
+export function usePlaceQuote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: placeQuote,
+    onSuccess: (_, q) => {
+      for (const key of ['orders', 'portfolio', 'listingprofile', 'company']) void qc.invalidateQueries({ queryKey: [key] });
+      void qc.invalidateQueries({ queryKey: ['orderbook', q.securityIdentifier] });
+      void qc.invalidateQueries({ queryKey: ['pricespread', q.securityIdentifier] });
+    },
+  });
+}
+
+/** GET /api/v2/my/indexes – indexes the player operates (IndexView; the list form carries `membersCount`). */
+export type MyIndex = Schemas['IndexView'] & { membersCount?: number };
+
+export function useMyIndexes() {
+  return useQuery({
+    queryKey: ['indexes', 'mine'],
+    queryFn: () => unwrap<MyIndex[]>(api.GET('/api/v2/my/indexes')),
+    refetchInterval: SLOW,
+  });
+}
+
+/** GET /api/v2/my/funds – ETFs the player operates (which of them track an index that is about to be deleted). */
+export function useMyFunds() {
+  return useQuery({
+    queryKey: ['etfs', 'mine'],
+    queryFn: () => unwrap<Schemas['EtfView'][]>(api.GET('/api/v2/my/funds')),
+    staleTime: SLOW,
+  });
+}
+
+/** Daily history of several listings; shares the cache with useDailyHistory. */
+export function useDailyHistories(asins: string[]) {
+  return useQueries({
+    queries: asins.map((asin) => ({
+      queryKey: ['history', asin],
+      queryFn: async () => {
+        const page = await unwrap<{ content: HistorizedListingDataView[] }>(
+          api.GET('/api/v2/historizedlistingdata/{securityIdentifier}', {
+            params: { path: { securityIdentifier: asin }, query: { pageable: { page: 0, size: 365, sort: ['date,desc'] } } },
+            querySerializer: pageableSerializer,
+          }),
+        );
+        return [...page.content].reverse();
+      },
+      staleTime: SLOW,
+    })),
+    combine: (results) =>
+      Object.fromEntries(asins.flatMap((a, i) => (results[i]?.data ? [[a, results[i].data]] : []))) as Record<string, HistorizedListingDataView[]>,
+  });
+}
+
+/** DELETE /api/v2/indexes/{securityIdentifier} – dissolves an own index. Writes to the live game. */
+export const deleteIndex = (securityIdentifier: string) =>
+  unwrap(api.DELETE('/api/v2/indexes/{securityIdentifier}', { params: { path: { securityIdentifier } } }));
+
+export function useDeleteIndex() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteIndex,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['indexes'] });
+      void qc.invalidateQueries({ queryKey: ['etfs', 'mine'] });
+    },
+  });
+}
