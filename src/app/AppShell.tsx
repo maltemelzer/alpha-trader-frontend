@@ -39,7 +39,7 @@ export function AppShell() {
   }));
 
   // Placeholders of the same size while the portfolio loads – otherwise search and nav jump sideways.
-  const pending = <DS.Skeleton width="13ch" />;
+  const pending = <DS.Skeleton width="14ch" />;
   const stats = [
     <span key="d" className={`tick${tickClass(valueTick)}`}>
       <DS.HeaderStat label="Depotwert" value={book ?? pending} />
