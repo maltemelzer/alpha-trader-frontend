@@ -116,17 +116,21 @@ export function ChatPage() {
       <DS.ChatWindow
         height="100%"
         title={chat ? chatTitle(chat, me) : room ? room.name : chatId ? '…' : 'Nachrichten'}
-        subtitle={chat ? subtitle(kind) : room ? `Öffentlicher Raum · ${room.numberOfMembers.toLocaleString('de-DE')} Mitglieder` : chatId ? '\u00a0' : undefined}
+        // Head and composer keep their size from the first frame on: while the
+        // chats load (and the desktop redirects to the newest chat) placeholders hold the space, so the
+        // thread below does not jump. The public-chat rule sits in the composer's placeholder for the same reason.
+        subtitle={chat ? subtitle(kind) : room ? `Öffentlicher Raum · ${room.numberOfMembers.toLocaleString('de-DE')} Mitglieder` : '\u00a0'}
         actions={actions}
         list={list}
         mobileShowList={!chatId}
         onBack={isPhone ? () => navigate('/nachrichten') : undefined}
-        notice={
-          kind === 'public' && chat ? (
-            <DS.Banner>Öffentlicher Chat: keine Beleidigungen, keine Kaufempfehlungen gegen Geld.</DS.Banner>
+        composer={
+          chatId && !room ? (
+            <Composer chatId={chatId} readonly={!!chat?.readonly} publicChat={kind === 'public' && !!chat} onError={setError} />
+          ) : !chatId && !isPhone && (chats.isLoading || firstId) ? (
+            <DS.ChatComposer disabled placeholder="Unterhaltung wird geöffnet …" />
           ) : undefined
         }
-        composer={chatId && !room ? <Composer chatId={chatId} readonly={!!chat?.readonly} onError={setError} /> : undefined}
       >
         {room ? (
           <DS.EmptyState
@@ -261,7 +265,7 @@ function Thread({ chatId, me, direct, unread }: { chatId: string; me?: string; d
   );
 }
 
-function Composer({ chatId, readonly, onError }: { chatId: string; readonly: boolean; onError: (e: string) => void }) {
+function Composer({ chatId, readonly, publicChat, onError }: { chatId: string; readonly: boolean; publicChat: boolean; onError: (e: string) => void }) {
   const send = useSendMessage();
   // Keep a draft per chat while switching between conversations.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -271,7 +275,9 @@ function Composer({ chatId, readonly, onError }: { chatId: string; readonly: boo
       value={drafts[chatId] ?? ''}
       onChange={(v) => setDrafts((d) => ({ ...d, [chatId]: v }))}
       disabled={readonly || send.isPending}
-      placeholder={readonly ? 'Nur lesen – hier kann nicht geschrieben werden' : undefined}
+      placeholder={
+        readonly ? 'Nur lesen – hier kann nicht geschrieben werden' : publicChat ? 'Nachricht an alle – keine Beleidigungen, keine Kaufempfehlungen gegen Geld' : undefined
+      }
       onSend={(content) =>
         send.mutate(
           { chatId, content },

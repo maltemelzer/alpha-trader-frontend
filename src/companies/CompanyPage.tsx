@@ -23,11 +23,12 @@ import { ManagePanel } from './ManagePanel';
 import { CeoPollButton } from './CeoPanels';
 import { MarketMakerFacts } from './Sponsorships';
 import { reserveIncome } from '../centralbank/derive';
+import { ChronicleView, RankingView } from './ProfileViews';
 import './CompanyPage.css';
 
 /**
- * Company profile (/unternehmen/:asin): header with key figures; development chart, balance sheet,
- * press releases, polls (with „Als CEO bewerben“), market makers and achievements as tabs. The CEO
+ * Company profile (/unternehmen/:asin): header with key figures; development chart, ranking among
+ * all companies (?ansicht=einordnung&kennzahl=), balance sheet, press releases, chronicle, polls (with „Als CEO bewerben“), market makers and achievements as tabs. The CEO
  * also gets „Führen“ (corporate actions, market maker, salary, logo).
  * Price and trading live on the securities page.
  */
@@ -77,6 +78,18 @@ export function CompanyPage() {
       ),
     },
     {
+      value: 'einordnung',
+      label: 'Einordnung',
+      content: (
+        <RankingView
+          companyId={c?.id}
+          selected={params.get('kennzahl')}
+          asOf={history.data?.at(-1)?.date}
+          onSelect={(k) => setParams({ ansicht: 'einordnung', kennzahl: k }, { replace: true })}
+        />
+      ),
+    },
+    {
       value: 'bilanz',
       label: 'Bilanz',
       count: sheets.data?.totalElements || undefined,
@@ -99,6 +112,11 @@ export function CompanyPage() {
       ) : (
         <DS.EmptyState compact as="h3" title="Keine Pressemitteilungen" />
       ),
+    },
+    {
+      value: 'chronik',
+      label: 'Chronik',
+      content: <ChronicleView companyId={c?.id} />,
     },
     {
       value: 'abstimmungen',

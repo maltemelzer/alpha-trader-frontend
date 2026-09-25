@@ -30,6 +30,7 @@ import type { ApiMessage } from '../lib/messages';
 import { mergeTrades } from '../app/tape';
 import { NOTE_TYPE, referrerOf, type NoteRequest, type UserChange } from '../me/account';
 import type { AddOrderQuery } from '../orders/derive';
+import type { CompanyHistograms, HistoryEntry } from '../companies/profile';
 import type {
   AchievementItem,
   AllianceMembership,
@@ -2443,4 +2444,32 @@ export function useEtfManagement(asin: string) {
     baseIndex: useMutation({ mutationFn: (index: string) => changeEtfBaseIndex(asin, index), onSuccess: done }),
     fee: useMutation({ mutationFn: (percent: number) => setEtfManagementFee(asin, percent), onSuccess: done }),
   };
+}
+
+// ---------- Company ranking and history ----------
+
+/**
+ * Where a company stands among all companies: GET /api/v2/companyhistograms/{companyId} → one
+ * log-binned distribution per figure with the company's value, bin and decile. (GET
+ * /api/v2/companycaps/{companyId} is the `companyCapabilities` block of the profile, not needed.)
+ */
+export function useCompanyHistograms(companyId: string | undefined) {
+  return useQuery({
+    queryKey: ['company', 'histograms', companyId],
+    enabled: !!companyId,
+    queryFn: () =>
+      unwrap<CompanyHistograms>(api.GET('/api/v2/companyhistograms/{companyId}', { params: { path: { companyId: companyId! } } })),
+    staleTime: SLOW * 10,
+  });
+}
+
+/** Chronicle of a company, player or alliance (founding, renames, CEO changes, capital actions …), newest first. */
+export function useEntityHistory(entityId: string | undefined) {
+  return useQuery({
+    queryKey: ['history', 'entity', entityId],
+    enabled: !!entityId,
+    // historyType as filter answers 500 – always fetch everything (500 per page is accepted).
+    queryFn: () => getPage<HistoryEntry>('/api/v2/history', { entityId, pageable: { page: 0, size: 500, sort: ['date,desc'] } }),
+    staleTime: SLOW,
+  });
 }
