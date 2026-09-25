@@ -188,12 +188,18 @@ export function CompanyPage() {
             : [c ? 'Kein CEO' : '\u00a0']),
           ...(c?.ceoEmploymentAgreement?.dailyWage != null ? [`Gehalt ${DS.format.money(c.ceoEmploymentAgreement.dailyWage, '€', 2, 'auto')} je Tag`] : []),
         ]}
-        tags={[
-          ...(caps?.bank ? [{ label: 'Banklizenz' }] : []),
-          ...(c?.marketMakerPolicy === 'OPEN' ? [{ label: 'Market Maker offen' }] : []),
-          ...(c?.sponsoredListings?.length ? [{ label: 'Designated Sponsor' }] : []),
-          ...(isCeo ? [{ label: 'Du bist CEO' }] : []),
-        ]}
+        // The tag row always exists (market maker policy is always shown, a placeholder while loading),
+        // so the key figures below do not jump when the profile arrives.
+        tags={
+          c
+            ? [
+                ...(caps?.bank ? [{ label: 'Banklizenz' }] : []),
+                { label: c.marketMakerPolicy === 'OPEN' ? 'Market Maker offen' : 'Market Maker geschlossen' },
+                ...(c.sponsoredListings?.length ? [{ label: 'Designated Sponsor' }] : []),
+                ...(isCeo ? [{ label: 'Du bist CEO' }] : []),
+              ]
+            : [{ label: <DS.Skeleton width="9em" /> }]
+        }
         actions={
           <DS.Button size="sm" onClick={() => navigate(`/wertpapier/${asin}`)}>
             Zum Wertpapier
@@ -236,7 +242,7 @@ function BankFacts({ caps, isCeo, asin }: { caps: NonNullable<CompanyProfile['co
   return (
     <div className="company__pad company__bank">
       <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Bank">
-        <DS.StatTile label="Zentralbankeinlage" value={caps.reserves ?? 0} compact hint="Bargeld bei der Zentralbank" />
+        <DS.StatTile label="Einlage" value={caps.reserves ?? 0} compact hint="bei der Zentralbank" />
         <DS.StatTile
           label="Zinsertrag pro Tag"
           value={income ?? '–'}
