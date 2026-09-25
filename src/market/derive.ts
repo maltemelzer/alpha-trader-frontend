@@ -28,7 +28,9 @@ export function tickerItems(
   names: Record<string, { name: string; type: string }>,
   max = 30,
 ): TickerItem[] {
-  return [...trades]
+  // Trades at a price of 0 are transfers, not market trades (like the Börsenband).
+  return trades
+    .filter((t) => (t.price ?? 0) > 0)
     .sort((a, b) => (b.date ?? 0) - (a.date ?? 0))
     .slice(0, max)
     .map((t) => {

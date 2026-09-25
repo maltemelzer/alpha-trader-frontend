@@ -35,6 +35,17 @@ describe('movers', () => {
 });
 
 describe('tickerItems', () => {
+  it('leaves out transfers at a price of 0', () => {
+    const items = tickerItems(
+      [
+        { id: '1', securityIdentifier: 'ACX', price: 0, numberOfShares: 456488, date: 30 },
+        { id: '2', securityIdentifier: 'STY', price: 3, numberOfShares: 1, date: 20 },
+      ],
+      {},
+    );
+    expect(items.map((i) => i.id)).toEqual(['2']);
+  });
+
   it('sorts newest first and names known securities', () => {
     const items = tickerItems(
       [
