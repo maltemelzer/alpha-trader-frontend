@@ -1856,11 +1856,11 @@
     var tags = (p.hashTags || []).map(function (t) { return t.tag || t; });
     return h('article', { className: cx('bnk-news', 'bnk-news--' + v, props.className), lang: p.locale ? String(p.locale).slice(0, 2) : undefined },
       h('div', { className: 'bnk-news__kicker' },
-        pub ? h('span', { className: 'bnk-news__rubric' }, pub) : h('span', { className: 'bnk-news__rubric' }, props.rubric || 'Leserbeitrag'),
+        pub ? (props.publisherHref && props.publisherHref(p) ? h('a', { className: 'bnk-news__rubric', href: props.publisherHref(p) }, pub) : h('span', { className: 'bnk-news__rubric' }, pub)) : h('span', { className: 'bnk-news__rubric' }, props.rubric || 'Leserbeitrag'),
         when ? h('time', { dateTime: p.dateCreated ? new Date(p.dateCreated).toISOString() : undefined }, when) : null,
         locale ? h('span', { className: 'bnk-news__lang', title: 'Sprache' }, locale) : null),
       h(Tag, { className: 'bnk-news__title' }, title),
-      author ? h('div', { className: 'bnk-news__byline' }, 'von ', h('span', { className: 'bnk-news__author' }, author), p.dateEdited ? ' · bearbeitet ' + dateTime(p.dateEdited) : '') : null,
+      author ? h('div', { className: 'bnk-news__byline' }, 'von ', props.authorHref ? h('a', { className: 'bnk-news__author', href: props.authorHref(author, p) }, author) : h('span', { className: 'bnk-news__author' }, author), p.dateEdited ? ' · bearbeitet ' + dateTime(p.dateEdited) : '') : null,
       p.content ? h('p', { className: 'bnk-news__teaser' }, teaserOf(p.content, v === 'lead' ? 320 : 180)) : null,
       h('div', { className: 'bnk-news__foot' },
         p.listing ? h(TickerMention, { ticker: p.listing.securityIdentifier, info: Object.assign({ name: p.listing.name }, props.tickerInfo && props.tickerInfo[p.listing.securityIdentifier]) }) : null,
@@ -1871,7 +1871,7 @@
   function NewsFeed(props) {
     var items = props.items || [];
     var brief = props.variant === 'brief';
-    var pass = function (it) { return { tickerInfo: props.tickerInfo, onReact: props.onReact, onComments: props.onComments, tagHref: props.tagHref,
+    var pass = function (it) { return { tickerInfo: props.tickerInfo, onReact: props.onReact, onComments: props.onComments, tagHref: props.tagHref, authorHref: props.authorHref, publisherHref: props.publisherHref,
       href: props.hrefFor ? props.hrefFor(it.post || it) : it.href, myReaction: props.reactions ? props.reactions[(it.post || it).id] : it.myReaction }; };
     return h('section', { className: cx('bnk-feed', props.className), 'aria-label': typeof props.title === 'string' ? props.title : 'Zeitung' },
       props.title ? h('div', { className: 'bnk-feed__head' }, h('h2', { className: 'bnk-feed__title' }, props.title), props.action || null) : null,

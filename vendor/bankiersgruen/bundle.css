@@ -1142,7 +1142,7 @@ a.bnk-hs__name:hover { text-decoration: underline; text-decoration-color: var(--
 .bnk-news--lead .bnk-news__title { font-size: 30px; line-height: 36px; letter-spacing: -.01em; }
 .bnk-news--lead .bnk-news__kicker { margin-bottom: var(--space-2); }
 .bnk-news--lead .bnk-news__teaser { margin-top: var(--space-3); font-size: 16px; line-height: 24px; color: var(--text-primary); }
-.bnk-news--brief { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-2) 0; align-items: baseline; }
+.bnk-news--brief { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-2) 0; align-items: baseline; }
 .bnk-news__time { font-family: var(--font-mono); font-size: 12px; line-height: 20px; color: var(--text-secondary); }
 .bnk-news__briefBody { display: flex; flex-direction: column; }
 .bnk-news--brief .bnk-news__title { margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 500; }
@@ -1994,9 +1994,9 @@ a.bnk-wm:focus-visible { outline: var(--rule) solid var(--brass); outline-offset
 /* Touch: Tippflächen mindestens 44 px hoch, ohne die sichtbare Größe zu ändern (nur in der Höhe – seitlich würde
    die Fläche in waagerecht scrollenden Leisten einen Scrollbalken erzeugen) */
 @media (pointer: coarse) {
-  .bnk-btn, .bnk-bell, .bnk-react, .bnk-switch__btn, .bnk-pag__btn, .bnk-hdr__wordmark, .bnk-hs__name, .bnk-fcat__name, .bnk-pos__link { position: relative; }
+  .bnk-btn, .bnk-bell, .bnk-react, .bnk-switch__btn, .bnk-pag__btn, .bnk-hdr__wordmark, .bnk-hs__name, .bnk-fcat__name, .bnk-pos__link, .bnk-thread__title, .bnk-ph__eyebrow a, .bnk-prof__eyebrow a, .bnk-news__tags a { position: relative; }
   .bnk-btn::before, .bnk-bell::before, .bnk-react::before, .bnk-switch__btn::before, .bnk-pag__btn::before, .bnk-hdr__wordmark::before,
-  .bnk-hs__name::before, .bnk-fcat__name::before, .bnk-pos__link::before {
+  .bnk-hs__name::before, .bnk-fcat__name::before, .bnk-pos__link::before, .bnk-thread__title::before, .bnk-ph__eyebrow a::before, .bnk-prof__eyebrow a::before, .bnk-news__tags a::before {
     content: ''; position: absolute; left: 0; top: 50%; width: 100%; height: max(100%, 44px); transform: translateY(-50%);
   }
   /* Segmente schneiden Überstand ab (Ellipse) – dort wächst die sichtbare Höhe */
@@ -2013,3 +2013,9 @@ a.bnk-wm:focus-visible { outline: var(--rule) solid var(--brass); outline-offset
 .bnk-textarea__control { min-height: 88px; padding: var(--space-2) var(--space-3); line-height: 22px; resize: vertical; font-family: var(--font-sans); }
 .bnk-textarea__count { align-self: flex-end; padding: 0 var(--space-2) var(--space-1); font: 500 11px/16px var(--font-mono); color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .bnk-textarea__count.is-near { color: var(--text-primary); }
+
+/* ---------- Version 52 ---------- */
+/* Links und Knöpfe in einzelnen Zellen liegen über dem Zeilenlink (der die ganze Zeile abdeckt) */
+.bnk-table__td a:not(.bnk-table__rowlink), .bnk-table__td button:not(.bnk-table__rowlink) { position: relative; z-index: 1; }
+.bnk-news__byline a.bnk-news__author, a.bnk-news__rubric { color: inherit; text-decoration: none; }
+.bnk-news__byline a.bnk-news__author:hover, a.bnk-news__rubric:hover { text-decoration: underline; text-decoration-color: var(--brass); text-underline-offset: 3px; }

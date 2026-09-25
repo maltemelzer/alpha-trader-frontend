@@ -929,6 +929,10 @@ export interface NewsItemProps {
   post: Post; variant?: 'lead' | 'default' | 'brief'; href?: string; onOpen?: (e: React.MouseEvent) => void;
   myReaction?: Reaction; onReact?: (post: Post, type: Reaction) => void; onComments?: (post: Post) => void;
   tagHref?: (tag: string) => string; tickerInfo?: Record<string, TickerInfo>; rubric?: string; as?: 'h2' | 'h3' | 'h4'; className?: string;
+  /** Autor als Link, z. B. auf die gefilterte Zeitung */
+  authorHref?: (author: string, post: Post) => string;
+  /** Herausgeber (Unternehmen/Allianz) als Link */
+  publisherHref?: (post: Post) => string | undefined;
 }
 export declare function NewsItem(props: NewsItemProps): React.ReactElement;
 export interface NewsFeedProps {
@@ -937,6 +941,7 @@ export interface NewsFeedProps {
   reactions?: Record<string, Reaction>;
   onReact?: (post: Post, type: Reaction) => void; onComments?: (post: Post) => void;
   hrefFor?: (post: Post) => string; tagHref?: (tag: string) => string; tickerInfo?: Record<string, TickerInfo>; footer?: React.ReactNode; className?: string;
+  authorHref?: (author: string, post: Post) => string; publisherHref?: (post: Post) => string | undefined;
 }
 export declare function NewsFeed(props: NewsFeedProps): React.ReactElement;
 export declare function ReactionBar(props: { likes?: number; dislikes?: number; comments?: number; myReaction?: Reaction; onReact?: (type: Reaction) => void; onComments?: () => void; disabled?: boolean; className?: string }): React.ReactElement;

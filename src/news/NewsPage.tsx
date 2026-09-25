@@ -69,6 +69,11 @@ export function NewsPage() {
               items={(withLead ? posts.slice(1) : posts).map(toPost)}
               hrefFor={href}
               tagHref={(tag) => newsHref({ kind: 'hashtag', tag })}
+              authorHref={(username) => newsHref({ kind: 'author', username })}
+              publisherHref={(p) => {
+                const asin = (p as { company?: { securityIdentifier?: string } }).company?.securityIdentifier;
+                return asin ? newsHref({ kind: 'company', asin }) : undefined;
+              }}
               onComments={(p) => navigate(href(p))}
             />
             {news.hasNextPage && (
