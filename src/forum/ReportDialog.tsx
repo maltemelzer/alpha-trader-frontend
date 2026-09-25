@@ -1,7 +1,6 @@
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { DS } from '../ds';
 import { useComplaint, type ComplaintType } from '../api/queries';
-import './ReportDialog.css';
 
 export interface ReportTarget {
   id: string;
@@ -15,7 +14,6 @@ export interface ReportTarget {
  * so it always goes through this dialog; the reason is optional.
  */
 export function ReportDialog({ target, onClose }: { target: ReportTarget | null; onClose: () => void }) {
-  const id = useId();
   const [text, setText] = useState('');
   const [sent, setSent] = useState(false);
   const report = useComplaint();
@@ -65,22 +63,15 @@ export function ReportDialog({ target, onClose }: { target: ReportTarget | null;
       }
     >
       {!sent && (
-        <div className="bnk-field bnk-field--full">
-          <label className="bnk-field__label" htmlFor={id}>
-            Grund (optional)
-          </label>
-          <div className="bnk-input report__area">
-            <textarea
-              id={id}
-              className="bnk-input__control"
-              rows={3}
-              maxLength={500}
-              value={text}
-              placeholder="Was stimmt damit nicht?"
-              onChange={(e) => setText(e.target.value)}
-            />
-          </div>
-        </div>
+        <DS.Textarea
+          label="Grund"
+          optional
+          rows={3}
+          maxLength={500}
+          value={text}
+          placeholder="Was stimmt damit nicht?"
+          onChange={(e) => setText(e.target.value)}
+        />
       )}
       {report.isError && <DS.Banner variant="error">Nicht gemeldet: {report.error.message}</DS.Banner>}
     </DS.Dialog>

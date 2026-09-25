@@ -1,5 +1,5 @@
 // Dialogs of the settings page. Every write action runs only after an explicit confirmation here.
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { DS } from '../ds';
 import { useAccountActions, usePossibleReferrers } from '../api/queries';
 import { useDebounced } from '../lib/useDebounced';
@@ -198,7 +198,6 @@ export function NoteDialog({
   notify: Notify;
 }) {
   const act = useAccountActions();
-  const areaId = useId();
   const [identifier, setIdentifier] = useState(note.identifier ?? '');
   const [content, setContent] = useState(note.content ?? '');
   const req = noteRequest(note.id, identifier, content);
@@ -244,14 +243,7 @@ export function NoteDialog({
           hint={note.id ? undefined : 'z. B. STSN3G03LB'}
           onChange={(e) => setIdentifier(e.target.value)}
         />
-        <div className="bnk-field bnk-field--full">
-          <label className="bnk-field__label" htmlFor={areaId}>
-            Notiz
-          </label>
-          <div className="bnk-input me__area">
-            <textarea id={areaId} className="bnk-input__control" rows={5} maxLength={2000} value={content} onChange={(e) => setContent(e.target.value)} />
-          </div>
-        </div>
+        <DS.Textarea label="Notiz" rows={5} maxLength={2000} value={content} onChange={(e) => setContent(e.target.value)} />
       </div>
     </DS.Dialog>
   );

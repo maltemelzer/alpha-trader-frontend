@@ -100,17 +100,6 @@
   gap: var(--space-3);
 }
 
-.me__area textarea {
-  min-height: 96px;
-  resize: vertical;
-  padding: var(--space-2) var(--space-3);
-  font: inherit;
-}
-
-.me__area {
-  height: auto;
-}
-
 .me__picklist {
   list-style: none;
   margin: 0;
