@@ -1,4 +1,4 @@
-import { alpha, changeText, clip, euro, mix, short, ratePct, span, changeShort } from './format';
+import { alpha, changeText, clip, euro, mix, parseDe, short, ratePct, span, changeShort } from './format';
 
 describe('changeShort', () => {
   it('keeps small changes and shortens huge ones', () => {
@@ -58,5 +58,17 @@ describe('mix', () => {
     expect(mix('#102030', '#305070', 0.42)).toBe('rgb(29,52,75)');
     expect(mix('#000000', '#FFFFFF', 2)).toBe('rgb(255,255,255)');
     expect(mix('red', '#FFFFFF', 0.5)).toBe('#FFFFFF');
+  });
+});
+
+describe('parseDe', () => {
+  it('reads German input', () => {
+    expect(parseDe('1.234,5')).toBe(1234.5);
+    expect(parseDe(' 12,50 ')).toBe(12.5);
+    expect(parseDe('7')).toBe(7);
+    expect(parseDe('1.000')).toBe(1000);
+    expect(parseDe('')).toBeNaN();
+    expect(parseDe('abc')).toBeNaN();
+    expect(parseDe('1,2,3')).toBeNaN();
   });
 });

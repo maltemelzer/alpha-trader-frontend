@@ -5,7 +5,18 @@ import { useDeleteOrder, useOpenOrders } from '../api/queries';
 import type { SecurityOrderView } from '../../vendor/bankiersgruen';
 
 /** Open orders of an account with „Löschen“ behind a confirmation. */
-export function OpenOrders({ securitiesAccountId, density }: { securitiesAccountId?: string; density?: 'sm' | 'md' }) {
+export function OpenOrders({
+  securitiesAccountId,
+  density,
+  filter,
+  empty = 'Keine offenen Orders',
+}: {
+  securitiesAccountId?: string;
+  density?: 'sm' | 'md';
+  /** e.g. only OTC orders (with a counterparty) */
+  filter?: (o: SecurityOrderView) => boolean;
+  empty?: string;
+}) {
   const navigate = useNavigate();
   const orders = useOpenOrders(securitiesAccountId);
   const del = useDeleteOrder();
@@ -17,12 +28,12 @@ export function OpenOrders({ securitiesAccountId, density }: { securitiesAccount
   return (
     <>
       <DS.OrderList
-        orders={orders.data?.content ?? []}
+        orders={filter ? (orders.data?.content ?? []).filter(filter) : (orders.data?.content ?? [])}
         density={density}
         hrefFor={(o) => `/wertpapier/${asin(o)}`}
         onOpen={(o) => navigate(`/wertpapier/${asin(o)}`)}
         onDelete={(o) => setConfirm(o)}
-        empty={<DS.EmptyState compact as="h3" title="Keine offenen Orders" />}
+        empty={<DS.EmptyState compact as="h3" title={empty} />}
       />
       <DS.Dialog
         open={!!confirm}
