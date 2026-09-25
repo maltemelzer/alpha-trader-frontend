@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import {
@@ -17,6 +17,7 @@ import { OpenOrders } from '../orders/OpenOrders';
 import { Performance } from './PerformancePanel';
 import { suggestionHref } from './derive';
 import { MyIndexes } from './MyIndexes';
+import { QuickTransfer } from '../me/TransferSheet';
 import { translate } from '../lib/messages';
 import type { PortfolioView } from '../../vendor/bankiersgruen';
 import './OrganisationPage.css';
@@ -36,6 +37,7 @@ export function OrganisationPage() {
   const navigate = useNavigate();
   const isWide = useMediaQuery('(min-width: 1100px)');
   const [params, setParams] = useSearchParams();
+  const [sending, setSending] = useState(false);
 
   const me = useMe();
   const portfolio = usePortfolio();
@@ -187,7 +189,7 @@ export function OrganisationPage() {
         }
         actions={
           <>
-            <DS.Button variant="secondary" size="sm" onClick={() => navigate('/bank')}>
+            <DS.Button variant="secondary" size="sm" onClick={() => setSending(true)}>
               Überweisung
             </DS.Button>
             <DS.Button variant="primary" size="sm" onClick={() => navigate('/markt')}>
@@ -236,6 +238,7 @@ export function OrganisationPage() {
           </div>
         )}
       </div>
+      <QuickTransfer open={sending} onClose={() => setSending(false)} />
     </div>
   );
 

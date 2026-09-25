@@ -2774,3 +2774,26 @@ export function useTopBookValues(enabled: boolean) {
     staleTime: SLOW,
   });
 }
+
+/**
+ * The latest 1.000 bookings of a bank account for the bank page's analysis (GET
+ * /api/v2/cashtransferlogs/{id}); busy company accounts reach back about a day, private ones weeks.
+ * The balance (GET /api/v2/bankaccounts/{id}) is read in the same step, so the running balance
+ * starts from the balance that belongs to these bookings.
+ */
+export function useCashLedger(bankAccountId: string | undefined) {
+  return useQuery({
+    queryKey: ['cashlogs', 'ledger', bankAccountId],
+    enabled: !!bankAccountId,
+    queryFn: async () => {
+      const account = await unwrap<{ id: string; cash: number }>(
+        api.GET('/api/v2/bankaccounts/{bankAccountId}', { params: { path: { bankAccountId: bankAccountId! } } }),
+      );
+      const page = await getPage<CashTransferLogEntry>(`/api/v2/cashtransferlogs/${bankAccountId}`, {
+        pageable: { page: 0, size: 1000, sort: ['date,desc'] },
+      });
+      return { ...page, cash: account.cash };
+    },
+    refetchInterval: SLOW,
+  });
+}

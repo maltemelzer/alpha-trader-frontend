@@ -3,25 +3,184 @@
   max-width: 720px;
 }
 
-.me__bank {
+/* Bank: same height while loading (Skeleton) and loaded (amount with arrow), so the hints don't jump. */
+.bank .bnk-stat__value {
+  min-height: 28px;
+}
+
+.bank__cat {
+  min-width: 200px;
+}
+
+/* ---------- Bank ---------- */
+
+.bank__body {
   grid-template-rows: auto minmax(0, 1fr);
-  overflow: auto;
 }
 
-.me__bank--wide {
-  grid-template-columns: 380px minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-  overflow: visible;
+.bank:not(.bank--wide) .bank__body {
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
-.me__bank-side {
-  align-content: start;
-  overflow: auto;
+.bank--phone .bank__body {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
+.bank__grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.bank__left {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.bank__chart {
+  min-height: 0;
   position: relative;
 }
 
-.me__flush {
+.bank__account {
+  min-width: 250px;
+}
+
+.bank__bar {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.bank__bar .bnk-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.bank__bar .bank__account {
+  min-width: 0;
+}
+
+/* Bar charts fill the tab panel and only scroll when there are many rows. */
+.bank__fillpad {
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel__fill.bank__fillpad > * {
+  flex: 1 1 0;
+}
+
+.bank__pad {
+  padding: var(--space-2) var(--space-4) var(--space-3);
+}
+
+.bank__bars {
+  position: relative;
+  flex: 1 1 0;
+}
+
+.bank__flow {
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.bank__flow > [aria-hidden] {
+  font-size: 0.8em;
+  color: var(--text-secondary);
+}
+
+.bank__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-2);
+}
+
+.bank__filters .bnk-field:last-child {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.bank__list {
   padding: 0;
+}
+
+.bank__what {
+  display: grid;
+  min-width: 0;
+}
+
+.bank__what > span,
+.bank__what small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Desktop table: the text column takes the rest and cuts long texts instead of pushing the amounts out. */
+.bank--wide .bank__table td:nth-child(2),
+.bank--wide .bank__table th:nth-child(2) {
+  width: 100%;
+  max-width: 0;
+}
+
+.bank__table time {
+  white-space: nowrap;
+}
+
+.bank__what small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.bank__asin {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+@media (max-height: 800px) {
+  .bank__grid,
+  .bank__left {
+    gap: var(--space-3);
+  }
+}
+
+.bank--phone .bnk-stat__value {
+  font-size: 17px;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+/* Transfer sheet */
+.xfer {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.xfer__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.xfer__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.xfer__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 .me__note {
@@ -168,4 +327,12 @@
 .me__code {
   font: 500 14px/20px var(--font-mono);
   color: var(--text-primary);
+}
+
+.panel__fill > .bank__note {
+  flex: none;
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 16px;
 }
