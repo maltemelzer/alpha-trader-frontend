@@ -141,3 +141,9 @@ export interface ChatRoomView {
   numberOfMembers: number;
   dateCreated?: number;
 }
+
+// Market overview
+/** GET /api/v2/tradingmatrix/top100 – previousPrice is the price 24 h ago (0 for new listings). */
+export type TradingMatrixItemView = S['TradingMatrixItemView'];
+/** GET /api/v2/biggesttradedsecurities – `volume` is the traded volume of the last 24 h. */
+export type ListingWithTradingVolumeView = S['ListingWithTradingVolumeView'];

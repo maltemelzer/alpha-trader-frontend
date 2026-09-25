@@ -44,6 +44,20 @@ export function alpha(hex: string, a: number): string {
   return `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${a})`;
 }
 
+/**
+ * Flat mix of two #RRGGBB colours in sRGB (like CSS color-mix): `t` = share of `to`.
+ * For heatmap tiles: tint + up to 42 % gain/loss. Non-hex input returns `to` unchanged.
+ */
+export function mix(from: string, to: string, t: number): string {
+  const rgb = (hex: string) => hex.trim().match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)?.slice(1).map((x) => parseInt(x, 16));
+  const a = rgb(from);
+  const b = rgb(to);
+  if (!a || !b) return to;
+  const k = Math.max(0, Math.min(1, t));
+  const c = a.map((x, i) => Math.round(x + (b[i] - x) * k));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
 /** Shortens a label to `max` characters with „…“ (phone charts). */
 export function clip(s: string, max = 11): string {
   return s.length > max ? s.slice(0, max - 1) + '…' : s;

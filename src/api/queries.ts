@@ -8,6 +8,7 @@ import type {
   CompanyView,
   HistorizedListingDataView,
   ListingView,
+  ListingWithTradingVolumeView,
   MessageView,
   ListingProfile,
   OrderbookView,
@@ -17,6 +18,7 @@ import type {
   SearchResult,
   SecurityOrderLogEntryView,
   ShareholderView,
+  TradingMatrixItemView,
   UserAccountView,
   UsernameView,
 } from './types';
@@ -1716,4 +1718,29 @@ function pageableSerializer(q: Record<string, unknown>) {
     }
   }
   return out.toString();
+}
+
+// ---------- Market overview ----------
+
+/** The 100 most traded securities of the last 24 h with last price and price 24 h ago (market heatmap). */
+export function useTradingMatrix() {
+  return useQuery({
+    queryKey: ['tradingmatrix'],
+    queryFn: () => unwrap<TradingMatrixItemView[]>(api.GET('/api/v2/tradingmatrix/top100')),
+    refetchInterval: SLOW,
+  });
+}
+
+/** Securities with the largest traded volume in 24 h, of one type (all types when empty). */
+export function useBiggestTraded(type?: string, size = 10) {
+  return useQuery({
+    queryKey: ['biggesttraded', type ?? '', size],
+    queryFn: () =>
+      getPage<ListingWithTradingVolumeView>('/api/v2/biggesttradedsecurities', {
+        type: type || undefined,
+        pageable: { page: 0, size },
+      }),
+    placeholderData: (prev) => prev,
+    refetchInterval: SLOW,
+  });
 }
