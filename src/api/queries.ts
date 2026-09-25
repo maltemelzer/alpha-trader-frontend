@@ -2422,3 +2422,25 @@ export function useWarrant(asin: string | undefined) {
     staleTime: SLOW,
   });
 }
+
+// ---------- ETF management (owner) ----------
+
+/** Switch the index an ETF tracks (owner only): PUT /api/v2/etfs/{asin}/base-index?baseIndexAsin= */
+export const changeEtfBaseIndex = (asin: string, baseIndexAsin: string) =>
+  unwrap(api.PUT('/api/v2/etfs/{asin}/base-index', { params: { path: { asin }, query: { baseIndexAsin } } }));
+
+/** Set the management fee in % (owner only, not while frozen): POST /api/v2/etfs/{asin}/management-fee?percent= */
+export const setEtfManagementFee = (asin: string, percent: number) =>
+  unwrap(api.POST('/api/v2/etfs/{asin}/management-fee', { params: { path: { asin }, query: { percent } } }));
+
+export function useEtfManagement(asin: string) {
+  const qc = useQueryClient();
+  const done = () => {
+    void qc.invalidateQueries({ queryKey: ['etf', asin] });
+    void qc.invalidateQueries({ queryKey: ['listingprofile', asin] });
+  };
+  return {
+    baseIndex: useMutation({ mutationFn: (index: string) => changeEtfBaseIndex(asin, index), onSuccess: done }),
+    fee: useMutation({ mutationFn: (percent: number) => setEtfManagementFee(asin, percent), onSuccess: done }),
+  };
+}

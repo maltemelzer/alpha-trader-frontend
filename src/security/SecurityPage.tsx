@@ -6,6 +6,7 @@ import { useParamState } from '../lib/useParamState';
 import { api, ApiError, unwrap } from '../api/client';
 import {
   useDailyHistory,
+  useEtf,
   useIndexDetails,
   useListingProfile,
   useMe,
@@ -27,6 +28,7 @@ import { assetClass, isTradable, type AssetClass } from './assetClass';
 import {
   BondPanel,
   BuildingPanel,
+  EtfManagePanel,
   EtfTrackingPanel,
   EtfUnitsPanel,
   IndexMembersPanel,
@@ -72,6 +74,8 @@ export function SecurityPage() {
 
   const profile = useListingProfile(asin);
   const spread = usePriceSpread(asin);
+  const etf = useEtf(asin, profile.data?.type === 'ETF');
+  const me = useMe();
 
   const [pick, setPick] = useState<Pick | null>(null);
   const [sheet, setSheet] = useState(false);
@@ -105,6 +109,7 @@ export function SecurityPage() {
   const listing = { securityIdentifier: p.securityIdentifier, name: p.name, type: p.type, startDate: p.startDate };
   const sp = toSpread(spread.data ?? p.currentSpread);
   const ch = change24h(p.prices14d);
+  const ownsEtf = !!me.data?.username && etf.data?.owner?.username === me.data.username;
 
   const header = (
     <ClassHeader
@@ -160,6 +165,9 @@ export function SecurityPage() {
             label: 'Zeichnen / Zurückgeben',
             content: <EtfUnitsPanel profile={p} onDone={(ok, text) => setToast({ ok, text })} />,
           },
+          ...(ownsEtf
+            ? [{ value: 'verwalten', label: 'Verwalten', content: <EtfManagePanel profile={p} onDone={(ok, text) => setToast({ ok, text })} /> }]
+            : []),
         ]}
       />
     ) : (
@@ -196,7 +204,7 @@ export function SecurityPage() {
         <DS.MobileTopBar title={p.name} eyebrow={p.securityIdentifier} onBack={() => navigate(-1)} backText="Zurück" />
         <div className="sec__phone-scroll">
           {header}
-          <PhonePanels asin={asin} profile={p} cls={cls} onPick={openOrder} />
+          <PhonePanels asin={asin} profile={p} cls={cls} onPick={openOrder} ownsEtf={ownsEtf} />
         </div>
         {sp && tradable && (
           <DS.TradeBar
@@ -560,7 +568,19 @@ function phoneViews(cls: AssetClass) {
   }
 }
 
-function PhonePanels({ asin, profile, cls, onPick }: { asin: string; profile: ListingProfile; cls: AssetClass; onPick: (p: Pick) => void }) {
+function PhonePanels({
+  asin,
+  profile,
+  cls,
+  onPick,
+  ownsEtf = false,
+}: {
+  asin: string;
+  profile: ListingProfile;
+  cls: AssetClass;
+  onPick: (p: Pick) => void;
+  ownsEtf?: boolean;
+}) {
   const views = phoneViews(cls);
   const [view, setView] = useParamState('ansicht', views[0].value, views);
   const [note, setNote] = useState<Result | null>(null);
@@ -588,7 +608,18 @@ function PhonePanels({ asin, profile, cls, onPick }: { asin: string; profile: Li
         {view === 'basis' && <WarrantPanel profile={profile} bare />}
         {view === 'units' && (
           <div>
-            <EtfUnitsPanel profile={profile} onDone={(ok, text) => setNote({ ok, text })} />
+            {ownsEtf ? (
+              <DS.Tabs
+                size="sm"
+                aria-label="Anteile"
+                items={[
+                  { value: 'anteile', label: 'Zeichnen / Zurückgeben', content: <EtfUnitsPanel profile={profile} onDone={(ok, text) => setNote({ ok, text })} /> },
+                  { value: 'verwalten', label: 'Verwalten', content: <EtfManagePanel profile={profile} onDone={(ok, text) => setNote({ ok, text })} /> },
+                ]}
+              />
+            ) : (
+              <EtfUnitsPanel profile={profile} onDone={(ok, text) => setNote({ ok, text })} />
+            )}
             {note && <DS.Banner variant={note.ok ? 'info' : 'error'}>{note.text}</DS.Banner>}
           </div>
         )}

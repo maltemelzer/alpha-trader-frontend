@@ -1,5 +1,5 @@
 // Class-specific panels of the securities page: bond yield, index weights and members, ETF tracking, building price.
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { DS } from '../ds';
 import {
@@ -9,7 +9,9 @@ import {
   useCompanyByAsin,
   useDailyHistory,
   useEtf,
+  useEtfManagement,
   useEtfUnits,
+  useIndexes,
   useIndexDetails,
   useListingProfile,
   useMainInterestRate,
@@ -22,7 +24,7 @@ import { assetClass, bondOfRepo } from './assetClass';
 import { buildingCompareChart, trackingChart, weightsTreemap, yieldStrip, type YieldDot } from './classCharts';
 import { afterRebase, bondCoverage, bondYield, buildingSize, dailyYield, indexWeights, rebased, recentPrices, termProgress, yieldDots } from './derive';
 import { useParamState } from '../lib/useParamState';
-import { ratePct, span } from '../lib/format';
+import { parseDe, ratePct, span } from '../lib/format';
 import { Panel } from './Panel';
 
 const DAY = 86_400_000;
@@ -305,6 +307,110 @@ export function EtfUnitsPanel({ profile, onDone }: { profile: ListingProfile; on
         })
       }
     />
+  );
+}
+
+/**
+ * The owner of an ETF manages it here: switch the index it tracks, change the management fee
+ * (not while frozen). Both are real changes in the game, so each asks for confirmation first.
+ */
+export function EtfManagePanel({ profile, onDone }: { profile: ListingProfile; onDone: (ok: boolean, text: string) => void }) {
+  const etf = useEtf(profile.securityIdentifier);
+  const indexes = useIndexes();
+  const manage = useEtfManagement(profile.securityIdentifier);
+  const [index, setIndex] = useState('');
+  const [fee, setFee] = useState('');
+  const [confirm, setConfirm] = useState<'index' | 'fee' | null>(null);
+  const e = etf.data;
+  const options = (indexes.data?.content ?? [])
+    .filter((i) => i.listing?.securityIdentifier && i.listing.securityIdentifier !== e?.baseIndexAsin)
+    .map((i) => ({ value: i.listing!.securityIdentifier, label: i.name ?? i.listing!.securityIdentifier }));
+  const chosen = options.find((o) => o.value === index);
+  const feeValue = parseDe(fee);
+  const feeError = fee && (isNaN(feeValue) || feeValue < 0 || feeValue > 100) ? 'Bitte einen Wert zwischen 0 und 100 eingeben.' : undefined;
+  if (!e) return <DS.Skeleton variant="block" />;
+  const current = e.managementFeePercent;
+  const run = () => {
+    if (confirm === 'index' && chosen)
+      manage.baseIndex.mutate(chosen.value, {
+        onSuccess: () => onDone(true, `Basisindex auf ${chosen.label} gewechselt.`),
+        onError: (err) => onDone(false, err.message),
+      });
+    if (confirm === 'fee' && fee && !feeError)
+      manage.fee.mutate(feeValue, {
+        onSuccess: () => onDone(true, `Verwaltungsgebühr auf ${pct(feeValue)} gesetzt.`),
+        onError: (err) => onDone(false, err.message),
+      });
+    setConfirm(null);
+  };
+  return (
+    <div className="etf-manage">
+      <div className="etf-manage__group">
+        <DS.Select
+          label="Basisindex"
+          size="sm"
+          value={index}
+          placeholder={e.baseIndexName ? `Jetzt: ${e.baseIndexName}` : 'Index wählen'}
+          options={options}
+          onChange={(ev) => setIndex(ev.target.value)}
+          hint={e.baseIndexEnded ? 'Der bisherige Index ist beendet – bitte wechseln.' : 'Der ETF bildet danach diesen Index ab.'}
+        />
+        <DS.Button size="sm" variant="secondary" disabled={!chosen} loading={manage.baseIndex.isPending} onClick={() => setConfirm('index')}>
+          Basisindex wechseln …
+        </DS.Button>
+      </div>
+      <div className="etf-manage__group">
+        <DS.Input
+          label="Verwaltungsgebühr"
+          size="sm"
+          numeric
+          suffix="%"
+          value={fee}
+          placeholder={current != null ? current.toLocaleString('de-DE', { minimumFractionDigits: 2 }) : undefined}
+          disabled={!!e.managementFeeFrozen}
+          onChange={(ev) => setFee(ev.target.value)}
+          error={feeError}
+          hint={
+            e.managementFeeFrozen
+              ? e.nextFeeChangeAt
+                ? `Gesperrt bis ${new Date(e.nextFeeChangeAt).toLocaleString('de-DE')}`
+                : 'Derzeit gesperrt'
+              : 'Wird von den Anteilen der Zeichner einbehalten.'
+          }
+        />
+        <DS.Button
+          size="sm"
+          variant="secondary"
+          disabled={!fee || !!feeError || !!e.managementFeeFrozen}
+          loading={manage.fee.isPending}
+          onClick={() => setConfirm('fee')}
+        >
+          Gebühr ändern …
+        </DS.Button>
+      </div>
+      <DS.Dialog
+        open={confirm != null}
+        onClose={() => setConfirm(null)}
+        role="alertdialog"
+        size="sm"
+        title={confirm === 'index' ? 'Basisindex wechseln?' : 'Verwaltungsgebühr ändern?'}
+        description={
+          confirm === 'index'
+            ? `${e.name ?? 'Der ETF'} bildet danach ${chosen?.label ?? ''} statt ${e.baseIndexName ?? 'des bisherigen Index'} ab.`
+            : `Neue Gebühr: ${isNaN(feeValue) ? '–' : pct(feeValue)} (bisher ${current != null ? pct(current) : '–'}).`
+        }
+        actions={
+          <>
+            <DS.Button variant="ghost" onClick={() => setConfirm(null)}>
+              Abbrechen
+            </DS.Button>
+            <DS.Button variant="primary" onClick={run}>
+              {confirm === 'index' ? 'Wechseln' : 'Ändern'}
+            </DS.Button>
+          </>
+        }
+      />
+    </div>
   );
 }
 

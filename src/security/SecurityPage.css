@@ -299,3 +299,20 @@
   flex: 1;
   min-height: 0;
 }
+
+/* ETF owner: base index and management fee */
+.etf-manage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-top: var(--space-2);
+}
+.etf-manage__group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.etf-manage__group > :first-child {
+  align-self: stretch;
+}
