@@ -23,6 +23,8 @@ import { heatmapChart, moversChart, volumeChart } from './charts';
 import { applyFilter, bondRows, byYield, heatTiles, movers, tickerItems, toResult, TYPE_LABEL, uniqueRows, volumeRows } from './derive';
 import { ratePct } from '../lib/format';
 import type { MarketFilterValue, MarketResult, MarketResultColumn } from '../../vendor/bankiersgruen';
+import { RealEstateView } from './RealEstateView';
+import { WarrantMarket } from './WarrantMarket';
 import './MarketPage.css';
 
 const PAGE = 50;
@@ -172,13 +174,15 @@ export function MarketPage() {
   // Views live in the URL: ?ansicht=suche|heatmap|bewegung|live (wide: suche|heatmap), ?diagramm=umsatz.
   const chart = params.get('diagramm') === 'umsatz' ? 'umsatz' : 'bewegung';
   const view = params.get('ansicht') ?? 'suche';
+  // Own views in the results area: buildings by size (without search) and warrants per underlying.
+  const special = type === 'WARRANT' ? 'warrants' : type === 'BUILDING' && !searching ? 'estate' : null;
 
   const searchPanel = (
     <DS.Card flush className="panel market__search">
       <div className="market__filter">
         <DS.MarketFilterBar
           value={value}
-          total={source.isLoading ? undefined : rows.length}
+          total={source.isLoading || special ? undefined : rows.length}
           onChange={(v) => {
             setMore({ minPrice: v.minPrice, maxPrice: v.maxPrice, withAsk: v.withAsk, withBid: v.withBid });
             // „Alle“ is the empty type; it must stay in the URL, otherwise the default (Aktien) comes back.
@@ -188,8 +192,14 @@ export function MarketPage() {
         />
       </div>
       <div className="panel__fill scroll market__results">
-        {source.label && <p className="market__hint">{source.label}</p>}
-        {source.isLoading ? (
+        {special === 'estate' ? (
+          <RealEstateView />
+        ) : special === 'warrants' ? (
+          <WarrantMarket searching={searching} found={found.data?.content} />
+        ) : source.label ? (
+          <p className="market__hint">{source.label}</p>
+        ) : null}
+        {special ? null : source.isLoading ? (
           <DS.Loading rows={10} label="Wertpapiere werden geladen" />
         ) : source.error ? (
           <DS.Banner variant="error">Suche fehlgeschlagen: {source.error?.message}</DS.Banner>
@@ -203,7 +213,7 @@ export function MarketPage() {
           />
         )}
       </div>
-      {pages > 1 && (
+      {pages > 1 && !special && (
         <div className="market__pages">
           <DS.Pagination
             page={page + 1}

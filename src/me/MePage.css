@@ -31,14 +31,149 @@
 }
 
 .me__settings {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.me__tiles {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 719px) {
+  .me__tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.me__settings-main {
+  min-height: 0;
+  display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.me__areas {
+  justify-self: start;
 }
 
 .me__settings-body {
   min-height: 0;
-  max-width: 960px;
   overflow: auto;
   position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+}
+
+.me__settings-body--wide {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.me__col {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+}
+
+.me__settings-body--wide .me__col--full {
+  grid-column: 1 / -1;
+}
+
+.me__inline {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.me__inline .bnk-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.me__muted {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.me__dialog-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.me__area textarea {
+  min-height: 96px;
+  resize: vertical;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+}
+
+.me__area {
+  height: auto;
+}
+
+.me__picklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  max-height: 160px;
+  overflow: auto;
+  position: relative;
+}
+
+.me__kv {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.me__kv > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.me__kv dt {
+  color: var(--text-secondary);
+}
+
+.me__kv dd {
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.me__chart {
+  height: 160px;
+}
+
+.me__people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.me__people li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.me__people .me__muted {
+  margin-left: auto;
+}
+
+.me__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-2);
+}
+
+.me__note-text {
+  white-space: pre-wrap;
 }
 
 .me__code {
