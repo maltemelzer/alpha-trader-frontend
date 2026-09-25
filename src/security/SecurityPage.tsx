@@ -13,6 +13,7 @@ import {
   useMyCompanies,
   useOrderbook,
   usePortfolio,
+  useSharePositions,
   usePriceSpread,
   useShareholders,
   useTrades,
@@ -661,12 +662,20 @@ function Ticket({
     ...(companies.data ?? []).map((c) => ({ id: c.securitiesAccountId!, name: c.name!, cash: c.bankAccount?.cash })),
   ];
   const privateSelected = !accountId || accountId === portfolio.data?.securitiesAccountId;
-  const pos = privateSelected
+  const privatePos = privateSelected
     ? portfolio.data?.positions.find((x) => x.securityIdentifier === profile.securityIdentifier)
     : undefined;
+  // Company accounts: /api/v2/sharepositions lists this security in all my accounts (without the shares in orders).
+  const empire = useSharePositions(companies.data?.length ? profile.securityIdentifier : undefined);
+  const companyPos = privateSelected ? undefined : empire.data?.find((x) => x.securitiesAccount?.id === accountId);
+  const pos = privatePos
+    ? { numberOfShares: privatePos.numberOfShares - privatePos.committedShares, averageBuyingPrice: privatePos.averageBuyingPrice }
+    : companyPos?.numberOfShares
+      ? { numberOfShares: companyPos.numberOfShares, averageBuyingPrice: companyPos.averageBuyingPrice }
+      : undefined;
   const account = accounts.find((a) => a.id === (accountId ?? accounts[0]?.id));
   const shares = pick
-    ? defaultShares(pick.available, pick.side, pick.price, account?.cash, pos ? pos.numberOfShares - pos.committedShares : undefined, profile.bond?.faceValue)
+    ? defaultShares(pick.available, pick.side, pick.price, account?.cash, pos?.numberOfShares, profile.bond?.faceValue)
     : undefined;
 
   const onCheck = async (params: OrderParams) => {
@@ -722,7 +731,7 @@ function Ticket({
         accounts={accounts}
         accountId={accountId ?? accounts[0].id}
         onAccountChange={setAccountId}
-        position={pos ? { numberOfShares: pos.numberOfShares - pos.committedShares, averageBuyingPrice: pos.averageBuyingPrice } : undefined}
+        position={pos}
         faceValue={profile.bond?.faceValue}
         premium={!!me.data?.userCapabilities?.premium}
         defaultAction={pick?.side ?? 'BUY'}
