@@ -1,10 +1,10 @@
 {
   "artifact": "https://claude.ai/artifact/JTZ2zQxkHrv2m5uZHdqq9C",
-  "version": "1790338100-eb1e",
-  "syncedAt": "2026-09-25T12:08:39.556Z",
+  "version": "1790339897-5697",
+  "syncedAt": "2026-09-25T12:38:34.806Z",
   "files": {
     "bundle.js": "6598d0dcfca5fa9d124e18070d904dc218dbc8b9ba55624ae9aa171d55280bd5",
-    "bundle.css": "681822064c5250559a80c37ee01ff3c5f08c3550779ad25ec203e80ac836a13d",
+    "bundle.css": "5f14070d23842a1b067188fb1c6622ab1677a129390c900d887aa9ab364092db",
     "index.d.ts": "fbe7ca859996d0f03cd4c839118e20444d2e0f7f6b15c91d31aa3021203636dc",
     "tokens.json": "6980c8d044102d19200a2c4a76cb61ea07b21bc105f8b51936b770d538b5ab14",
     "README.md": "552c5d7db9c142888a257226e1cb1e15f9e48bbc31b0fa13c91dc6524971a5d8",

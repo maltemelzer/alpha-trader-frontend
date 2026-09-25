@@ -1994,14 +1994,16 @@ a.bnk-wm:focus-visible { outline: var(--rule) solid var(--brass); outline-offset
 /* Touch: Tippflächen mindestens 44 px hoch, ohne die sichtbare Größe zu ändern (nur in der Höhe – seitlich würde
    die Fläche in waagerecht scrollenden Leisten einen Scrollbalken erzeugen) */
 @media (pointer: coarse) {
-  .bnk-btn, .bnk-bell, .bnk-react, .bnk-switch__btn, .bnk-pag__btn, .bnk-hdr__wordmark, .bnk-hs__name, .bnk-fcat__name, .bnk-pos__link, .bnk-thread__title, .bnk-ph__eyebrow a, .bnk-prof__eyebrow a, .bnk-news__tags a { position: relative; }
+  .bnk-btn, .bnk-bell, .bnk-react, .bnk-switch__btn, .bnk-pag__btn, .bnk-hdr__wordmark, .bnk-hs__name, .bnk-fcat__name, .bnk-pos__link, .bnk-thread__title, .bnk-ph__eyebrow a, .bnk-prof__eyebrow a, .bnk-news__tags a, a.bnk-news__author, a.bnk-news__rubric { position: relative; }
   .bnk-btn::before, .bnk-bell::before, .bnk-react::before, .bnk-switch__btn::before, .bnk-pag__btn::before, .bnk-hdr__wordmark::before,
-  .bnk-hs__name::before, .bnk-fcat__name::before, .bnk-pos__link::before, .bnk-thread__title::before, .bnk-ph__eyebrow a::before, .bnk-prof__eyebrow a::before, .bnk-news__tags a::before {
+  .bnk-hs__name::before, .bnk-fcat__name::before, .bnk-pos__link::before, .bnk-thread__title::before, .bnk-ph__eyebrow a::before, .bnk-prof__eyebrow a::before, .bnk-news__tags a::before,
+  a.bnk-news__author::before, a.bnk-news__rubric::before {
     content: ''; position: absolute; left: 0; top: 50%; width: 100%; height: max(100%, 44px); transform: translateY(-50%);
   }
   /* Segmente schneiden Überstand ab (Ellipse) – dort wächst die sichtbare Höhe */
   .bnk-seg, .bnk-seg--lg { height: 44px; }
-  .bnk-seg--sm { height: 40px; }
+  .bnk-seg--sm { height: 44px; }
+  .bnk-seg__opt { min-width: 44px; }
   /* Kleine Felder: 36 px statt 28 px */
   .bnk-input--sm, .bnk-select--sm { height: 36px; }
   /* iOS vergrößert Felder mit Schrift unter 16 px beim Antippen – deshalb 16 px auf Touch-Geräten */

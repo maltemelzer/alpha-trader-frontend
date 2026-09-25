@@ -309,6 +309,8 @@ export function MarketPage() {
               <span>{s.numberOfTrades24h.toLocaleString('de-DE')} Trades in 24 h</span>
               <span>{short(s.tradeVolume24h)} € Umsatz</span>
             </>
+          ) : isPhone ? (
+            '\u00a0'
           ) : undefined
         }
         tabs={
