@@ -2774,3 +2774,102 @@ export function useTopBookValues(enabled: boolean) {
     staleTime: SLOW,
   });
 }
+
+// ---------- Money flows (/stroeme) ----------
+
+/** All market trades of a window, newest first; `from` is where the loaded trades really start. */
+export interface TradeWindow {
+  trades: FlowTrade[];
+  from: number;
+  to: number;
+  /** false when the page limit ended the loading before `from` was reached. */
+  complete: boolean;
+  requests: number;
+}
+
+/** At most ~200 trades a minute are loaded (the market has ~100–170): 1.000 per request. */
+const windowPages = (minutes: number) => Math.ceil(minutes / 5) + 2;
+
+const tradeLogPage = (startDate: number, endDate: number) =>
+  unwrap<SecurityOrderLogEntryView[]>(
+    api.GET('/api/securityorderlogs', { params: { query: { startDate: String(startDate), endDate: String(endDate) } } }),
+  );
+
+/**
+ * Every market trade of the last `minutes` (GET /api/securityorderlogs, 1.000 per request, paged back
+ * with `endDate`): 1 Std. ≈ 7 requests. Refreshes only add what came after the newest known trade.
+ */
+export function useTradeWindow(minutes: number) {
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: ['tradewindow', minutes],
+    queryFn: async (): Promise<TradeWindow> => {
+      const to = Date.now();
+      const from = to - minutes * 60_000;
+      const prev = qc.getQueryData<TradeWindow>(['tradewindow', minutes]);
+      if (prev?.complete && prev.trades.length) {
+        const fresh = await collectPages(tradeLogPage, prev.trades[0].date, to, windowPages(minutes));
+        if (fresh.complete) {
+          return { trades: mergeWindow(fresh.trades, prev.trades, from), from, to, complete: true, requests: fresh.requests };
+        }
+      }
+      const res = await collectPages(tradeLogPage, from, to, windowPages(minutes), (loaded, oldest) =>
+        qc.setQueryData(['tradewindow-progress', minutes], { loaded, oldest }),
+      );
+      return { trades: res.trades, from: res.from, to, complete: res.complete, requests: res.requests };
+    },
+    staleTime: 30_000,
+    refetchInterval: SLOW,
+  });
+}
+
+/** Trades loaded so far while `useTradeWindow` pages back (for „lädt 3.000 Trades …“). */
+export function useTradeWindowProgress(minutes: number) {
+  return useQuery<{ loaded: number; oldest: number } | null>({
+    queryKey: ['tradewindow-progress', minutes],
+    queryFn: () => null,
+    enabled: false,
+  });
+}
+
+// Account names one by one, at most two at a time (the server throttles bursts).
+let accountActive = 0;
+const accountQueue: (() => void)[] = [];
+async function fewAtATime<T>(fn: () => Promise<T>, max = 2): Promise<T> {
+  if (accountActive >= max) await new Promise<void>((resolve) => accountQueue.push(resolve));
+  accountActive++;
+  try {
+    return await fn();
+  } finally {
+    accountActive--;
+    accountQueue.shift()?.();
+  }
+}
+
+/**
+ * Securities accounts by id (GET /api/v2/securitiesaccountdetails/{id}): the username for private
+ * accounts, „Name (ASIN) | CEO“ for company accounts. Kept for the session.
+ */
+export function useAccountDetails(ids: string[]) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: ['accountdetails', id],
+      queryFn: () =>
+        fewAtATime(() =>
+          unwrap<SecuritiesAccountDetailsView>(
+            api.GET('/api/v2/securitiesaccountdetails/{securitiesAccountId}', { params: { path: { securitiesAccountId: id } } }),
+          ),
+        ),
+      staleTime: Infinity,
+      gcTime: Infinity,
+      retry: false,
+    })),
+    combine: (results) => {
+      const out: Record<string, SecuritiesAccountDetailsView> = {};
+      for (const r of results) if (r.data?.id) out[r.data.id] = r.data;
+      return { data: out, pending: results.filter((r) => r.isPending).length };
+    },
+  });
+}
+
+import { collectPages, mergeWindow, type Trade as FlowTrade } from '../flows/derive';

@@ -26,6 +26,7 @@ import { CompanyPage } from './companies/CompanyPage';
 import { CompaniesPage } from './companies/CompaniesPage';
 import { CapitalPage } from './capital/CapitalPage';
 import { CentralBankPage } from './centralbank/CentralBankPage';
+import { FlowsPage } from './flows/FlowsPage';
 import { SponsoringPage } from './sponsoring/SponsoringPage';
 
 const queryClient = new QueryClient({
@@ -61,6 +62,7 @@ export function App() {
               <Route path="unternehmen/:asin" element={<CompanyPage />} />
               <Route path="kapitalmassnahmen" element={<CapitalPage />} />
               <Route path="zentralbank" element={<CentralBankPage />} />
+              <Route path="stroeme" element={<FlowsPage />} />
               <Route path="orders" element={<OrdersPage />} />
               <Route path="highscores" element={<HighscoresPage />} />
               <Route path="spieler/:username" element={<PlayerPage />} />
