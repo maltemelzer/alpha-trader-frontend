@@ -1,0 +1,62 @@
+.shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+}
+
+.shell--bare {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.shell__main {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Room for the fixed BottomNav and the home indicator */
+.shell--tabbar .shell__main {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+.more-list {
+  list-style: none;
+  margin: 0 0 var(--space-6);
+  padding: 0;
+}
+
+.more-list li {
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.more-list a,
+.more-list button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-3) 0;
+  background: none;
+  border: 0;
+  color: var(--text-primary);
+  font: 600 16px/22px var(--font-serif);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.global-search {
+  width: 240px;
+}
+
+/* The nav needs the room on smaller desktops: narrower field, hidden below 1200 px (Markt has the search). */
+@media (max-width: 1439.98px) {
+  .global-search {
+    width: 150px;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .global-search {
+    display: none;
+  }
+}

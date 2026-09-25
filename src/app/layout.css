@@ -1,0 +1,133 @@
+/* Shared one-screen layout: the page fills the shell's main area, only panels scroll inside. */
+
+.page {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  box-sizing: border-box;
+}
+
+.page__body {
+  min-height: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.page__col {
+  min-height: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.page .bnk-ph {
+  margin: 0;
+  padding: var(--space-2) 0 0;
+}
+
+.page .bnk-ph__meta {
+  margin-top: var(--space-2);
+}
+
+/* Cards that fill their grid cell */
+.panel.bnk-card {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel .bnk-card__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel__fill {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.panel__fill > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.panel__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.scroll {
+  overflow: auto;
+}
+
+/* A scrolling fill area keeps its children at their natural height. */
+.panel__fill.scroll > * {
+  flex: none;
+}
+
+/* In a card with its own padding the fill area adds none. */
+.bnk-card:not(.bnk-card--flush) > .bnk-card__body > .panel__fill {
+  padding: 0;
+}
+
+/* Absolutely positioned screen-reader text (.bnk-sr) must stay inside scroll boxes,
+   otherwise it stretches the document and the page scrolls. */
+.scroll,
+.panel__fill {
+  position: relative;
+}
+
+/* Tabs inside a filling card: the panel below the tab bar scrolls. */
+.panel__tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-4);
+}
+
+.panel__tabs > .bnk-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel__tabs .bnk-tabs__panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  margin: 0 calc(-1 * var(--space-4));
+}
+
+/* Short desktop windows (1280×720): tighter spacing */
+@media (max-height: 800px) {
+  .page,
+  .page__body,
+  .page__col {
+    gap: var(--space-3);
+  }
+  .page {
+    padding-top: var(--space-3);
+    padding-bottom: var(--space-3);
+  }
+}
+
+@media (max-width: 719.98px) {
+  .page .bnk-ph__actions .bnk-btn {
+    min-height: 44px;
+  }
+  .page {
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-3);
+  }
+}

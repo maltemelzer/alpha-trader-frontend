@@ -1,0 +1,23 @@
+{
+  "layout": {},
+  "data": {
+    "candlestick": [
+      {
+        "increasing": {
+          "line": {
+            "color": "#82B6F0",
+            "width": 1
+          },
+          "fillcolor": "#82B6F0"
+        },
+        "decreasing": {
+          "line": {
+            "color": "#F2955A",
+            "width": 1
+          },
+          "fillcolor": "#F2955A"
+        }
+      }
+    ]
+  }
+}

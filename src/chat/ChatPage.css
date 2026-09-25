@@ -1,0 +1,94 @@
+.chat-page {
+  height: 100%;
+  padding: var(--space-4);
+  box-sizing: border-box;
+}
+
+/* Scroll containers need a positioning context, or .bnk-sr text makes the page scroll. */
+.chat-page .bnk-chatwin__scroll,
+.chat-page .bnk-chatwin__side {
+  position: relative;
+}
+
+.chat-page .bnk-chatwin__scroll {
+  padding: 0 var(--space-4);
+}
+
+.chat-side__tools {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-card);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.chat-older {
+  display: flex;
+  justify-content: center;
+  min-height: 36px;
+  padding-top: var(--space-2);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.chat-form {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.chat-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chat-members__count {
+  margin: 0 0 var(--space-2);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.chat-members li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.chat-members a {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-members a:hover {
+  text-decoration: underline;
+}
+
+.chat-members__online,
+.chat-members__role {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 719.98px) {
+  .chat-page {
+    padding: 0;
+  }
+  .chat-page .bnk-chatwin {
+    border-radius: 0;
+  }
+}

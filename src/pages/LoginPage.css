@@ -1,0 +1,16 @@
+.login {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.login__form {
+  display: grid;
+  place-items: center;
+  padding: var(--space-6) var(--space-4);
+}
+
+.login__form > * {
+  width: 100%;
+  max-width: 420px;
+}

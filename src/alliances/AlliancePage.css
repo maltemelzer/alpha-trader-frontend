@@ -1,0 +1,114 @@
+.alliance {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.alliance .bnk-prof a {
+  color: inherit;
+}
+
+.alliance__body {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+}
+
+.alliance__about p {
+  margin: 0;
+  white-space: pre-line;
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 24px;
+  max-width: 70ch;
+}
+
+.alliance__members {
+  padding: 0 0 var(--space-4);
+}
+
+.alliances {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.alliances li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 2fr) auto;
+  gap: var(--space-4);
+  align-items: center;
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.alliances__name {
+  overflow: hidden;
+  color: var(--text-primary);
+  font: 600 16px/22px var(--font-serif);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alliances__name:hover {
+  text-decoration: underline;
+}
+
+.alliances__meta {
+  color: var(--text-secondary);
+  font: 400 12px/16px var(--font-mono);
+}
+
+@media (max-width: 719.98px) {
+  .alliances li {
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 1fr);
+  }
+  .alliances__meta {
+    display: none;
+  }
+}
+
+.alliances__scroll,
+.alliance .alliance__members-scroll {
+  padding: 0;
+}
+
+.alliance-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.alliance-form__area {
+  height: auto;
+}
+
+.alliance-form__area textarea {
+  resize: vertical;
+  min-height: 120px;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  line-height: 22px;
+}
+
+.alliance-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.alliances li.is-mine {
+  background: var(--bg-raised);
+}
+
+.alliance__add {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2) var(--space-4) 0;
+}
+
+.alliance__error {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-6);
+  transform: translateX(-50%);
+  z-index: 10;
+}

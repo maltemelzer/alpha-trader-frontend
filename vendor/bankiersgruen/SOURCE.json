@@ -1,0 +1,15 @@
+{
+  "artifact": "https://claude.ai/artifact/JTZ2zQxkHrv2m5uZHdqq9C",
+  "version": "1790281274-d2c3",
+  "syncedAt": "2026-09-24T20:21:34.513Z",
+  "files": {
+    "bundle.js": "8fbca0c7ecff0b26fdb84951a9731900f832469f431fcbe78e3508c69c1dc4e4",
+    "bundle.css": "ef3e4633046f18463b1c39b27787560a08b9fa417d0af6bc352749f13498521a",
+    "index.d.ts": "8993d24e76d2b2ea53e93c2c3fec336720e6ad4670493dc08efe273cdf6ead32",
+    "tokens.json": "6980c8d044102d19200a2c4a76cb61ea07b21bc105f8b51936b770d538b5ab14",
+    "README.md": "a111ceac0ea739040952a9475b756797c1b41f6e228f7edd9303fc57e6530feb",
+    "diagramme.md": "dc396d2c92fdb51c1bcc84d07274ca507c1eed0577de982d90686fef79e2271b",
+    "plotly-template.json": "94e67d97490d688aaa84bfa2c2c75e269ea57943cb3b65e75fb57424bf587011",
+    "plotly-template-farbenblind.json": "3a961032046dbc748f868c1e86e4f70e2aa2910173637f55e2be15bb91d434ec"
+  }
+}

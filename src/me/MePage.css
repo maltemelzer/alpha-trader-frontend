@@ -1,0 +1,47 @@
+.me__narrow {
+  align-content: start;
+  max-width: 720px;
+}
+
+.me__bank {
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: auto;
+}
+
+.me__bank--wide {
+  grid-template-columns: 380px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  overflow: visible;
+}
+
+.me__bank-side {
+  align-content: start;
+  overflow: auto;
+  position: relative;
+}
+
+.me__flush {
+  padding: 0;
+}
+
+.me__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.me__settings {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.me__settings-body {
+  min-height: 0;
+  max-width: 960px;
+  overflow: auto;
+  position: relative;
+}
+
+.me__code {
+  font: 500 14px/20px var(--font-mono);
+  color: var(--text-primary);
+}

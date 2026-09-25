@@ -1,0 +1,47 @@
+.market__body {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.market--wide .market__body {
+  grid-template-columns: minmax(0, 1fr) 420px;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.market__side {
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.market__filter {
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+.market__pages {
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--hairline) solid var(--line);
+}
+
+.market__results,
+.market__ticker {
+  padding: 0;
+}
+
+.market__chart {
+  padding: 0;
+  min-height: 160px;
+}
+
+.market .bnk-ph__aside {
+  align-self: flex-end;
+}
+
+.market__hint {
+  flex: 0 0 auto !important;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.market .bnk-card__action .bnk-seg {
+  min-width: 150px;
+}

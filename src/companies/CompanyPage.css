@@ -1,0 +1,77 @@
+.company {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.company .bnk-prof a {
+  color: inherit;
+}
+
+.company__chart {
+  height: 100%;
+  min-height: 220px;
+  padding: 0 var(--space-4) var(--space-3);
+  box-sizing: border-box;
+}
+
+.company .bnk-tabs__panel:has(.company__chart) {
+  display: flex;
+  flex-direction: column;
+}
+
+.company .bnk-tabs__panel[hidden] {
+  display: none;
+}
+
+.company__pad {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.company__form {
+  max-width: 640px;
+}
+
+.company__manage {
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+}
+
+.company__manage > .bnk-field {
+  max-width: 360px;
+}
+
+.companies__body {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.companies__jobs .bnk-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.companies__jobs .bnk-btn {
+  align-self: flex-start;
+}
+
+.companies__joblist {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+@media (max-width: 1099px) {
+  .companies__body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+}
+
+.companies__body:has(> :only-child) {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}

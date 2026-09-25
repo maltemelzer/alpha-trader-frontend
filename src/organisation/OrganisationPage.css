@@ -1,0 +1,33 @@
+.org__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.org--wide .org__body {
+  grid-template-columns: minmax(0, 1fr) 400px;
+}
+
+.org__left {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.org--wide .org__left {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.org__right {
+  grid-template-rows: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.org-trades__stats {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.org-pad {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.org-note {
+  margin: 0 0 var(--space-3);
+  color: var(--text-secondary);
+  font-size: 13px;
+}

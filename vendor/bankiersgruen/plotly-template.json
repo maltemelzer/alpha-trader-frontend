@@ -1,0 +1,145 @@
+{
+  "layout": {
+    "paper_bgcolor": "rgba(0,0,0,0)",
+    "plot_bgcolor": "rgba(0,0,0,0)",
+    "font": {
+      "family": "\"Libre Franklin\", \"Franklin Gothic Medium\", Arial, sans-serif",
+      "size": 12,
+      "color": "#9AA898"
+    },
+    "title": {
+      "font": {
+        "family": "\"Source Serif 4\", Newsreader, Georgia, serif",
+        "size": 18,
+        "color": "#EAE3CF"
+      },
+      "x": 0,
+      "xanchor": "left"
+    },
+    "colorway": [
+      "#B98C38",
+      "#578ED4",
+      "#CC7044",
+      "#1FAAA4",
+      "#A462B4"
+    ],
+    "separators": ",.",
+    "xaxis": {
+      "showgrid": false,
+      "zeroline": false,
+      "showline": true,
+      "linecolor": "#3E5A4B",
+      "linewidth": 1,
+      "ticks": "",
+      "automargin": true,
+      "tickfont": {
+        "family": "\"IBM Plex Mono\", \"JetBrains Mono\", ui-monospace, Menlo, monospace",
+        "size": 11,
+        "color": "#9AA898"
+      },
+      "showspikes": true,
+      "spikemode": "across",
+      "spikesnap": "cursor",
+      "spikedash": "solid",
+      "spikecolor": "#3E5A4B",
+      "spikethickness": 1,
+      "tickformat": "%d.%m."
+    },
+    "yaxis": {
+      "showgrid": true,
+      "zeroline": false,
+      "showline": false,
+      "linecolor": "#3E5A4B",
+      "linewidth": 1,
+      "ticks": "",
+      "automargin": true,
+      "tickfont": {
+        "family": "\"IBM Plex Mono\", \"JetBrains Mono\", ui-monospace, Menlo, monospace",
+        "size": 11,
+        "color": "#9AA898"
+      },
+      "side": "right",
+      "gridcolor": "#2C4237",
+      "gridwidth": 1
+    },
+    "hovermode": "x unified",
+    "hoverlabel": {
+      "bgcolor": "#213629",
+      "bordercolor": "#3E5A4B",
+      "font": {
+        "family": "\"IBM Plex Mono\", \"JetBrains Mono\", ui-monospace, Menlo, monospace",
+        "size": 12,
+        "color": "#EAE3CF"
+      }
+    },
+    "legend": {
+      "orientation": "h",
+      "x": 0,
+      "y": -0.12,
+      "bgcolor": "rgba(0,0,0,0)",
+      "font": {
+        "family": "\"Libre Franklin\", \"Franklin Gothic Medium\", Arial, sans-serif",
+        "size": 12,
+        "color": "#9AA898"
+      }
+    },
+    "dragmode": false
+  },
+  "data": {
+    "scatter": [
+      {
+        "mode": "lines",
+        "line": {
+          "width": 2
+        }
+      }
+    ],
+    "candlestick": [
+      {
+        "increasing": {
+          "line": {
+            "color": "#7FD1A3",
+            "width": 1
+          },
+          "fillcolor": "#7FD1A3"
+        },
+        "decreasing": {
+          "line": {
+            "color": "#EB7A6B",
+            "width": 1
+          },
+          "fillcolor": "#EB7A6B"
+        }
+      }
+    ],
+    "pie": [
+      {
+        "hole": 0.64,
+        "sort": false,
+        "direction": "clockwise",
+        "marker": {
+          "line": {
+            "color": "#182A22",
+            "width": 2
+          }
+        },
+        "textposition": "outside",
+        "outsidetextfont": {
+          "family": "\"IBM Plex Mono\", \"JetBrains Mono\", ui-monospace, Menlo, monospace",
+          "size": 12,
+          "color": "#9AA898"
+        }
+      }
+    ],
+    "bar": [
+      {
+        "marker": {
+          "line": {
+            "color": "#182A22",
+            "width": 2
+          }
+        }
+      }
+    ]
+  }
+}

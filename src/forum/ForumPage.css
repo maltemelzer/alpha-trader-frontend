@@ -1,0 +1,32 @@
+.forum .bnk-ph a {
+  color: inherit;
+}
+
+.forum__desc {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--hairline) solid var(--line);
+  color: var(--text-secondary);
+  font-size: 14px;
+  white-space: pre-line;
+}
+
+.forum__subs {
+  padding: var(--space-2) var(--space-4) var(--space-4);
+}
+
+.forum__pages {
+  padding: var(--space-2) var(--space-4);
+}
+
+.forum__thread > .bnk-card__body {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.forum__thread .bnk-ph {
+  padding-top: var(--space-4);
+}
+
+.forum > .forum__thread {
+  grid-row: 1 / -1;
+}
