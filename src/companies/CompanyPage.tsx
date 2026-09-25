@@ -25,10 +25,13 @@ import { MarketMakerFacts } from './Sponsorships';
 import { QuotePanel } from './QuotePanel';
 import { reserveIncome } from '../centralbank/derive';
 import { ChronicleView, RankingView } from './ProfileViews';
+import { Overview } from './CompanyOverview';
+import { RANGES, type RangeKey } from './overview';
 import './CompanyPage.css';
 
 /**
- * Company profile (/unternehmen/:asin): header with key figures; development chart, ranking among
+ * Company profile (/unternehmen/:asin): header with key figures; overview (?ansicht=ueberblick, default,
+ * ?zeitraum=30T|90T), development chart, ranking among
  * all companies (?ansicht=einordnung&kennzahl=), balance sheet, press releases, chronicle, polls (with „Als CEO bewerben“), market makers and achievements as tabs. The CEO
  * also gets „Führen“ (corporate actions, market maker, salary, logo).
  * Price and trading live on the securities page.
@@ -60,12 +63,28 @@ export function CompanyPage() {
   }
   const caps = c?.companyCapabilities;
   const open = unclaimed.data ?? [];
-  const tab = params.get('ansicht') ?? 'entwicklung';
+  const tab = params.get('ansicht') ?? 'ueberblick';
+  const rangeParam = params.get('zeitraum');
+  const range: RangeKey = RANGES.some((r) => r.value === rangeParam) ? (rangeParam as RangeKey) : '30T';
   // ?quote=ASIN: the CEO of a designated sponsor quotes one of its sponsored listings.
   const quoteAsin = params.get('quote');
   const quoting = isCeo && quoteAsin ? c?.sponsoredListings?.find((s) => s.listing.securityIdentifier === quoteAsin) : undefined;
 
   const items = [
+    {
+      value: 'ueberblick',
+      label: 'Überblick',
+      content: (
+        <Overview
+          company={c}
+          asin={asin}
+          history={history.data}
+          polls={polls.data}
+          range={range}
+          onRange={(r) => setParams({ ansicht: 'ueberblick', zeitraum: r }, { replace: true })}
+        />
+      ),
+    },
     {
       value: 'entwicklung',
       label: 'Entwicklung',
@@ -209,7 +228,7 @@ export function CompanyPage() {
   ];
 
   return (
-    <div className="page company" onClick={onLinkClick}>
+    <div className={`page company${tab === 'ueberblick' ? ' company--overview' : ''}`} onClick={onLinkClick}>
       <DS.ProfileHeader
         kind="company"
         kindLabel="Unternehmen"
@@ -245,9 +264,9 @@ export function CompanyPage() {
         }
         stats={[
           { label: 'Kurs', value: c?.lastPrice ? c.lastPrice.value : '–', sub: c?.marketCap ? `Marktkap. ${DS.format.money(c.marketCap, '€', 2, true)}` : '\u00a0' },
-          { label: 'Buchwert', value: caps?.bookValue ?? '–', compact: true },
-          { label: 'Net Cash', value: caps?.netCash ?? '–', compact: true },
-          { label: 'Bargeld', value: c?.bankAccount?.cash ?? '–', compact: true },
+          { label: 'Buchwert', value: caps?.bookValue ?? '–', compact: true, sub: perShare(caps?.bookValuePerShare) },
+          { label: 'Net Cash', value: caps?.netCash ?? '–', compact: true, sub: perShare(caps?.netCashPerShare) },
+          { label: 'Bargeld', value: c?.bankAccount?.cash ?? '–', compact: true, sub: cashFlow(history.data?.at(-1)?.cashFlow) },
         ]}
       />
       <DS.Card flush className="panel">
@@ -263,6 +282,21 @@ export function CompanyPage() {
         </DS.ToastRegion>
       )}
     </div>
+  );
+}
+
+/** „22,27 € je Aktie“ under a header figure – a placeholder keeps the row height while loading. */
+function perShare(n: number | undefined) {
+  return n == null ? '\u00a0' : `${DS.format.money(n, '€', 2, 'auto')} je Aktie`;
+}
+
+/** „Cashflow ▲ +1,2 Mrd. €“ from the last daily snapshot. */
+function cashFlow(n: number | undefined) {
+  if (n == null) return '\u00a0';
+  return (
+    <>
+      Cashflow <DS.SignedAmount value={n} compact="auto" />
+    </>
   );
 }
 

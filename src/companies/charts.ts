@@ -3,9 +3,11 @@ import type { CompanyHistoryPoint } from '../api/queries';
 import { alpha, euro, short } from '../lib/format';
 import { depthChart, PERCENT_QUOTED } from '../security/charts';
 import type { DepthSide } from '../security/derive';
-import { rangeTicks } from '../charts/ticks';
-import type { Bin, ChronicleEvent, HistoryLane, RankRow } from './profile';
+import { rangeTicks, shortAxis } from '../charts/ticks';
+import { changePct, type ValuationSeries } from './overview';
+import { roundEdge, sharePct, type Bin, type ChronicleEvent, type HistoryLane, type RankRow } from './profile';
 
+const NBSP = String.fromCharCode(0xa0);
 
 type Theme = ReturnType<typeof plotlyTheme>;
 
@@ -63,59 +65,141 @@ export function developmentChart(t: Theme, w: number, points: CompanyHistoryPoin
 }
 
 /**
- * Where the company stands: the distribution of one figure over all companies (log-binned by the
- * API), the company's bin in ink blue, the others neutral. Counts span 1 to ~200.000, so the count
- * axis is logarithmic – on a linear axis the company's bin at the top end would be invisible.
+ * Overview: share price against book value per share – one axis (both € per share), so the gap is
+ * the premium or discount (KBV). Price in gain/loss by its direction over the range (diagram rule
+ * 1), book value in ink blue; lines labelled at their end, axis left (rule 12), legend on phones.
  */
-export function distributionChart(t: Theme, w: number, row: Pick<RankRow, 'bins' | 'highlight' | 'value' | 'unit'>) {
+export function valuationChart(t: Theme, w: number, s: ValuationSeries) {
   const v = t.tokens;
-  // Labels like „−32,8 Bio.“ need ~90 px each.
-  const every = Math.max(1, Math.ceil((row.bins.length * 90) / Math.max(w, 1)));
-  const unit = row.unit === '€' ? ' €' : ' Stk.';
+  const narrow = w < 420;
+  const up = (changePct(s.price) ?? 0) >= 0;
+  const lines = [
+    { name: 'Kurs', points: s.price, color: v(up ? 'gain' : 'loss'), shape: 'linear' },
+    { name: 'Buchwert je Aktie', points: s.book, color: v('chart-2'), shape: 'hv' },
+  ].filter((l) => l.points.length);
+  const all = lines.flatMap((l) => l.points.map((p) => p.value));
+  const dates = lines.flatMap((l) => l.points.map((p) => p.date));
+  const fmt = (n: number) => (Math.abs(n) >= 1e6 ? `${short(n)}${NBSP}€` : euro(n, Math.abs(n) < 0.01 ? 4 : 2));
+  return {
+    data: lines.map((l) => ({
+      type: 'scatter',
+      mode: l.points.length > 1 ? 'lines' : 'markers',
+      name: l.name,
+      x: l.points.map((p) => new Date(p.date)),
+      y: l.points.map((p) => p.value),
+      line: { color: l.color, width: 2, shape: l.shape },
+      marker: { color: l.color, size: 6 },
+      customdata: l.points.map((p) => fmt(p.value)),
+      hovertemplate: `${l.name} %{customdata}<extra></extra>`,
+    })),
+    layout: {
+      showlegend: narrow,
+      legend: { ...t.layout.legend, y: -0.18 },
+      margin: { l: 0, r: narrow ? 0 : 118, t: 8, b: narrow ? 36 : 0 },
+      // Plotly pads date axes by a week here – the range ends at the last point.
+      xaxis: { ...t.layout.xaxis, tickformat: '%d.%m.', range: dates.length ? [new Date(Math.min(...dates)), new Date(Math.max(...dates))] : undefined },
+      yaxis: { ...t.layout.yaxis, side: 'left', rangemode: 'tozero', ...shortAxis(all, `${NBSP}€`) },
+      annotations: narrow
+        ? []
+        : lines.map((l) => {
+            const last = l.points[l.points.length - 1];
+            return {
+              x: new Date(last.date),
+              y: last.value,
+              xanchor: 'left',
+              xshift: 6,
+              showarrow: false,
+              text: `${l.name === 'Kurs' ? 'Kurs' : 'Buchwert'} ${fmt(last.value)}`,
+              font: { family: v('font-mono'), size: 11, color: v('text-secondary') },
+            };
+          }),
+    },
+  };
+}
+
+/**
+ * Where the company stands: the distribution of one figure (log-spaced bins from the API) as the
+ * share of all companies (or securities) per bin, on a linear axis – bar heights are what they
+ * look like. Bins below the company's in pale ink blue („weniger als du“), its own bin in full ink
+ * blue with a marker line through the whole chart, bins above neutral. Above the plot on either
+ * side of the marker: how many have less and how many more. The value axis is labelled at the bin
+ * edges, rounded to two digits („650 Tsd.“, „10 Mio.“).
+ */
+export function distributionChart(
+  t: Theme,
+  w: number,
+  row: Pick<RankRow, 'bins' | 'highlight' | 'value' | 'unit' | 'standing'>,
+) {
+  const v = t.tokens;
+  const n = row.bins.length;
+  const total = row.bins.reduce((s, b) => s + b.count, 0) || 1;
+  // Edge labels like „−33 Bio.“ need ~72 px each.
+  const every = Math.max(1, Math.ceil(((n - 1) * 72) / Math.max(w, 1)));
+  const unit = row.unit === '€' ? `${NBSP}€` : `${NBSP}Stk.`;
   const range = (b: Bin) => `${short(b.lo)} bis ${short(b.hi)}${unit}`;
   const idx = row.bins.map((_, i) => i);
-  const ticks = idx.filter((i) => i % every === 0);
-  const hit = row.bins[row.highlight];
+  const edges = idx.slice(1).filter((i) => (i - 1) % every === 0);
+  const h = row.highlight;
+  const has = h >= 0 && h < n;
+  const s = row.standing;
+  const ink = v('chart-2');
+  const color = (i: number) => (!has ? v('line-strong') : i < h ? alpha(ink, 0.45) : i === h ? ink : v('line-strong'));
+  const where = (i: number) => (!has ? '' : i < h ? ' · weniger als hier' : i === h ? ' · hier' : ' · mehr als hier');
+  const side = (text: string, left: boolean) => ({
+    x: h,
+    xref: 'x',
+    y: 1,
+    yref: 'paper',
+    yanchor: 'bottom',
+    xanchor: left ? 'right' : 'left',
+    xshift: left ? -8 : 8,
+    showarrow: false,
+    text,
+    font: { family: v('font-sans'), size: 12, color: v('text-secondary') },
+  });
   return {
     data: [
       {
         type: 'bar',
         x: idx,
-        y: row.bins.map((b) => (b.count > 0 ? b.count : null)),
-        marker: {
-          color: row.bins.map((_, i) => (i === row.highlight ? v('chart-2') : v('line-strong'))),
-          line: { color: v('bg-card'), width: 1 },
-        },
-        customdata: row.bins.map((b, i) => `${range(b)}${i === row.highlight ? ' · hier' : ''}`),
-        hovertemplate: '%{customdata}<br>%{y:,} Einträge<extra></extra>',
+        y: row.bins.map((b) => (b.count / total) * 100),
+        marker: { color: idx.map(color), line: { color: v('bg-card'), width: 1 } },
+        customdata: row.bins.map((b, i) => [range(b), b.count.toLocaleString('de-DE'), sharePct(b.count / total), where(i)]),
+        hovertemplate: '%{customdata[0]}%{customdata[3]}<br>%{customdata[2]} · %{customdata[1]} Einträge<extra></extra>',
       },
     ],
     layout: {
       showlegend: false,
       bargap: 0.08,
       hovermode: 'closest',
-      margin: { l: 0, r: 0, t: 20, b: 0 },
+      margin: { l: 0, r: 0, t: 24, b: 0 },
       xaxis: {
         ...t.layout.xaxis,
         showspikes: false,
-        tickvals: ticks,
-        ticktext: ticks.map((i) => short(row.bins[i].lo)),
+        tickvals: edges.map((i) => i - 0.5),
+        ticktext: edges.map((i) => short(roundEdge(row.bins[i].lo))),
         tickangle: 0,
-        range: [-0.6, row.bins.length - 0.4],
+        range: [-0.6, n - 0.4],
       },
-      yaxis: { ...t.layout.yaxis, type: 'log', side: 'left', dtick: 1, tickformat: ',d' },
-      // The company's value above its bar (on a log axis annotations take log10 coordinates).
+      yaxis: { ...t.layout.yaxis, side: 'left', rangemode: 'tozero', ticksuffix: `${NBSP}%`, tickformat: ',.0f' },
+      shapes: has
+        ? [{ type: 'line', x0: h, x1: h, yref: 'paper', y0: 0, y1: 1, line: { color: v('text-primary'), width: 1, dash: 'dot' } }]
+        : [],
       annotations:
-        hit && hit.count > 0
+        has && s
           ? [
+              // Next to the marker, where there is room (the header above the chart says it too).
+              ...(s.below > 0 && h >= 3 ? [side(`← ${sharePct(s.below)} weniger`, true)] : []),
+              ...(s.above > 0 && h <= n - 4 ? [side(`${sharePct(s.above)} mehr →`, false)] : []),
               {
-                x: row.highlight,
-                y: Math.log10(hit.count),
+                x: h,
+                y: (row.bins[h].count / total) * 100,
                 yanchor: 'bottom',
-                xanchor: row.highlight > row.bins.length * 0.7 ? 'right' : row.highlight < row.bins.length * 0.3 ? 'left' : 'center',
+                xanchor: h > n * 0.7 ? 'right' : h < n * 0.3 ? 'left' : 'center',
                 showarrow: false,
                 text: `${short(row.value)}${unit}`,
                 font: { family: v('font-mono'), size: 12, color: v('text-primary') },
+                bgcolor: v('bg-card'),
               },
             ]
           : [],
