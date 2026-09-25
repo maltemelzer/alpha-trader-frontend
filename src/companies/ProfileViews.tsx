@@ -79,7 +79,20 @@ export function RankingView({
   const rows = useMemo(() => rankRows(q.data), [q.data]);
   const chartRef = useRef<HTMLElement>(null);
   if (q.isError) return <DS.EmptyState compact as="h3" title="Einordnung nicht verfügbar" />;
-  if (!rows.length) return q.isLoading || !companyId ? <DS.Loading rows={6} label="Einordnung wird geladen" /> : <DS.EmptyState compact as="h3" title="Keine Vergleichsdaten" />;
+  if (!rows.length)
+    return q.isLoading || !companyId ? (
+      // Same two columns as the loaded view (chart | list), so nothing jumps when the data arrives.
+      <div className="rank" aria-busy="true">
+        <div className="rank__chart">
+          <DS.Skeleton variant="block" />
+        </div>
+        <div className="rank__list">
+          <DS.Loading rows={6} label="Einordnung wird geladen" />
+        </div>
+      </div>
+    ) : (
+      <DS.EmptyState compact as="h3" title="Keine Vergleichsdaten" />
+    );
   const row = rows.find((r) => r.key === selected) ?? rows[0];
   const s = row.standing;
   const groups = (['companies', 'securities'] as const)

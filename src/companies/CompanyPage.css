@@ -650,7 +650,8 @@
 .ov__col {
   position: relative;
   min-height: 0;
-  overflow: auto;
+  /* columns scroll vertically only – content that is briefly wider while loading must not leave a scrollbar */
+  overflow: hidden auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -932,4 +933,11 @@
 
 .ov__none--next {
   min-height: 2.8em;
+}
+
+/* The ranking is a daily snapshot; the header above shows live figures. */
+.ov__asof {
+  padding-top: var(--space-1);
+  font-size: 12px;
+  color: var(--text-secondary);
 }

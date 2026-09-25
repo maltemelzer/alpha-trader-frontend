@@ -161,6 +161,7 @@ function Standing({ companyId, base }: { companyId: string | undefined; base: st
               </a>
             </li>
           ))}
+          <li className="ov__asof">Werte vom letzten Tagesabschluss – oben stehen die aktuellen.</li>
         </ul>
       ) : q.isError ? (
         <p className="ov__none">Vergleich nicht verfügbar.</p>
