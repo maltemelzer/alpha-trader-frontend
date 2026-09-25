@@ -163,6 +163,7 @@ export function ManagePanel({ company: c }: { company: CompanyProfile }) {
             license={banking.license.data}
             reserves={r}
             reserveInterestRate={mainRate.data?.reserveInterestRate}
+            takenLoans={caps?.takenCentralBankLoans}
             cash={c.bankAccount?.cash}
             lastPayment={banking.lastPayment.data}
             nextPayment={banking.lastPayment.data?.nextPaymentDate}

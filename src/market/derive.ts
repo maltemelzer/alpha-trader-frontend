@@ -1,6 +1,7 @@
 import type { MarketRow } from '../api/queries';
 import type { SecurityOrderLogEntryView } from '../api/types';
 import type { BondView, MarketFilterValue, MarketResult, TickerItem } from '../../vendor/bankiersgruen';
+import { dailyYield, LAST_HOUR } from '../security/derive';
 
 export interface Mover {
   asin: string;
@@ -72,8 +73,9 @@ export function applyFilter(rows: MarketRow[], v: MarketFilterValue): MarketRow[
   );
 }
 
-export function toResult(r: MarketRow): MarketResult {
+export function toResult(r: MarketRow): MarketResult & { yieldPerDay?: number | null } {
   return {
+    yieldPerDay: r.yieldPerDay,
     listing: r.listing as MarketResult['listing'],
     price: {
       bidPrice: r.bidPrice ?? undefined,
@@ -113,6 +115,8 @@ export function bondRows(bonds: BondView[], now: number, repos = false): MarketR
           bidSize: s?.bidSize ?? null,
           askPrice: s?.askPrice ?? null,
           askSize: s?.askSize ?? null,
+          maturityDate: b.maturityDate,
+          yieldPerDay: dailyYield(s?.askPrice, b.interestRate ?? 0, b.maturityDate - now) ?? null,
           lastPrice:
             s?.lastPrice == null
               ? null
@@ -128,4 +132,15 @@ export function bondRows(bonds: BondView[], now: number, repos = false): MarketR
 export function uniqueRows(...lists: MarketRow[][]): MarketRow[] {
   const seen = new Set<string>();
   return lists.flat().filter((r) => !seen.has(r.listing.securityIdentifier) && !!seen.add(r.listing.securityIdentifier));
+}
+
+/**
+ * Bonds with the best yield per day first – only those buyable now (ask) and due in an hour or
+ * later; the last hour (2 % on minutes read as 2.000 % per day) and bonds without ask follow in
+ * their previous order.
+ */
+export function byYield(rows: MarketRow[], now: number): MarketRow[] {
+  const ranked = rows.filter((r) => r.yieldPerDay != null && (r.maturityDate ?? 0) - now >= LAST_HOUR);
+  const rest = rows.filter((r) => !ranked.includes(r));
+  return [...ranked.sort((a, b) => b.yieldPerDay! - a.yieldPerDay!), ...rest];
 }

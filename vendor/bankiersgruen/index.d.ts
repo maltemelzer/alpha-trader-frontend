@@ -1421,6 +1421,8 @@ export interface BankingPanelProps {
   /** GET /api/v2/lastcentralbankreservespayment */
   lastPayment?: { paymentDate: number; paidInterest: number };
   nextPayment?: number;
+  /** aufgenommene Zentralbankkredite (companyprofiles → companyCapabilities.takenCentralBankLoans); zeigt „genutzt von max.“ */
+  takenLoans?: number;
   /** GET /api/v2/interesttenders */
   tender?: { bondListing: Listing; endDate: number };
   tenderHref?: (t: { bondListing: Listing }) => string;
@@ -1580,7 +1582,19 @@ export interface MarketFilterBarProps {
 export declare function MarketFilterBar(props: MarketFilterBarProps): React.ReactElement;
 /** ListingMarketFilterResultView */
 export interface MarketResult { listing: Listing; price: { bidPrice?: number; askPrice?: number; bidSize?: number; askSize?: number } }
-export declare function MarketResults(props: { results: MarketResult[]; hrefFor?: (r: any) => string; /** Standard Name aufsteigend; key: name · bid · ask · spread */ defaultSort?: { key: string; dir: 'asc' | 'desc' }; stack?: 'auto' | 'never'; density?: 'sm' | 'md'; currency?: string; empty?: React.ReactNode; className?: string }): React.ReactElement;
+export interface MarketResultColumn {
+  key: string;
+  label: React.ReactNode;
+  /** Beschriftung in der Kartenansicht (stack) */
+  mobileLabel?: string;
+  type?: 'number' | 'text';
+  sortable?: boolean;
+  render?: (result: MarketResult) => React.ReactNode;
+  sortValue?: (result: MarketResult) => number | string;
+}
+export declare function MarketResults(props: { results: MarketResult[]; hrefFor?: (r: any) => string; /** Standard Name aufsteigend; key: name · bid · ask · spread oder eine Zusatzspalte */ defaultSort?: { key: string; dir: 'asc' | 'desc' };
+  /** Zusatzspalten hinter Spread, z. B. Rendite pro Tag bei Anleihen */
+  extraColumns?: MarketResultColumn[]; stack?: 'auto' | 'never'; density?: 'sm' | 'md'; currency?: string; empty?: React.ReactNode; className?: string }): React.ReactElement;
 export interface TickerItem { id: string; action?: 'BUY' | 'SELL'; listing: Listing; price: number; numberOfShares?: number; date: number }
 /** Laufende Orders/Trades; neue Einträge oben, kurz hervorgehoben; Anhalten stoppt Aktualisierung und Ansage */
 export declare function LiveTicker(props: { items: TickerItem[]; title?: string; max?: number; hrefFor?: (i: TickerItem) => string; currency?: string; className?: string }): React.ReactElement;

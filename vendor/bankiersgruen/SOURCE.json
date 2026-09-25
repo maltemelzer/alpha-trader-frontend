@@ -1,11 +1,11 @@
 {
   "artifact": "https://claude.ai/artifact/JTZ2zQxkHrv2m5uZHdqq9C",
-  "version": "1790328655-d43f",
-  "syncedAt": "2026-09-25T09:31:09.038Z",
+  "version": "1790335954-ff80",
+  "syncedAt": "2026-09-25T11:32:52.324Z",
   "files": {
-    "bundle.js": "8ab56a78d62bcd5fc175f292c100e984f86077bfe6a93618a1255567c6086969",
+    "bundle.js": "0c3e889eaf44534242d292e5b2cdd59d916a565f7592b0e038ded69eeb92bd24",
     "bundle.css": "e3da9a05cfa5fc306bba33d2522c1e41c3200177fd361c650ae88fb795d9fe76",
-    "index.d.ts": "6854c9397c8abfd5a787bbfe206ba8d9baa613f012cbb442b16feded4c3ab9ee",
+    "index.d.ts": "7f49b15b33a8befd014163969bfe22640d11de7a7c376fc35a59e1389525e98e",
     "tokens.json": "6980c8d044102d19200a2c4a76cb61ea07b21bc105f8b51936b770d538b5ab14",
     "README.md": "552c5d7db9c142888a257226e1cb1e15f9e48bbc31b0fa13c91dc6524971a5d8",
     "diagramme.md": "dc396d2c92fdb51c1bcc84d07274ca507c1eed0577de982d90686fef79e2271b",

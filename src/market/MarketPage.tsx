@@ -18,8 +18,9 @@ import { useDebounced } from '../lib/useDebounced';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
 import { activityChart, moversChart } from './charts';
-import { applyFilter, bondRows, movers, tickerItems, toResult, tradeCounts, uniqueRows } from './derive';
-import type { MarketFilterValue } from '../../vendor/bankiersgruen';
+import { applyFilter, bondRows, byYield, movers, tickerItems, toResult, tradeCounts, uniqueRows } from './derive';
+import { ratePct } from '../lib/format';
+import type { MarketFilterValue, MarketResult, MarketResultColumn } from '../../vendor/bankiersgruen';
 import './MarketPage.css';
 
 const PAGE = 50;
@@ -29,6 +30,23 @@ const href = (asin: string) => `/wertpapier/${asin}`;
  * Market – search/filter all listings; winners and losers; live trades.
  * Wide: results left, charts and ticker right. Phone: one view at a time.
  */
+/** Bonds: yield per day at the ask – the coupon is paid once for the whole term, only per day compares. */
+const yieldOf = (r: MarketResult) => (r as MarketResult & { yieldPerDay?: number | null }).yieldPerDay;
+const YIELD_COLUMNS: MarketResultColumn[] = [
+  {
+    key: 'yieldPerDay',
+    label: 'Rendite / Tag',
+    mobileLabel: 'Rendite / Tag',
+    type: 'number',
+    sortable: true,
+    sortValue: (r) => yieldOf(r) ?? -Infinity,
+    render: (r) => {
+      const y = yieldOf(r);
+      return y == null ? '–' : ratePct(y);
+    },
+  },
+];
+
 export function MarketPage() {
   const isWide = useMediaQuery('(min-width: 1100px)');
   const isPhone = useIsPhone();
@@ -82,10 +100,14 @@ export function MarketPage() {
     if (bondish) {
       const list = [...(asinBond.data ? [asinBond.data] : []), ...(bonds.data ?? [])];
       return {
-        rows: uniqueRows(bondRows(list, now, type === 'REPO')),
+        rows: type === 'REPO' ? uniqueRows(bondRows(list, now, true)) : byYield(uniqueRows(bondRows(list, now)), now),
         isLoading: bonds.isLoading,
         error: bonds.error,
-        label: searching ? null : type === 'REPO' ? 'Repos der zuletzt fälligen laufenden Anleihen.' : 'Laufende Anleihen, zuletzt fällige zuerst, dazu alle Systemanleihen.',
+        label: searching
+          ? null
+          : type === 'REPO'
+            ? 'Repos der zuletzt fälligen laufenden Anleihen.'
+            : 'Höchste Rendite pro Tag zuerst (zum Brief, ohne die letzte Stunde vor Fälligkeit), dazu alle Systemanleihen.',
       };
     }
     if (type === 'INDEX' && !searching) {
@@ -158,6 +180,8 @@ export function MarketPage() {
         ) : (
           <DS.MarketResults
             results={results}
+            extraColumns={type === 'BOND' ? YIELD_COLUMNS : undefined}
+            defaultSort={type === 'BOND' ? { key: 'yieldPerDay', dir: 'desc' } : undefined}
             hrefFor={(r) => href(r.id)}
             density="sm"
           />

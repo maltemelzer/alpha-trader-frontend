@@ -2816,7 +2816,7 @@
     var l = b.listing || {};
     var items = [
       { label: 'Emittent', value: b.issuer ? (props.issuerHref ? h('a', { className: 'bnk-pos__link', href: props.issuerHref(b.issuer) }, b.issuer.name) : b.issuer.name) : '–' },
-      { label: h(Term, { title: 'Zins', definition: 'Jährlicher Zinssatz auf den Nennwert. Bei Laufzeiten unter einem Jahr wird anteilig gezahlt.' }, 'Zins p. a.'), value: pct(b.interestRate, 4) },
+      { label: h(Term, { title: 'Zins', definition: 'Zinssatz auf den Nennwert für die ganze Laufzeit, gezahlt bei Fälligkeit – kein Jahreszins. Vergleichbar wird er erst pro Tag.' }, 'Zins bis Fälligkeit'), value: pct(b.interestRate, 4) },
       { label: 'Nennwert je Stück', value: b.faceValue, currency: cur },
       { label: 'Ausgegebene Stücke', value: b.numberOfBonds != null ? b.numberOfBonds : (b.faceValue ? Math.round((b.volume || 0) / b.faceValue) : 0), currency: '', decimals: 0, compact: true },
       { label: 'Volumen (Nennwert)', value: b.volume || 0, currency: cur, compact: true },
@@ -2839,7 +2839,7 @@
       defaultSort: { key: 'maturityDate', dir: 'asc' },
       columns: [
         { key: 'name', label: 'Anleihe', sortable: true, render: function (b) { return nameCell(b.issuer ? b.issuer.name : b.name, b._asin, LISTING_TYPES[b.listing && b.listing.type] || 'Anleihe', props.hrefFor ? props.hrefFor(b) : null); } },
-        { key: 'interestRate', label: 'Zins p. a.', type: 'number', sortable: true, render: function (b) { return pct(b.interestRate, 4); } },
+        { key: 'interestRate', label: 'Zins', type: 'number', sortable: true, render: function (b) { return pct(b.interestRate, 4); } },
         { key: 'maturityDate', label: 'Fällig', sortable: true, defaultDir: 'asc', align: 'right', render: function (b) {
           return h('span', { className: 'bnk-pos__stack' }, h('span', { className: cx('bnk-bonds__rest', b.maturityDate - now < 3600e3 && 'is-soon') }, remaining(b.maturityDate, now)), h('small', null, dateTime(b.maturityDate)));
         } },
@@ -3043,9 +3043,13 @@
           h('small', null, rate != null ? fmt(rate, 2) + ' % Reservezins + ' + fmt(boost, 2) + ' % Boost' : ''))),
         h('div', null, h('dt', null, 'Zinsertrag je Tag'), h('dd', null, perDay != null ? h(SignedAmount, { value: perDay, currency: cur }) : '–',
           h('small', null, props.nextPayment ? 'nächste Zahlung ' + dateTime(props.nextPayment) : ''))),
-        h('div', null, h('dt', null, 'Max. Zentralbankkredite'), h('dd', null, h(Amount, { value: r.maxCentralBankLoans || 0, currency: cur, compact: 'auto' })))),
+        props.takenLoans != null
+          ? h('div', null, h('dt', null, 'Zentralbankkredite'), h('dd', null, h(Amount, { value: props.takenLoans, currency: cur, compact: 'auto' }),
+              h('small', null, 'genutzt von ', h(Amount, { value: r.maxCentralBankLoans || 0, currency: cur, compact: 'auto' }),
+                r.maxCentralBankLoans ? ' (' + fmt(Math.min(100, props.takenLoans / r.maxCentralBankLoans * 100), 0) + ' %)' : '')))
+          : h('div', null, h('dt', null, 'Max. Zentralbankkredite'), h('dd', null, h(Amount, { value: r.maxCentralBankLoans || 0, currency: cur, compact: 'auto' })))),
       h('p', { className: 'bnk-bank__since' }, 'Banklizenz seit ', lic && lic.startDate ? dateTime(lic.startDate) : '–',
-        props.lastPayment ? h('span', null, ' · letzte Zinszahlung ', h(SignedAmount, { value: props.lastPayment.paidInterest, currency: cur }), ' am ', dateTime(props.lastPayment.paymentDate)) : null),
+        props.lastPayment ? h('span', null, ' · letzte Zinszahlung der Zentralbank an alle Banken ', h(SignedAmount, { value: props.lastPayment.paidInterest, currency: cur }), ' am ', dateTime(props.lastPayment.paymentDate)) : null),
       h('div', { className: 'bnk-bank__forms' },
         props.onIncreaseReserves ? h('form', { className: 'bnk-bank__form', onSubmit: function (e) { e.preventDefault(); if (!amtErr && amt > 0) props.onIncreaseReserves(amt); } },
           h('h4', { className: 'bnk-bank__h' }, 'Reserven erhöhen'),
@@ -3465,7 +3469,7 @@
   /* MarketResults — Ergebnisliste des Marktfilters (ListingMarketFilterResultView). */
   function MarketResults(props) {
     var cur = props.currency == null ? '€' : props.currency;
-    var rows = (props.results || []).map(function (r) { var l = r.listing || {}, p = r.price || {}; return { id: l.securityIdentifier, l: l, p: p, name: l.name, bid: p.bidPrice, ask: p.askPrice, bidSize: p.bidSize, askSize: p.askSize, spread: p.bidPrice && p.askPrice ? (p.askPrice / p.bidPrice - 1) * 100 : null }; });
+    var rows = (props.results || []).map(function (r) { var l = r.listing || {}, p = r.price || {}; return { result: r, id: l.securityIdentifier, l: l, p: p, name: l.name, bid: p.bidPrice, ask: p.askPrice, bidSize: p.bidSize, askSize: p.askSize, spread: p.bidPrice && p.askPrice ? (p.askPrice / p.bidPrice - 1) * 100 : null }; });
     function px(r, v, size) { return v == null ? h('span', { className: 'bnk-pos__none' }, '–') : h('span', { className: 'bnk-pos__stack' }, !isPercentQuoted(r.l.type) && Math.abs(v) >= 1e6 ? h(Amount, { value: v, currency: cur, compact: true }) : price(v, r.l.type, cur), size != null ? h('small', null, number(size, 0, true) + ' Stk.') : null); }
     return h(DataTable, { className: cx('bnk-mres', props.className), stack: props.stack || 'auto', rows: rows, rowKey: 'id', density: props.density || 'sm', caption: 'Wertpapiere',
       defaultSort: props.defaultSort || { key: 'name', dir: 'asc' }, getRowHref: props.hrefFor ? function (r) { return props.hrefFor(r); } : undefined,
@@ -3475,7 +3479,13 @@
         { key: 'bid', label: h(Term, { term: 'BID' }), mobileLabel: 'Geld', type: 'number', sortable: true, render: function (r) { return px(r, r.bid, r.bidSize); } },
         { key: 'ask', label: h(Term, { term: 'ASK' }), mobileLabel: 'Brief', type: 'number', sortable: true, render: function (r) { return px(r, r.ask, r.askSize); } },
         { key: 'spread', label: h(Term, { term: 'SPREAD' }), mobileLabel: 'Spread', type: 'number', sortable: true, sortValue: function (r) { return r.spread == null ? Infinity : r.spread; }, render: function (r) { return r.spread == null ? h('span', { className: 'bnk-pos__none' }, '–') : fmt(r.spread, 2) + ' %'; } }
-      ],
+      ].concat((props.extraColumns || []).map(function (c) {
+        /* Zusatzspalten der App (z. B. Rendite pro Tag bei Anleihen): render/sortValue bekommen das Original-Ergebnis */
+        return Object.assign({}, c, {
+          render: c.render ? function (row) { return c.render(row.result); } : undefined,
+          sortValue: c.sortValue ? function (row) { return c.sortValue(row.result); } : undefined
+        });
+      })),
       empty: props.empty || h(EmptyState, { compact: true, symbol: false, title: 'Keine Treffer' }, 'Filter lockern oder nach Name bzw. ASIN suchen.') });
   }
 
@@ -3535,7 +3545,7 @@
       h('div', { className: 'bnk-issue__grid' },
         h(Input, { label: 'Stücke', numeric: true, stepper: true, min: 1, step: 1, value: nSt[0], onChange: function (e) { nSt[1](e.target.value); }, error: errN }),
         !sys ? h(Input, { label: 'Nennwert je Stück', numeric: true, suffix: '€', value: faceSt[0], onChange: function (e) { faceSt[1](e.target.value); } }) : null,
-        !sys ? h(Input, { label: 'Zins p. a.', numeric: true, suffix: '%', value: rateSt[0], onChange: function (e) { rateSt[1](e.target.value); }, error: errRate,
+        !sys ? h(Input, { label: 'Zins bis Fälligkeit', hint: 'für die ganze Laufzeit, gezahlt bei Fälligkeit', numeric: true, suffix: '%', value: rateSt[0], onChange: function (e) { rateSt[1](e.target.value); }, error: errRate,
           hint: props.averageRate != null ? 'Markt-Durchschnitt ' + fmt(props.averageRate, 4) + ' %' : undefined }) : null,
         !sys ? h(Input, { label: 'Fällig am', type: 'datetime-local', value: dueSt[0], onChange: function (e) { dueSt[1](e.target.value); }, error: errDue }) : null),
       vol ? h(IssueSummary, null, 'Volumen ', h(Amount, { value: vol, currency: '€', compact: true }),

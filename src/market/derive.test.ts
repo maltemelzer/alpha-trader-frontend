@@ -1,4 +1,4 @@
-import { applyFilter, bondRows, matchesSearch, movers, tickerItems, tradeCounts, typeMatches, uniqueRows } from './derive';
+import { applyFilter, bondRows, byYield, matchesSearch, movers, tickerItems, tradeCounts, typeMatches, uniqueRows } from './derive';
 import type { MarketRow } from '../api/queries';
 
 const row = (asin: string, type: string, change: number, last = true): MarketRow => ({
@@ -101,5 +101,23 @@ describe('market sources', () => {
 
   it('keeps the first row per ASIN', () => {
     expect(uniqueRows([row('A', 'a')], [row('A', 'b'), row('B', 'c')]).map((r) => r.listing.name)).toEqual(['a', 'c']);
+  });
+});
+
+describe('byYield', () => {
+  const H = 3_600_000;
+  const now = 100 * H;
+  const bond = (asin: string, hoursLeft: number, ask: number | null) =>
+    ({
+      id: asin,
+      listing: { name: asin, securityIdentifier: asin, type: 'BOND' },
+      interestRate: 2,
+      maturityDate: now + hoursLeft * H,
+      priceSpread: ask == null ? undefined : { askPrice: ask },
+    }) as never;
+  it('puts the best yield per day first, without the last hour and bonds without ask', () => {
+    const rows = bondRows([bond('LONG', 240, 100), bond('DAY', 24, 100), bond('SOON', 0.2, 100), bond('NOASK', 24, null)], now);
+    expect(rows.find((r) => r.listing.securityIdentifier === 'DAY')!.yieldPerDay).toBeCloseTo(2, 6);
+    expect(byYield(rows, now).map((r) => r.listing.securityIdentifier)).toEqual(['DAY', 'LONG', 'SOON', 'NOASK']);
   });
 });

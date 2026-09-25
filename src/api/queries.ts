@@ -300,6 +300,10 @@ export interface MarketRow {
   lastPrice?: { value: number; date: number } | null;
   priceChangeInPercent?: number;
   count?: number;
+  /** Bonds: yield per day at the ask (yield to maturity ÷ days left), see security/derive dailyYield */
+  yieldPerDay?: number | null;
+  /** Bonds: maturity in ms */
+  maturityDate?: number;
 }
 
 /** Biggest price moves (winners, or losers with `losers`). */
