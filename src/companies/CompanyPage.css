@@ -363,18 +363,68 @@
   color: var(--text-primary);
 }
 
-.rank__place,
-.rank-row__place {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
+.rank__value {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
-.rank__asof {
+.rank__lead {
   margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rank__split {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--space-2);
+}
+
+.rank__bar {
+  height: 10px;
+}
+
+.rank__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rank__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.rank__key::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.rank__key--below::before {
+  background: color-mix(in srgb, var(--chart-2) 45%, transparent);
+}
+
+.rank__key--same::before {
+  background: var(--chart-2);
+}
+
+.rank__key--above::before {
+  border: 1px solid var(--line-strong);
+}
+
+.rank__asof {
+  margin: var(--space-1) 0 0;
   font-size: 12px;
   color: var(--text-secondary);
   overflow: hidden;
@@ -384,25 +434,43 @@
 
 .rank__plot {
   flex: 1;
-  min-height: 160px;
+  min-height: 150px;
+  margin-top: var(--space-2);
 }
 
 .rank__list {
   position: relative;
+  min-height: 0;
+  overflow: auto;
+}
+
+.rank__group + .rank__group {
+  margin-top: var(--space-3);
+}
+
+.rank__group-title {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.rank__rows {
   list-style: none;
   margin: 0;
   padding: 0;
-  min-height: 0;
-  overflow: auto;
 }
 
 .rank-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: 'label value' 'cells place';
+  grid-template-areas: 'label value' 'bar place';
   align-items: center;
   column-gap: var(--space-3);
-  row-gap: 2px;
+  row-gap: 4px;
   width: 100%;
   min-height: 44px;
   padding: var(--space-1) var(--space-2);
@@ -412,7 +480,9 @@
   color: var(--text-primary);
   font: inherit;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .rank-row:hover,
@@ -437,31 +507,62 @@
   justify-self: end;
   font-family: var(--font-mono);
   font-size: 13px;
+  white-space: nowrap;
 }
 
-.rank-row__cells {
-  grid-area: cells;
-  display: inline-flex;
-  gap: 2px;
-}
-
-.rank-row__cell {
-  width: 12px;
-  height: 8px;
-  border-radius: 2px;
-  border: 1px solid var(--line-strong);
-  box-sizing: border-box;
-}
-
-.rank-row__cell--on {
-  background: var(--chart-2);
-  border-color: var(--chart-2);
+.rank-row__bar {
+  grid-area: bar;
 }
 
 .rank-row__place {
   grid-area: place;
   justify-self: end;
-  font-size: 11px;
+  min-width: 9em;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Position among all companies: pale = less, full = same class, empty = more, tick = estimate. */
+.standing {
+  position: relative;
+  display: block;
+  height: 8px;
+  min-width: 80px;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.standing__below,
+.standing__same {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.standing__below {
+  left: 0;
+  width: var(--below);
+  background: color-mix(in srgb, var(--chart-2) 45%, transparent);
+}
+
+.standing__same {
+  left: var(--below);
+  width: var(--same);
+  min-width: 2px;
+  background: var(--chart-2);
+}
+
+.standing__at {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: var(--at);
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text-primary);
 }
 
 .chron {
@@ -522,4 +623,313 @@
   .chron__list {
     overflow: visible;
   }
+}
+
+/* ---------- Überblick ---------- */
+.company .bnk-tabs__panel:has(> .ov) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ov {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: 'val a b';
+  gap: var(--space-6);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+}
+
+.ov__val {
+  grid-area: val;
+  min-height: 0;
+}
+
+.ov__col {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ov__col--a {
+  grid-area: a;
+}
+
+.ov__col--b {
+  grid-area: b;
+}
+
+.ov__col > * {
+  flex: none;
+}
+
+.ov-sec {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ov-sec__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 32px;
+}
+
+.ov-sec__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-sec__title--minor {
+  margin-top: var(--space-3);
+  font-size: 15px;
+}
+
+.ov-sec__more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.ov-sec__more::after {
+  content: ' →';
+  white-space: pre;
+}
+
+.ov-sec__meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ov-sec__meta b,
+.ov__kbv b {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ov-sec__sub {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ov__plot {
+  flex: 1;
+  min-height: 150px;
+  margin-top: var(--space-2);
+}
+
+.ov__rank,
+.ov__facts,
+.ov__events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ov__holders {
+  min-height: 90px;
+}
+
+.ov__none {
+  margin: var(--space-1) 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ov-fact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'label value' 'note note';
+  column-gap: var(--space-3);
+  align-items: baseline;
+  min-height: 44px;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: var(--hairline) solid var(--line);
+  box-sizing: border-box;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.ov-fact--link:hover {
+  background: var(--bg-raised);
+}
+
+.ov-fact__label {
+  grid-area: label;
+  font-size: 13px;
+}
+
+.ov-fact__value {
+  grid-area: value;
+  justify-self: end;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ov-fact__note {
+  grid-area: note;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov__asin {
+  font-family: var(--font-mono);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ov__bank {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+.ov__bank-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ov__bank-row b {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ov-ev {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  column-gap: var(--space-3);
+  align-items: baseline;
+  padding: 6px var(--space-2);
+  border-bottom: var(--hairline) solid var(--line);
+  font-size: 13px;
+}
+
+.ov-ev__when {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ov-ev__text {
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.ov-ev__text a {
+  color: inherit;
+}
+
+.ov-ev__text--clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ov-ev__detail {
+  color: var(--text-secondary);
+}
+
+/* Narrow desktop and tablet: the chart and the ranking side by side, the rest below the chart. */
+@media (max-width: 1099.98px) {
+  .ov {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: 'val a' 'b a';
+  }
+  .ov__col--b {
+    overflow: auto;
+  }
+}
+
+/* Phone: the sections stack, the tab panel scrolls as a whole. */
+@media (max-width: 719.98px) {
+  .company .bnk-tabs__panel:has(> .ov) {
+    display: block;
+    overflow: auto;
+  }
+  .ov {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .ov__plot {
+    flex: none;
+    height: 200px;
+  }
+  .ov__col {
+    overflow: visible;
+  }
+}
+
+/* Overview: the same rows, tighter (still 44 px to tap). */
+.ov .rank-row {
+  row-gap: 2px;
+  padding-block: 3px;
+}
+
+/* Phone, Überblick: the profile header alone is ~480 px high, which left the overview a 190 px
+   window. Here the page scrolls as a whole instead – header first, then the sections stacked. */
+@media (max-width: 719.98px) {
+  .company--overview {
+    height: auto;
+    grid-template-rows: auto auto;
+  }
+  .company--overview > .panel.bnk-card {
+    height: auto;
+  }
+  .company--overview .bnk-tabs__panel:has(> .ov) {
+    overflow: visible;
+  }
+}
+
+/* Four figures are always there – hold their height while the histograms load. */
+.ov__rank-loading {
+  min-height: calc(4 * 48px);
+}
+
+.ov__rank-loading--wait {
+  height: calc(4 * 48px);
+  overflow: hidden;
+}
+
+/* Hold the height of lines that fill in later. */
+.ov-sec__sub {
+  min-height: 20px;
+}
+
+.ov__none--next {
+  min-height: 2.8em;
 }

@@ -36,25 +36,37 @@ export interface HistogramMetric {
   unit: '€' | 'Stk.';
   /** only shown when the company has a value (most companies have no bonds, repos or reserves) */
   optional?: boolean;
+  /**
+   * Who the company is compared with. The company figures count ~9.500 companies; the listing
+   * figures (turnover, shares, orders) count all ~200.000 securities – buildings (1 share), bonds
+   * and repos (~1.000 each) included –, so every stock lands in the top tenth of „Aktien im Umlauf“.
+   */
+  population: 'companies' | 'securities';
 }
 
 // The values are those of the latest daily snapshot (/api/v2/historizedcompanydata, ~18:50), not the
 // live profile. closePriceHistogram is left out: its value is the day's close, but its bins reach
-// −100 and count ~170.000 entries (all listings, bonds in %) – no fair comparison between companies.
+// −100 and count ~200.000 entries (all listings, bonds in %) – no fair comparison between companies.
+// Company figures first, then those compared with all securities.
 export const HISTOGRAM_METRICS: HistogramMetric[] = [
-  { key: 'bookValue', label: 'Buchwert', unit: '€' },
-  { key: 'netCash', label: 'Net Cash', unit: '€' },
-  { key: 'cash', label: 'Bargeld', unit: '€' },
-  { key: 'cashFlow', label: 'Cashflow', unit: '€' },
-  { key: 'tradeVolume', label: 'Handelsumsatz', unit: '€' },
-  { key: 'outstandingShares', label: 'Aktien im Umlauf', unit: 'Stk.' },
-  { key: 'sharesInBuys', label: 'In Kauforders', unit: 'Stk.', optional: true },
-  { key: 'sharesInSells', label: 'In Verkaufsorders', unit: 'Stk.', optional: true },
-  { key: 'bondsVolume', label: 'Anleihen', unit: '€', optional: true },
-  { key: 'reposVolume', label: 'Repos', unit: '€', optional: true },
-  { key: 'systemReposVolume', label: 'System-Repos', unit: '€', optional: true },
-  { key: 'centralBankReserves', label: 'Zentralbank-Einlage', unit: '€', optional: true },
+  { key: 'bookValue', label: 'Buchwert', unit: '€', population: 'companies' },
+  { key: 'netCash', label: 'Net Cash', unit: '€', population: 'companies' },
+  { key: 'cash', label: 'Bargeld', unit: '€', population: 'companies' },
+  { key: 'cashFlow', label: 'Cashflow', unit: '€', population: 'companies' },
+  { key: 'bondsVolume', label: 'Anleihen im Depot', unit: '€', optional: true, population: 'companies' },
+  { key: 'reposVolume', label: 'Repos (netto)', unit: '€', optional: true, population: 'companies' },
+  { key: 'systemReposVolume', label: 'System-Repos (netto)', unit: '€', optional: true, population: 'companies' },
+  { key: 'centralBankReserves', label: 'Zentralbank-Einlage', unit: '€', optional: true, population: 'companies' },
+  { key: 'tradeVolume', label: 'Handelsumsatz', unit: '€', population: 'securities' },
+  { key: 'outstandingShares', label: 'Aktien im Umlauf', unit: 'Stk.', population: 'securities' },
+  { key: 'sharesInBuys', label: 'In Kauforders', unit: 'Stk.', optional: true, population: 'securities' },
+  { key: 'sharesInSells', label: 'In Verkaufsorders', unit: 'Stk.', optional: true, population: 'securities' },
 ];
+
+export const POPULATION_LABEL: Record<HistogramMetric['population'], string> = {
+  companies: 'der Unternehmen',
+  securities: 'aller Wertpapiere',
+};
 
 export interface Bin {
   lo: number;
@@ -84,10 +96,52 @@ export function highlightBin(bins: Bin[], h: Pick<HistogramView, 'highlightValue
   return bins.findIndex((b) => v >= b.lo && v <= b.hi);
 }
 
-/** Decile as words: 10 → „obere 10 %“, 7 → „obere 40 %“, 3 → „untere 30 %“. */
-export function placement(decile: number | undefined): string {
-  if (!decile || decile < 1 || decile > 10) return '–';
-  return decile >= 6 ? `obere ${(11 - decile) * 10} %` : `untere ${decile * 10} %`;
+/**
+ * Where the company stands, as shares (0–1) of the whole distribution: entries in lower bins
+ * (`below`), in its own bin (`same`), in higher bins (`above`), and `share` – the best estimate of
+ * the fraction with a lower value.
+ *
+ * The API's decile is ⌊fraction strictly below × 10⌋ + 1 over the exact values (checked against the
+ * bins of Alphakasse SE, lalaland72, Aykoc, georgysorosi96 and Prime Reserve Bank: it always falls
+ * inside the company's bin), so it narrows the position within the bin: `share` is the middle of
+ * bin ∩ decile. Where many companies share a value (77 % have a cash flow of 0, 91 % no bonds) the
+ * decile says 1 = „untere 10 %“ although the company is level with most – `tied` marks that case.
+ */
+export interface Standing {
+  below: number;
+  same: number;
+  above: number;
+  share: number;
+  /** the company's bin holds a quarter or more of all entries – read as „gleichauf mit …“ */
+  tied: boolean;
+}
+
+export function standing(bins: Bin[], highlight: number, decile?: number): Standing | undefined {
+  const total = bins.reduce((s, b) => s + b.count, 0);
+  if (!total || highlight < 0 || highlight >= bins.length) return undefined;
+  const below = bins.slice(0, highlight).reduce((s, b) => s + b.count, 0) / total;
+  const same = bins[highlight].count / total;
+  const above = Math.max(0, 1 - below - same);
+  let lo = below;
+  let hi = below + same;
+  if (decile && decile >= 1 && decile <= 10) {
+    const dlo = Math.max(lo, (decile - 1) / 10);
+    const dhi = Math.min(hi, decile / 10);
+    if (dlo <= dhi) [lo, hi] = [dlo, dhi];
+  }
+  return { below, same, above, share: (lo + hi) / 2, tied: same >= 0.25 };
+}
+
+const NBSP = String.fromCharCode(0xa0);
+/** whole percent, never 0 or 100 – „mehr als 100 %“ would be wrong */
+const pct = (x: number) => Math.min(99, Math.max(1, Math.floor(x * 100)));
+
+/** „mehr als 87 % der Unternehmen“, „weniger als 60 % aller Wertpapiere“, „gleichauf mit 77 % der Unternehmen“. */
+export function standingText(s: Standing | undefined, population: HistogramMetric['population'] = 'companies', withWho = true): string {
+  if (!s) return '–';
+  const who = withWho ? ` ${POPULATION_LABEL[population]}` : '';
+  if (s.tied) return `gleichauf mit ${pct(s.same)}${NBSP}%${who}`;
+  return s.share >= 0.5 ? `mehr als ${pct(s.share)}${NBSP}%${who}` : `weniger als ${pct(1 - s.share)}${NBSP}%${who}`;
 }
 
 export interface RankRow extends HistogramMetric {
@@ -97,9 +151,10 @@ export interface RankRow extends HistogramMetric {
   highlight: number;
   /** number of entries in the whole distribution */
   total: number;
+  standing?: Standing;
 }
 
-/** One row per figure the API sent; optional figures only when the company has a value. */
+/** One row per figure the API sent (companies first, then all securities); optional figures only when the company has a value. */
 export function rankRows(h: CompanyHistograms | undefined): RankRow[] {
   if (!h) return [];
   const rows: RankRow[] = [];
@@ -108,16 +163,35 @@ export function rankRows(h: CompanyHistograms | undefined): RankRow[] {
     if (!v || v.highlightValue == null || !v.histogram) continue;
     if (m.optional && !v.highlightValue) continue;
     const bins = parseBins(v.histogram);
+    const highlight = highlightBin(bins, v);
     rows.push({
       ...m,
       value: v.highlightValue,
       decile: v.decile ?? 0,
       bins,
-      highlight: highlightBin(bins, v),
+      highlight,
       total: bins.reduce((s, b) => s + b.count, 0),
+      standing: standing(bins, highlight, v.decile),
     });
   }
   return rows;
+}
+
+/** A share (0–1) as a readable percentage: „53 %“, „0,4 %“, „99,6 %“, „< 0,1 %“, „> 99,9 %“, „0 %“. */
+export function sharePct(x: number): string {
+  if (!(x > 0)) return `0${NBSP}%`;
+  if (x >= 1) return `100${NBSP}%`;
+  if (x < 0.001) return `<${NBSP}0,1${NBSP}%`;
+  if (x > 0.999) return `>${NBSP}99,9${NBSP}%`;
+  const p = x * 100;
+  return `${p.toLocaleString('de-DE', { maximumFractionDigits: p < 10 || p > 90 ? 1 : 0 })}${NBSP}%`;
+}
+
+/** 645813 → 650000, 10323346 → 10000000: bin edges to two significant digits for axis labels. */
+export function roundEdge(n: number): number {
+  if (!n) return 0;
+  const p = 10 ** (Math.floor(Math.log10(Math.abs(n))) - 1);
+  return Math.round(n / p) * p;
 }
 
 // ---------- Chronik (history entries) ----------
