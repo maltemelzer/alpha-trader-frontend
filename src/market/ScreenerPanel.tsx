@@ -565,6 +565,10 @@ export interface ScreenerProps {
   pagination: ReactNode;
   /** building overview ↔ list switch, shown for buildings only */
   estateSwitch: ReactNode;
+  /** class overview above the table (scrolls away with it) */
+  overview: ReactNode;
+  /** shows/hides the class overview */
+  overviewToggle: ReactNode;
 }
 
 export function Screener(p: ScreenerProps) {
@@ -633,22 +637,28 @@ export function Screener(p: ScreenerProps) {
           {!isPhone && !p.special && <span className="scr-status__note">{p.note}</span>}
         </span>
         {p.estateSwitch}
-        {isPhone && !p.special && (
-          <DS.Select
-            aria-label="Sortieren"
-            size="sm"
-            fullWidth={false}
-            value={`${p.sort.key}:${p.sort.dir}`}
-            options={sortOptions.some((o) => o.value === `${p.sort.key}:${p.sort.dir}`) ? sortOptions : [{ value: `${p.sort.key}:${p.sort.dir}`, label: 'Sortierung' }, ...sortOptions]}
-            onChange={(e) => {
-              const [key, dir] = e.target.value.split(':');
-              setParam({ sort: sortParam({ key: key as ColKey, dir: dir as 'asc' | 'desc' }), seite: null });
-            }}
-          />
+        {!p.special && (p.overviewToggle || isPhone) && (
+          <span className="scr-status__tools">
+            {p.overviewToggle}
+            {isPhone && (
+              <DS.Select
+                aria-label="Sortieren"
+                size="sm"
+                fullWidth={false}
+                value={`${p.sort.key}:${p.sort.dir}`}
+                options={sortOptions.some((o) => o.value === `${p.sort.key}:${p.sort.dir}`) ? sortOptions : [{ value: `${p.sort.key}:${p.sort.dir}`, label: 'Sortierung' }, ...sortOptions]}
+                onChange={(e) => {
+                  const [key, dir] = e.target.value.split(':');
+                  setParam({ sort: sortParam({ key: key as ColKey, dir: dir as 'asc' | 'desc' }), seite: null });
+                }}
+              />
+            )}
+          </span>
         )}
       </div>
       <div className="panel__fill scroll market__results">
-        {p.special ??
+        {p.special ?? p.overview}
+        {!p.special &&
           (p.loading ? (
             <DS.Loading rows={10} label="Wertpapiere werden geladen" />
           ) : p.error ? (

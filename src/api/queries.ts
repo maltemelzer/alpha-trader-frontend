@@ -2896,3 +2896,46 @@ export function useAccountDetails(ids: string[]) {
 }
 
 import { collectPages, mergeWindow, type Trade as FlowTrade } from '../flows/derive';
+
+// ---------- Market class overviews ----------
+
+// Module level: a stable combine runs only when the results change, so `data` keeps its identity.
+const combineEtfs = (results: { data?: EtfView; isLoading: boolean }[]) => ({
+  data: results.flatMap((r) => (r.data ? [r.data] : [])),
+  isLoading: results.some((r) => r.isLoading),
+});
+
+/** Details of several ETFs (base index, fee); shares the cache with useEtf. There is no ETF list endpoint. */
+export function useEtfs(asins: string[]) {
+  return useQueries({
+    queries: asins.map((asin) => ({
+      queryKey: ['etf', asin],
+      queryFn: () => unwrap<EtfView>(api.GET('/api/v2/etfs/{asin}', { params: { path: { asin } } })),
+      staleTime: SLOW,
+    })),
+    combine: combineEtfs,
+  });
+}
+
+/** Like useDailyHistories (same cache), plus whether any is still loading – for the overview's skeleton. */
+export function useDailyHistoriesState(asins: string[]) {
+  return useQueries({
+    queries: asins.map((asin) => ({
+      queryKey: ['history', asin],
+      queryFn: async () => {
+        const page = await unwrap<{ content: HistorizedListingDataView[] }>(
+          api.GET('/api/v2/historizedlistingdata/{securityIdentifier}', {
+            params: { path: { securityIdentifier: asin }, query: { pageable: { page: 0, size: 365, sort: ['date,desc'] } } },
+            querySerializer: pageableSerializer,
+          }),
+        );
+        return [...page.content].reverse();
+      },
+      staleTime: SLOW,
+    })),
+    combine: (results) => ({
+      data: Object.fromEntries(asins.flatMap((a, i) => (results[i]?.data ? [[a, results[i].data]] : []))) as Record<string, HistorizedListingDataView[]>,
+      isLoading: results.some((r) => r.isLoading),
+    }),
+  });
+}

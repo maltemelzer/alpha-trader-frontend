@@ -575,3 +575,179 @@
     flex: none;
   }
 }
+
+/* ---------- Class overview above the list (ClassOverview) ----------
+   Sits at the top of the scrolling results, so it scrolls away when reading the list;
+   „Diagramm ausblenden“ (?ueb=aus) removes it. */
+.scr-status__tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ovw {
+  flex: none;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  /* 1440×900: ~300 px, 1280×720: 200 px – the first rows of the list stay in view */
+  height: clamp(200px, calc(100dvh - 520px), 300px);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+/* Short screens: the three figures without their hint line, so they fit the 200 px strip */
+@media (min-width: 720px) and (max-height: 820px) {
+  .ovw .ovw__figs .bnk-stat__hint {
+    display: none;
+  }
+}
+
+.ovw .ovw__figs {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  border-right: var(--hairline) solid var(--line);
+}
+
+.ovw .ovw__figs > .bnk-stat {
+  gap: 0;
+  padding: var(--space-2) var(--space-4);
+  border-left: 0;
+}
+
+.ovw .ovw__figs > .bnk-stat + .bnk-stat {
+  border-top: var(--hairline) solid var(--line);
+}
+
+.ovw .ovw__figs .bnk-stat__value {
+  font-size: 17px;
+  line-height: 24px;
+}
+
+.ovw .ovw__figs .bnk-stat__hint {
+  margin-top: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* Loading: the figures keep their size, values as skeleton bars (no numbers from half-loaded data) */
+.ovw.is-loading .bnk-stat__value {
+  width: 60%;
+  color: transparent;
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+}
+
+.ovw.is-loading .bnk-stat__value *,
+.ovw.is-loading .bnk-stat__hint,
+.ovw.is-loading .bnk-stat__main > :not(.bnk-stat__value) {
+  visibility: hidden;
+}
+
+.ovw__chart {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-2) var(--space-4) 0;
+  overflow: hidden;
+}
+
+.ovw__note {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--space-1) var(--space-4) var(--space-2);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-muted);
+}
+
+.ovw-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -6px 0;
+  padding: 0;
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.ovw-toggle[aria-pressed='true'] {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  box-shadow: inset 0 calc(-1 * var(--rule)) 0 var(--brass);
+}
+
+.ovw-toggle:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: 1px;
+}
+
+@media (max-width: 719.98px) {
+  .ovw {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 210px auto;
+    height: auto;
+  }
+
+  .ovw .ovw__figs {
+    /* the DS forces two columns under 560 px (!important); three small figures fit side by side */
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    border-right: 0;
+    border-bottom: var(--hairline) solid var(--line);
+  }
+
+  .ovw .ovw__figs > .bnk-stat {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .ovw .ovw__figs > .bnk-stat + .bnk-stat {
+    border-top: 0;
+    border-left: var(--hairline) solid var(--line);
+  }
+
+  .ovw .ovw__figs .bnk-stat__label {
+    font-size: 11px;
+    line-height: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ovw .ovw__figs .bnk-stat__value {
+    font-size: 13px;
+    line-height: 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ovw__chart {
+    padding: var(--space-2) var(--space-3) 0;
+  }
+
+  /* count, chart toggle and sort share one row: the sort select gives way first */
+  .scr-status__count {
+    flex: none;
+  }
+
+  .scr-status__tools {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .scr-status__tools .bnk-field,
+  .scr-status__tools .bnk-select {
+    min-width: 0;
+  }
+
+  .ovw__note {
+    padding: var(--space-1) var(--space-3) var(--space-2);
+  }
+}
