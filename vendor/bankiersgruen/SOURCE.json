@@ -1,11 +1,11 @@
 {
   "artifact": "https://claude.ai/artifact/JTZ2zQxkHrv2m5uZHdqq9C",
-  "version": "1790335954-ff80",
-  "syncedAt": "2026-09-25T11:32:52.324Z",
+  "version": "1790336170-2a72",
+  "syncedAt": "2026-09-25T11:36:26.381Z",
   "files": {
-    "bundle.js": "0c3e889eaf44534242d292e5b2cdd59d916a565f7592b0e038ded69eeb92bd24",
-    "bundle.css": "e3da9a05cfa5fc306bba33d2522c1e41c3200177fd361c650ae88fb795d9fe76",
-    "index.d.ts": "7f49b15b33a8befd014163969bfe22640d11de7a7c376fc35a59e1389525e98e",
+    "bundle.js": "7a937682f51bda73779b6d3a1f9eb1042aa99f342707994993f9cb552c5108b3",
+    "bundle.css": "954c56cff903e966240cd4ca2286b9271644b0ac7757e5bc11e4330b7584f1af",
+    "index.d.ts": "7dac2c1006e115ddcbf3144849f95c8629059069ef7477a7865d1722e0154685",
     "tokens.json": "6980c8d044102d19200a2c4a76cb61ea07b21bc105f8b51936b770d538b5ab14",
     "README.md": "552c5d7db9c142888a257226e1cb1e15f9e48bbc31b0fa13c91dc6524971a5d8",
     "diagramme.md": "dc396d2c92fdb51c1bcc84d07274ca507c1eed0577de982d90686fef79e2271b",

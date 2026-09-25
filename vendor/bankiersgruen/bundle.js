@@ -310,6 +310,30 @@
   });
   Input.displayName = 'Input';
 
+  /* Textarea — mehrzeiliges Feld im Stil von Input (Beschreibungen, Kommentare, Pressetexte).
+     Mit maxLength zählt es die Zeichen; der Zähler wird ab 90 % sichtbar hervorgehoben. */
+  var Textarea = React.forwardRef(function Textarea(props, ref) {
+    var id = useFieldId(props.id);
+    var controlled = props.value !== undefined;
+    var lenSt = React.useState(String(props.defaultValue || '').length);
+    var len = controlled ? String(props.value || '').length : lenSt[0];
+    var rest = pick(props, ['label', 'hint', 'error', 'optional', 'size', 'fullWidth', 'className', 'id', 'counter']);
+    rest.id = id; rest.ref = ref; rest.className = 'bnk-input__control bnk-textarea__control';
+    rest.rows = props.rows || 4;
+    if (props.error) rest['aria-invalid'] = 'true';
+    if (props.error || props.hint) rest['aria-describedby'] = id + '-msg';
+    var userChange = props.onChange;
+    rest.onChange = function (e) { if (!controlled) lenSt[1](e.target.value.length); if (userChange) userChange(e); };
+    var max = props.maxLength;
+    var showCount = max != null && props.counter !== false;
+    return h(Field, { id: id, label: props.label, hint: props.hint, error: props.error, optional: props.optional, disabled: props.disabled, fullWidth: props.fullWidth, className: props.className },
+      h('div', { className: cx('bnk-input', 'bnk-input--textarea', props.readOnly && 'is-readonly') },
+        h('textarea', rest),
+        showCount ? h('span', { className: cx('bnk-textarea__count', len >= max * 0.9 && 'is-near'), 'aria-live': len >= max * 0.9 ? 'polite' : 'off' },
+          fmt(len, 0) + ' / ' + fmt(max, 0)) : null));
+  });
+  Textarea.displayName = 'Textarea';
+
   /* Select — native Auswahl im Stil der Felder. options: [{ value, label, disabled }] oder <option>-Kinder. */
   var Select = React.forwardRef(function Select(props, ref) {
     var id = useFieldId(props.id);
@@ -3680,6 +3704,7 @@
   window.Bankiersgruen.StockRow = StockRow;
   window.Bankiersgruen.Input = Input;
   window.Bankiersgruen.Select = Select;
+  window.Bankiersgruen.Textarea = Textarea;
   window.Bankiersgruen.SegmentedControl = SegmentedControl;
   window.Bankiersgruen.DataTable = DataTable;
   window.Bankiersgruen.AppHeader = AppHeader;

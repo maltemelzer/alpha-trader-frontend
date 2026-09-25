@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { DS } from '../ds';
 import { htmlToText, textToHtml } from '../lib/html';
 
@@ -10,7 +10,7 @@ export interface AllianceFormValue {
 
 /**
  * Found or edit an alliance: name, description (plain text, sent as HTML) and an optional logo URL.
- * The description field reuses the DS field classes until the design system has a textarea.
+ * The description is a DS Textarea with a character counter (limit 2.000).
  */
 export function AllianceForm({
   initial,
@@ -27,7 +27,6 @@ export function AllianceForm({
   onSubmit: (v: AllianceFormValue) => void;
   onCancel: () => void;
 }) {
-  const id = useId();
   const [name, setName] = useState(initial?.name ?? '');
   const [description, setDescription] = useState(initial?.description ? htmlToText(initial.description) : '');
   const [logoUrl, setLogoUrl] = useState(initial?.logoUrl ?? '');
@@ -42,22 +41,14 @@ export function AllianceForm({
       }}
     >
       <DS.Input label="Name" value={name} maxLength={50} onChange={(e) => setName(e.target.value)} hint="Mindestens 3 Zeichen" />
-      <div className="bnk-field bnk-field--full">
-        <label className="bnk-field__label" htmlFor={id}>
-          Beschreibung
-        </label>
-        <div className="bnk-input alliance-form__area">
-          <textarea
-            id={id}
-            className="bnk-input__control"
-            rows={6}
-            maxLength={2000}
-            value={description}
-            placeholder="Wofür steht eure Allianz? Wen sucht ihr?"
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-      </div>
+      <DS.Textarea
+        label="Beschreibung"
+        rows={6}
+        maxLength={2000}
+        value={description}
+        placeholder="Wofür steht eure Allianz? Wen sucht ihr?"
+        onChange={(e) => setDescription(e.target.value)}
+      />
       <DS.Input
         label="Logo-Adresse"
         optional
