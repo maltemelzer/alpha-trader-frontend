@@ -1,4 +1,5 @@
-import type { PortfolioView } from '../api/types';
+import type { HistorizedListingDataView, PortfolioView } from '../api/types';
+import { afterRebase } from '../security/derive';
 import type { Suggestion } from '../../vendor/bankiersgruen';
 
 /**
@@ -28,4 +29,23 @@ export function suggestionHref(s: Suggestion): string {
     default:
       return asin ? `/wertpapier/${asin}` : '/markt';
   }
+}
+
+/**
+ * Sparkline of an own index: the last `days` daily closes after the latest chaining (indexes jump
+ * from the base value to the real value), with the change over that stretch in %.
+ */
+export function indexTrend(history: HistorizedListingDataView[] | undefined, days = 14): { spark: number[]; change?: number } {
+  const closes = afterRebase(
+    (history ?? []).map((d) => d.closePrice ?? 0).filter((v) => v > 0),
+    (v) => v,
+  ).slice(-days);
+  const first = closes[0];
+  const last = closes[closes.length - 1];
+  return { spark: closes, change: closes.length > 1 && first ? (last / first - 1) * 100 : undefined };
+}
+
+/** ETFs (of the player) that track the index – they lose their base index when it is deleted. */
+export function etfsTracking<T extends { baseIndexAsin?: string }>(etfs: T[] | undefined, indexAsin: string): T[] {
+  return (etfs ?? []).filter((e) => e.baseIndexAsin === indexAsin);
 }

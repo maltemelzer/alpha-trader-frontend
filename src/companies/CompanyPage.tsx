@@ -22,6 +22,7 @@ import { developmentChart } from './charts';
 import { ManagePanel } from './ManagePanel';
 import { CeoPollButton } from './CeoPanels';
 import { MarketMakerFacts } from './Sponsorships';
+import { QuotePanel } from './QuotePanel';
 import { reserveIncome } from '../centralbank/derive';
 import './CompanyPage.css';
 
@@ -59,6 +60,9 @@ export function CompanyPage() {
   const caps = c?.companyCapabilities;
   const open = unclaimed.data ?? [];
   const tab = params.get('ansicht') ?? 'entwicklung';
+  // ?quote=ASIN: the CEO of a designated sponsor quotes one of its sponsored listings.
+  const quoteAsin = params.get('quote');
+  const quoting = isCeo && quoteAsin ? c?.sponsoredListings?.find((s) => s.listing.securityIdentifier === quoteAsin) : undefined;
 
   const items = [
     {
@@ -125,7 +129,23 @@ export function CompanyPage() {
             value: 'marketmaker',
             label: 'Market Maker',
             count: (c.designatedSponsors?.length ?? 0) + (c.sponsoredListings?.length ?? 0) || undefined,
-            content: <MarketMakerFacts company={c} isCeo={isCeo} />,
+            content: quoting ? (
+              <div className="company__pad">
+                <QuotePanel
+                  key={quoting.listing.securityIdentifier}
+                  sponsorship={quoting}
+                  owner={c.securitiesAccountId}
+                  onBack={() => setParams({ ansicht: 'marketmaker' }, { replace: true })}
+                  onDone={setDone}
+                />
+              </div>
+            ) : (
+              <MarketMakerFacts
+                company={c}
+                isCeo={isCeo}
+                onQuote={(s) => setParams({ ansicht: 'marketmaker', quote: s.listing.securityIdentifier }, { replace: true })}
+              />
+            ),
           },
         ]
       : []),

@@ -6,6 +6,7 @@ import {
   useEmpireShares,
   useMe,
   useMyCompanies,
+  useMyIndexes,
   useOrderLogs,
   usePortfolio,
   useSuggestions,
@@ -15,6 +16,7 @@ import {
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { OpenOrders } from '../orders/OpenOrders';
 import { suggestionHref } from './derive';
+import { MyIndexes } from './MyIndexes';
 import { translate } from '../lib/messages';
 import type { PortfolioView } from '../../vendor/bankiersgruen';
 import './OrganisationPage.css';
@@ -45,6 +47,7 @@ export function OrganisationPage() {
   const shares = useEmpireShares();
   const takeovers = useTakeovers();
   const ceo = useMyCompanies(me.data?.id);
+  const myIndexes = useMyIndexes();
 
   const positions = useMemo(() => portfolio.data?.positions ?? [], [portfolio.data]);
   const names = useMemo(
@@ -122,6 +125,15 @@ export function OrganisationPage() {
         />
       ),
     },
+    indizes: {
+      label: 'Indizes',
+      count: myIndexes.data?.length || undefined,
+      content: (
+        <div className="org-pad">
+          <MyIndexes />
+        </div>
+      ),
+    },
     beteiligungen: {
       label: 'Beteiligungen',
       content: (
@@ -149,8 +161,8 @@ export function OrganisationPage() {
   const tabItems = (keys: Key[]) => keys.map((k) => ({ value: k, ...tabs[k] }));
   const leftKeys: Key[] = isWide
     ? ['positionen', 'orders', 'trades']
-    : ['uebersicht', 'positionen', 'orders', 'trades', 'vorschlaege', 'unternehmen', 'beteiligungen', 'uebernahmen'];
-  const rightKeys: Key[] = ['unternehmen', 'beteiligungen', 'uebernahmen'];
+    : ['uebersicht', 'positionen', 'orders', 'trades', 'vorschlaege', 'unternehmen', 'indizes', 'beteiligungen', 'uebernahmen'];
+  const rightKeys: Key[] = ['unternehmen', 'indizes', 'beteiligungen', 'uebernahmen'];
   const pick = (keys: Key[], param: string) => {
     const v = params.get(param) as Key | null;
     return v && keys.includes(v) ? v : keys[0];

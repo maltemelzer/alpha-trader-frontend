@@ -124,5 +124,7 @@ describe('sponsoring helpers', () => {
     expect(sponsorEligibility({ ...base, stake: 10, policy: 'CLOSED' }).reasons).toEqual(['Der Emittent lässt keine Market Maker zu.']);
     expect(sponsorEligibility({ ...base, stake: 10, sponsored: [sponsorship('c1', 'STX')] }).ok).toBe(false);
     expect(sponsorEligibility({ ...base, stake: undefined }).ok).toBe(false);
+    expect(sponsorEligibility({ ...base, stake: 10, type: 'ETF' }).reasons).toEqual(['Für Indizes und ETFs gibt es keine Market Maker.']);
+    expect(sponsorEligibility({ ...base, stake: 10, type: 'STOCK' }).ok).toBe(true);
   });
 });

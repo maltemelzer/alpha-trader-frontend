@@ -190,7 +190,14 @@ export function ManagePanel({ company: c }: { company: CompanyProfile }) {
       break;
     }
     case 'marketmaker':
-      form = <MarketMakerManage company={c} onDone={setDone} />;
+      form = (
+        <MarketMakerManage
+          company={c}
+          onDone={setDone}
+          // quotes live in the tab „Market Maker“, next to the mandates
+          onQuote={(s) => setParams({ ansicht: 'marketmaker', quote: s.listing.securityIdentifier }, { replace: true })}
+        />
+      );
       break;
     case 'gehalt':
       form = <SalaryPanel company={c} onDone={setDone} />;

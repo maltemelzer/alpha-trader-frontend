@@ -236,6 +236,10 @@
   font-size: 13px;
 }
 
+.mm-row--two {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+
 /* CEO: logo and salary */
 .ceo-logo,
 .ceo-salary {

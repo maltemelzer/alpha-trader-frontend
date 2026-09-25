@@ -49,11 +49,14 @@ export function SponsorshipRows({
   side,
   onEnd,
   endLabel,
+  onQuote,
 }: {
   items: Sponsorship[];
   side: 'sponsor' | 'listing';
   onEnd?: (s: Sponsorship) => void;
   endLabel?: string;
+  /** the sponsor's CEO: open the quote form for this listing */
+  onQuote?: (s: Sponsorship) => void;
 }) {
   return (
     <ul className="mm-list">
@@ -61,7 +64,7 @@ export function SponsorshipRows({
         const key = `${s.designatedSponsor.id}-${s.listing.securityIdentifier}`;
         const rating = s.sponsorRating?.value;
         return (
-          <li key={key} className="mm-row">
+          <li key={key} className={onQuote && onEnd ? 'mm-row mm-row--two' : 'mm-row'}>
             {/* name and meta line form one link, so the tap target is the whole cell */}
             {side === 'sponsor' ? (
               <a
@@ -87,6 +90,11 @@ export function SponsorshipRows({
                 <span className="num">{volumeRateText(s.sponsorRating?.dailyVolumeRate)}</span> / Tag
               </span>
             </span>
+            {onQuote && (
+              <DS.Button size="sm" onClick={() => onQuote(s)}>
+                Quote
+              </DS.Button>
+            )}
             {onEnd && (
               <DS.Button size="sm" variant="ghost" onClick={() => onEnd(s)}>
                 {endLabel ?? 'Beenden'}
@@ -103,7 +111,15 @@ export function SponsorshipRows({
  * Tab „Market Maker“ on the company page, for everyone: who quotes this share as designated
  * sponsor and which securities this company quotes. The CEO manages it under „Führen“.
  */
-export function MarketMakerFacts({ company: c, isCeo }: { company: CompanyProfile; isCeo: boolean }) {
+export function MarketMakerFacts({
+  company: c,
+  isCeo,
+  onQuote,
+}: {
+  company: CompanyProfile;
+  isCeo: boolean;
+  onQuote?: (s: Sponsorship) => void;
+}) {
   const sponsors = c.designatedSponsors ?? [];
   const sponsored = c.sponsoredListings ?? [];
   const open = c.marketMakerPolicy !== 'CLOSED';
@@ -131,7 +147,7 @@ export function MarketMakerFacts({ company: c, isCeo }: { company: CompanyProfil
           </h3>
           <p className="company__note">Wertpapiere, für die dieses Unternehmen Kurse stellt.</p>
           {sponsored.length ? (
-            <SponsorshipRows items={sponsored} side="listing" />
+            <SponsorshipRows items={sponsored} side="listing" onQuote={isCeo ? onQuote : undefined} />
           ) : (
             <DS.EmptyState compact as="h4" title="Keine Mandate">
               Das Unternehmen ist für kein Wertpapier Designated Sponsor.
@@ -154,7 +170,15 @@ export function MarketMakerFacts({ company: c, isCeo }: { company: CompanyProfil
 type Pending = { kind: 'end'; s: Sponsorship; asIssuer: boolean } | { kind: 'start'; asin: string; name: string } | null;
 
 /** „Führen → Market Maker“: policy, remove sponsors of the own share, end or take up mandates. */
-export function MarketMakerManage({ company: c, onDone }: { company: CompanyProfile; onDone: (msg: string) => void }) {
+export function MarketMakerManage({
+  company: c,
+  onDone,
+  onQuote,
+}: {
+  company: CompanyProfile;
+  onDone: (msg: string) => void;
+  onQuote?: (s: Sponsorship) => void;
+}) {
   const policyWrite = useCompanyWrite();
   const write = useCompanyWrite();
   const [pending, setPending] = useState<Pending>(null);
@@ -220,7 +244,13 @@ export function MarketMakerManage({ company: c, onDone }: { company: CompanyProf
           Mandate deines Unternehmens
         </h3>
         {sponsored.length ? (
-          <SponsorshipRows items={sponsored} side="listing" endLabel="Beenden" onEnd={(s) => setPending({ kind: 'end', s, asIssuer: false })} />
+          <SponsorshipRows
+            items={sponsored}
+            side="listing"
+            endLabel="Beenden"
+            onEnd={(s) => setPending({ kind: 'end', s, asIssuer: false })}
+            onQuote={onQuote}
+          />
         ) : (
           <p className="company__note">Noch keine.</p>
         )}
@@ -276,6 +306,7 @@ function NewMandate({ company: c, onPick }: { company: CompanyProfile; onPick: (
         stake,
         policy: profile.data?.company?.marketMakerPolicy,
         sponsored: c.sponsoredListings ?? [],
+        type: profile.data?.type,
       })
     : null;
   const results = (search.data?.content ?? [])
