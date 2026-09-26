@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import {
@@ -46,6 +46,7 @@ import {
   type Bid,
 } from './tender';
 import { bookChart, effectChart, tenderHistoryChart } from './tenderCharts';
+import { MiniStats, Option, OptionsButton, useEdgeFade } from '../app/phone';
 
 const NBSP = String.fromCharCode(0xa0);
 const DAY = 86_400_000;
@@ -119,20 +120,46 @@ export function AssumeControl() {
 }
 
 /**
- * Phone: the tender tab with two views – „Dein Gebot“ (simulator and bid) and „Verlauf“ (history and the
- * book). Wide screens show the same two parts side by side (see CentralBankPage).
+ * Phone: the tender tab with two views – „Dein Gebot“ (simulator, bid in a bar at the bottom) and „Verlauf“
+ * (history and the book). The switch and an „Optionen“ button (which other bids the projection assumes, the
+ * history range) share the card's head, so the content gets the rest. Wide screens show both parts side by side.
  */
 export function TenderPhone() {
   const [view, setView] = useParamState('tender', 'wirkung', PHONE_VIEWS);
+  const [assume, setAssume] = useParamState('annahme', 'buch', ASSUME);
+  const [range, setRange] = useParamState('verlauf', '30T', RANGES);
+  const [open, setOpen] = useState(false);
+  const changed = (view === 'verlauf' ? range !== '30T' : assume !== 'buch') ? 1 : 0;
   return (
-    <div className="cb__stack">
-      <DS.SegmentedControl size="sm" aria-label="Zinstender" options={PHONE_VIEWS} value={view} onChange={setView} />
+    <DS.Card flush className="panel tdr-phone">
+      <div className="tdr-phone__head">
+        <DS.SegmentedControl size="sm" fullWidth={false} aria-label="Zinstender" options={PHONE_VIEWS} value={view} onChange={setView} />
+        <OptionsButton active={changed} onClick={() => setOpen(true)} />
+      </div>
       {view === 'verlauf' ? (
-        <TenderSide phone />
+        <div className="panel__fill scroll cb__pad">
+          <TenderSide phone />
+        </div>
       ) : (
         <TenderBid phone />
       )}
-    </div>
+      <DS.Sheet open={open} onClose={() => setOpen(false)} title={view === 'verlauf' ? 'Verlauf' : 'Dein Gebot'} side="bottom">
+        <div className="ph-sheet">
+          {view === 'verlauf' ? (
+            <Option title="Zeitraum" note="Welche Tender das Diagramm und die Anteile der Bieter zeigen.">
+              <DS.SegmentedControl aria-label="Zeitraum" options={RANGES} value={range} onChange={setRange} />
+            </Option>
+          ) : (
+            <Option
+              title="Übrige Gebote"
+              note="Womit die Schätzung für den laufenden Tender rechnet: mit den Geboten, die jetzt im Buch stehen, oder so wie beim letzten Tender."
+            >
+              <DS.SegmentedControl aria-label="Übrige Gebote im laufenden Tender" options={ASSUME} value={assume} onChange={setAssume} />
+            </Option>
+          )}
+        </div>
+      </DS.Sheet>
+    </DS.Card>
   );
 }
 
@@ -151,7 +178,7 @@ export function TenderSide({ phone }: { phone?: boolean }) {
   }, [bookBids, own.orders]);
   return (
     <div className={`tdr__side${phone ? ' tdr__side--phone' : ''}`}>
-      <TenderHistory />
+      <TenderHistory phone={phone} />
       <h3 className="cb__h">Im Buch jetzt</h3>
       <div className="tdr__book" style={{ height: Math.max(1, bookRows.length) * 30 + 6 }}>
         {bookRows.length ? (
@@ -223,8 +250,9 @@ export function TenderBid({ phone }: { phone?: boolean }) {
   const money = bidMoney(simPrice, simShares);
   const error = bidError(price, shares, bank ? { maxShares, cash: bank.cash } : {});
 
-  if (tender.isLoading || allotments.isLoading) return <DS.Loading rows={6} />;
-  if (!tender.data) return <DS.EmptyState compact as="h3" title="Gerade kein Zinstender" />;
+  const wrap = (node: ReactNode) => (phone ? <div className="panel__fill scroll cb__pad">{node}</div> : node);
+  if (tender.isLoading || allotments.isLoading) return wrap(<DS.Loading rows={6} />);
+  if (!tender.data) return wrap(<DS.EmptyState compact as="h3" title="Gerade kein Zinstender" />);
   const setPrice = (n: number) => setPriceRaw(priceText(Math.round(n * 100) / 100));
   const setShares = (n: number) => setSharesRaw(Math.round(n).toLocaleString('de-DE'));
   const delta = withMe && without ? withMe.main - without.main : 0;
@@ -237,7 +265,40 @@ export function TenderBid({ phone }: { phone?: boolean }) {
     </span>
   );
 
-  return (
+  const act = (
+    <div className="tdr__act">
+      {banksLoading ? (
+        <DS.Skeleton variant="text" />
+      ) : bank ? (
+        <>
+          {banks.length > 1 && (
+            <DS.Select
+              size="sm"
+              fullWidth={false}
+              aria-label="Bietende Bank"
+              value={bank.id}
+              options={banks.map((b) => ({ value: b.id, label: b.name }))}
+              onChange={(e) => setBankId(e.target.value)}
+            />
+          )}
+          <DS.Button variant="primary" disabled={ended || !!error} onClick={() => setConfirm(true)}>
+            Gebot abgeben …
+          </DS.Button>
+          <span className="cb__note">{error ?? `${bank.name} · Rahmen ${maxShares != null ? short(maxShares) : '–'}${NBSP}Stk.`}</span>
+        </>
+      ) : (
+        <span className="cb__note tdr__lock">
+          <DS.Icon name="bank" size={16} />
+          <span>
+            {phone ? 'Bieten können nur Banken.' : 'Bieten können nur Banken – du führst keine.'} <a href="/unternehmen">Unternehmen</a>
+          </span>
+        </span>
+      )}
+      {meta}
+    </div>
+  );
+
+  const body = (
     <div className="tdr">
       <div className="tdr__controls">
         <DS.Input
@@ -299,6 +360,24 @@ export function TenderBid({ phone }: { phone?: boolean }) {
           )}
         </div>
       </div>
+      {phone && (
+        <MiniStats
+          label="Zinsen nach dem Tender mit deinem Gebot"
+          items={[
+            {
+              label: 'Leitzins',
+              value: withMe ? pct(withMe.main) : '–',
+              hint: withMe && without ? `du ${delta > 0 ? '▲ ' : delta < 0 ? '▼ ' : ''}${signedRate(delta, 2, 'Pp.')}` : NBSP,
+            },
+            { label: 'Einlage / Tag', value: withMe ? pct(withMe.reserve) : '–', hint: withMe ? `Systemanl. ${pct(withMe.system)}` : NBSP },
+            {
+              label: 'Für dich',
+              value: simShares ? <DS.Amount value={money.result} signed compact /> : '–',
+              hint: simShares ? `Einsatz ${short(money.cost)}${NBSP}€` : NBSP,
+            },
+          ]}
+        />
+      )}
       <div className="tdr__effect">
         {without ? (
           <Plot
@@ -322,56 +401,25 @@ export function TenderBid({ phone }: { phone?: boolean }) {
           <DS.EmptyState compact as="h3" title="Keine Tenderdaten" />
         )}
       </div>
-      {phone && (
-        <div className="tdr__assume">
-          <span className="cb__note">Übrige Gebote:</span>
-          <AssumeControl />
-        </div>
+      {!phone && (
+        <DS.StatGroup className="tdr__tiles" columns="repeat(4, minmax(0, 1fr))" aria-label="Zinsen nach dem Tender mit deinem Gebot">
+          <DS.StatTile
+            label="Leitzins"
+            value={withMe ? pct(withMe.main) : '–'}
+            hint={withMe && without ? `du: ${delta > 0 ? '▲ ' : delta < 0 ? '▼ ' : ''}${signedRate(delta, 2, 'Pp.')}` : NBSP}
+          />
+          <DS.StatTile label="Einlage / Tag" value={withMe ? pct(withMe.reserve) : '–'} hint={`jetzt ${pct(main.data?.reserveInterestRate)}`} />
+          <DS.StatTile label="Systemanleihe" value={withMe ? pct(withMe.system) : '–'} hint={`jetzt ${pct(main.data ? main.data.value + 1 : undefined)}`} />
+          <DS.StatTile
+            label="Für dich"
+            value={simShares ? money.result : '–'}
+            signed
+            compact
+            hint={simShares ? `Einsatz ${short(money.cost)}${NBSP}€` : NBSP}
+          />
+        </DS.StatGroup>
       )}
-      <DS.StatGroup className="tdr__tiles" columns="repeat(4, minmax(0, 1fr))" aria-label="Zinsen nach dem Tender mit deinem Gebot">
-        <DS.StatTile
-          label="Leitzins"
-          value={withMe ? pct(withMe.main) : '–'}
-          hint={withMe && without ? `du: ${delta > 0 ? '▲ ' : delta < 0 ? '▼ ' : ''}${signedRate(delta, 2, 'Pp.')}` : NBSP}
-        />
-        <DS.StatTile label="Einlage / Tag" value={withMe ? pct(withMe.reserve) : '–'} hint={`jetzt ${pct(main.data?.reserveInterestRate)}`} />
-        <DS.StatTile label="Systemanleihe" value={withMe ? pct(withMe.system) : '–'} hint={`jetzt ${pct(main.data ? main.data.value + 1 : undefined)}`} />
-        <DS.StatTile
-          label="Für dich"
-          value={simShares ? money.result : '–'}
-          signed
-          compact
-          hint={simShares ? `Einsatz ${short(money.cost)}${NBSP}€` : NBSP}
-        />
-      </DS.StatGroup>
-      <div className="tdr__act">
-        {banksLoading ? (
-          <DS.Skeleton variant="text" />
-        ) : bank ? (
-          <>
-            {banks.length > 1 && (
-              <DS.Select
-                size="sm"
-                fullWidth={false}
-                aria-label="Bietende Bank"
-                value={bank.id}
-                options={banks.map((b) => ({ value: b.id, label: b.name }))}
-                onChange={(e) => setBankId(e.target.value)}
-              />
-            )}
-            <DS.Button variant="primary" disabled={ended || !!error} onClick={() => setConfirm(true)}>
-              Gebot abgeben …
-            </DS.Button>
-            <span className="cb__note">{error ?? `${bank.name} · Rahmen ${maxShares != null ? short(maxShares) : '–'}${NBSP}Stk.`}</span>
-          </>
-        ) : (
-          <span className="cb__note tdr__lock">
-            <DS.Icon name="bank" size={16} /> Bieten können nur Banken – du führst keine.
-            <a href="/unternehmen">Unternehmen</a>
-          </span>
-        )}
-        {meta}
-      </div>
+      {!phone && act}
       {own.orders.length > 0 && <OwnBids orders={own.orders} banks={banks} />}
       {bank && (
         <BidDialog
@@ -386,6 +434,14 @@ export function TenderBid({ phone }: { phone?: boolean }) {
         />
       )}
     </div>
+  );
+  if (!phone) return body;
+  // Phone: the bid (or why there is none) stays in a bar at the bottom, the simulator scrolls above it.
+  return (
+    <>
+      {wrap(body)}
+      <div className="cb-bar tdr__bar">{act}</div>
+    </>
   );
 }
 
@@ -519,7 +575,7 @@ export function BidDialog({
  * (up = raises the rate, down = lowers it). The bidder chips are legend and filter at once: a chosen
  * bidder stays coloured and a dashed line shows the rate without them.
  */
-export function TenderHistory() {
+export function TenderHistory({ phone }: { phone?: boolean }) {
   const { trades, tenders, allotments } = useTenderData();
   const history = useInterestHistory(1000);
   const { banks } = useMyBanks();
@@ -537,6 +593,8 @@ export function TenderHistory() {
   );
   const lastWithout = without?.at(-1)?.without;
   const current = trades.length ? rateAt(trades, trades[trades.length - 1].date) : undefined;
+  const legend = useRef<HTMLDivElement>(null);
+  useEdgeFade(legend, undefined, undefined, shares.length);
 
   if (allotments.isLoading || history.isLoading)
     return (
@@ -548,7 +606,7 @@ export function TenderHistory() {
   if (!tenders.length) return <DS.EmptyState compact as="h3" title="Keine Tenderergebnisse" />;
   return (
     <div className="tdr__hist">
-      <div className="tdr__legend" role="group" aria-label="Bieter hervorheben">
+      <div ref={legend} className="tdr__legend ph-fade" role="group" aria-label="Bieter hervorheben">
         {shares.slice(0, 6).map((s) => (
           <button
             key={s.bidder}
@@ -576,7 +634,7 @@ export function TenderHistory() {
           </>
         )}
       </p>
-        <DS.SegmentedControl size="sm" fullWidth={false} aria-label="Zeitraum" options={RANGES} value={range} onChange={setRange} />
+        {!phone && <DS.SegmentedControl size="sm" fullWidth={false} aria-label="Zeitraum" options={RANGES} value={range} onChange={setRange} />}
       </div>
       <div className="tdr__histchart">
         <Plot

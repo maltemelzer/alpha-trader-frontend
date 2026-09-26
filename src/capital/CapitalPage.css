@@ -35,30 +35,180 @@
   color: var(--text-primary);
 }
 
-@media (max-width: 719px) {
+/* ---------- Phone ---------- */
+
+/* One card scrolls as a whole: chart first, then the rows. */
+.capital__scroll {
+  padding: 0;
+}
+
+.capital__phonechart {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.capital__h {
+  margin: 0 0 var(--space-2);
+  font: 600 12px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.capital__plot {
+  position: relative;
+  height: 220px;
+}
+
+.capital__plot > * {
+  height: 100%;
+}
+
+.capital__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Name + meta left, amount + when right; the name's link covers the whole row. */
+.capital__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-template-areas:
+    'name value'
+    'meta when';
+  gap: 2px var(--space-3);
+  align-items: baseline;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--hairline) solid var(--line);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.capital__rowlink {
+  position: absolute;
+  inset: 0;
+}
+
+.capital__rowlink:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: -2px;
+}
+
+.capital__rowname {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.capital__rowmeta {
+  grid-area: meta;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.capital__rowmeta .bnk-status {
+  display: inline-flex;
+  vertical-align: baseline;
+}
+
+.capital__rowval {
+  grid-area: value;
+  justify-self: end;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.capital__rowwhen {
+  grid-area: when;
+  justify-self: end;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.capital__listhead {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--hairline) solid var(--line);
+  color: var(--text-secondary);
+  font: 600 11px/16px var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.capital__empty {
+  margin: 0;
+  padding: var(--space-4);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* The acquirer link and amounts with tooltips sit above the row link. */
+.capital__row .capital__link,
+.capital__row .bnk-amount {
+  position: relative;
+  z-index: 1;
+}
+
+/* Acquirer link: 44 px tall tap target without making the row taller. */
+.capital__row .capital__link {
+  display: inline-block;
+  padding: 14px 0;
+  margin: -14px 0;
+}
+
+@media (max-width: 719.98px) {
   .capital .bnk-ph__meta {
     display: none;
   }
+  /* Switch, one row of key figures, then one card with chart + list. */
   .capital__body {
-    grid-template-rows: auto 200px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     gap: var(--space-3);
   }
   .capital__body--seg {
-    grid-template-rows: auto auto 230px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
+  /* The count needs the least room, the labels on the right the most („Herabsetzungen“). */
   .capital .bnk-statgrp {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.1fr) !important;
   }
-  .capital .bnk-stat {
-    padding: var(--space-2) var(--space-2);
+  .capital .bnk-statgrp > .bnk-stat {
+    padding: var(--space-2) var(--space-2) var(--space-2) 0;
+    gap: 2px;
+    border-top: 0;
+  }
+  .capital .bnk-statgrp > .bnk-stat + .bnk-stat {
+    padding-left: var(--space-2);
+    border-left: var(--hairline) solid var(--line);
   }
   .capital .bnk-stat__value {
-    font-size: 15px;
+    font-size: 16px;
+    line-height: 22px;
   }
   .capital .bnk-stat__label {
-    font-size: 10px;
+    font-size: 11px;
+    line-height: 14px;
+    letter-spacing: 0.04em;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .capital .bnk-stat__hint {
     display: none;

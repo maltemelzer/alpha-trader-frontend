@@ -27,10 +27,12 @@ export function plBarsChart(t: Theme, w: number, bars: PlBar[]) {
     const pct = b.pct == null || narrow ? '' : ` · ${changeShort(b.pct).replace(/^[▲▼±]\s?/, '')}`;
     return `${arrow} ${signed(b.pl)}${pct}`.trim();
   };
-  const tick = (b: PlBar) => (b.date ? `${clip(b.label, narrow ? 11 : 20)} · ${b.date}` : clip(b.label, narrow ? 14 : 24));
+  // Phone: short names without the date (it stays in the tooltip), so the amounts on both sides fit.
+  const tick = (b: PlBar) => (narrow ? clip(b.label, 11) : b.date ? `${clip(b.label, 20)} · ${b.date}` : clip(b.label, 24));
   const range = plRange(
     bars.map((b) => ({ value: len(b), chars: text(b).length })),
-    w - Math.max(0, ...bars.map((b) => tick(b).length)) * 6.5 - 16,
+    w - Math.max(0, ...bars.map((b) => tick(b).length)) * (narrow ? 7 : 6.5) - 16,
+    narrow ? 1 / 5 : 1 / 3,
   );
   return {
     data: [
@@ -82,7 +84,7 @@ const CHAR_PX = 6.8;
  * x-range for diverging bars whose text stands outside the bar: each side gets exactly the room
  * its longest bar plus text needs within `plotPx` (the width left of the category labels).
  */
-export function plRange(bars: { value: number; chars: number }[], plotPx: number): [number, number] {
+export function plRange(bars: { value: number; chars: number }[], plotPx: number, minShare = 1 / 3): [number, number] {
   const pos = bars.filter((b) => b.value > 0);
   const neg = bars.filter((b) => b.value < 0);
   const maxR = Math.max(0, ...pos.map((b) => b.value));
@@ -90,8 +92,8 @@ export function plRange(bars: { value: number; chars: number }[], plotPx: number
   const textR = Math.max(0, ...pos.map((b) => b.chars)) * CHAR_PX;
   const textL = Math.max(0, ...neg.map((b) => b.chars)) * CHAR_PX;
   const span = maxR + maxL || 1;
-  // px per unit, keeping at least a third of the plot for the bars themselves
-  const scale = Math.max(plotPx - textR - textL, plotPx / 3) / span;
+  // px per unit, keeping at least a share (a third) of the plot for the bars themselves
+  const scale = Math.max(plotPx - textR - textL, plotPx * minShare) / span;
   const lo = maxL ? -(maxL + textL / scale) : -span * 0.02;
   const hi = maxR ? maxR + textR / scale : span * 0.02;
   return [lo, hi];

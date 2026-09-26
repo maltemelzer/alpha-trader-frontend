@@ -134,15 +134,13 @@
 }
 
 @media (max-width: 719.98px) {
+  /* Phone: views (one row) + the view. „Zinsen“ adds one compact row of rates above the chart. */
   .cb__body {
     grid-template-rows: auto minmax(0, 1fr);
     gap: var(--space-3);
   }
-  .cb--phone .cb__body:has(> .bnk-statgrp) {
+  .cb--phone .cb__body--stats {
     grid-template-rows: auto auto minmax(0, 1fr);
-  }
-  .cb .bnk-statgrp {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
   .cb__rules {
     grid-template-columns: minmax(0, 1fr);
@@ -150,6 +148,22 @@
   .cb__rules dd {
     margin-bottom: var(--space-2);
   }
+  .cb--phone .cb__chart {
+    min-height: 280px;
+  }
+  .cb__meta {
+    white-space: nowrap;
+  }
+}
+
+/* Phone: action bar at the bottom of a card (thumb zone) – stays while the card scrolls. */
+.cb-bar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--hairline) solid var(--line);
 }
 
 /* ---------- Zinstender ---------- */
@@ -300,8 +314,37 @@
   min-height: 0;
 }
 
+/* Phone „Verlauf“: the history fills the card (chart ≥ 280 px), the book follows below. */
 .tdr__side--phone {
-  height: 600px;
+  height: auto;
+  min-height: 100%;
+}
+
+.tdr__side--phone .tdr__histchart {
+  min-height: 280px;
+}
+
+/* Phone tender card: switch + options in the head, simulator scrolls, bid bar at the bottom. */
+.tdr-phone__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.tdr__bar .tdr__act {
+  min-height: 0;
+}
+
+.tdr__bar .tdr__act > .bnk-btn {
+  flex: 1 1 160px;
+}
+
+.tdr__bar .tdr__meta {
+  margin-left: auto;
 }
 
 .tdr__book {
@@ -417,7 +460,7 @@
   }
 }
 
-@container (max-width: 320px) {
+@container (max-width: 260px) {
   .tdr__controls {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: 'price' 'shares' 'slider' 'quick';
@@ -440,8 +483,8 @@
     position: relative;
   }
   .tdr__effect {
-    flex: none;
-    height: 220px;
+    flex: 1 0 260px;
+    min-height: 260px;
   }
 }
 
@@ -474,4 +517,42 @@
 
 .tdr-credit__row > .bnk-btn {
   margin-top: 20px;
+}
+
+/* Notes with an icon in the phone bars: icon beside the text, not above it. */
+.cb-bar .tdr__lock {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.cb-bar .tdr__lock > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+@media (max-width: 719.98px) {
+  .cb--phone .cb__due {
+    height: 240px;
+  }
+}
+
+@media (max-width: 380px) {
+  .cb--phone .cb__pad {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+}
+
+.tdr__chip {
+  overflow: hidden;
+}
+
+@media (max-width: 719.98px) {
+  /* Small text links (bars, credit list): 44 px tall tap targets without taller lines. */
+  .tdr__bar a,
+  .cb__credit a {
+    display: inline-block;
+    padding: 12px 0;
+    margin: -12px 0;
+  }
 }

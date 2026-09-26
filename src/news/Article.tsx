@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DS } from '../ds';
 import { useComments, useCreateComment, useLikes, useNewsPost, usePostInterest, useReact } from '../api/queries';
 import { htmlToText, textToHtml } from '../lib/html';
+import { useIsPhone } from '../lib/useMediaQuery';
 import { ReportDialog, type ReportTarget } from '../forum/ReportDialog';
 import { FollowControl } from './FollowControl';
 import { interestParts, myReaction, newsHref, replyTitle } from './derive';
@@ -19,6 +20,8 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
   const react = useReact();
   const reply = useCreateComment();
   const [report, setReport] = useState<ReportTarget | null>(null);
+  const isPhone = useIsPhone();
+  const [writing, setWriting] = useState(false);
 
   if (post.isLoading) return <DS.Loading rows={10} label="Artikel wird geladen" />;
   if (post.isError || !post.data) return <DS.EmptyState title="Artikel nicht gefunden" />;
@@ -26,6 +29,21 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
   const asin = p.company?.securityIdentifier;
   const author = p.author?.username;
   const tags = (p.hashTags ?? []).map((t) => t.tag);
+  const editor = (
+    <>
+      <DS.ForumEditor
+        mode="reply"
+        heading={isPhone ? undefined : 'Kommentieren'}
+        submitLabel="Kommentar senden"
+        submitVariant={isPhone ? 'primary' : 'secondary'}
+        loading={reply.isPending}
+        onSubmit={(v) =>
+          reply.mutate({ postId, title: replyTitle(p.title), html: textToHtml(v.body) }, { onSuccess: () => setWriting(false) })
+        }
+      />
+      {reply.isError && <DS.Banner variant="error">Kommentar nicht gesendet: {reply.error.message}</DS.Banner>}
+    </>
+  );
 
   return (
     <article className="article">
@@ -118,15 +136,21 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
       ) : (
         <p className="article__none">Noch keine Kommentare.</p>
       )}
-      <DS.ForumEditor
-        mode="reply"
-        heading="Kommentieren"
-        submitLabel="Kommentar senden"
-        submitVariant="secondary"
-        loading={reply.isPending}
-        onSubmit={(v) => reply.mutate({ postId, title: replyTitle(p.title), html: textToHtml(v.body) })}
-      />
-      {reply.isError && <DS.Banner variant="error">Kommentar nicht gesendet: {reply.error.message}</DS.Banner>}
+      {isPhone ? (
+        <>
+          {/* Phone: commenting stays in the thumb zone while reading (sticky bar → sheet). */}
+          <div className="article__bar">
+            <DS.Button variant="primary" fullWidth onClick={() => setWriting(true)}>
+              Kommentieren
+            </DS.Button>
+          </div>
+          <DS.Sheet open={writing} onClose={() => !reply.isPending && setWriting(false)} title="Kommentieren" side="auto">
+            {editor}
+          </DS.Sheet>
+        </>
+      ) : (
+        editor
+      )}
       <ReportDialog target={report} onClose={() => setReport(null)} />
     </article>
   );

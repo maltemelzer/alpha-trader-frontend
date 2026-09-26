@@ -24,6 +24,7 @@ import {
   type LedgerRow,
 } from './bank';
 import { flowChart, inOutChart } from './bankCharts';
+import { MiniStats, Option, OptionsButton } from '../app/phone';
 import { TransferSheet, useTransferAccounts } from './TransferSheet';
 import './MePage.css';
 
@@ -58,13 +59,19 @@ const time = (ms: number) => {
 const date = (ms: number) => new Date(ms).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 /** Amount with direction: „▲ +1,2 Mio. €“, neutral colour (cash flows are no price moves). */
-function Flow({ value, compact = 'auto' }: { value: number; compact?: boolean | 'auto' }) {
+function Flow({ value, compact = 'auto' }: { value: number; compact?: boolean | 'auto' | number }) {
   return (
     <span className="bank__flow">
       {value !== 0 && <span aria-hidden="true">{value > 0 ? '▲ ' : '▼ '}</span>}
       <DS.Amount value={value} signed compact={compact} />
     </span>
   );
+}
+
+/** Phone figure: from 1 Mio. short (full value in the tooltip), from 10.000 without cents – fits a third of 360 px. */
+function Short({ value }: { value: number }) {
+  if (Math.abs(value) >= 1e6) return <DS.Amount value={value} compact />;
+  return <span title={DS.format.money(value, '€', 2)}>{DS.format.money(value, '€', Math.abs(value) >= 1e4 ? 0 : 2)}</span>;
 }
 
 /**
@@ -89,6 +96,7 @@ export function BankPage() {
   const [direction, setDirection] = useParamState('richtung', 'alle', DIRECTIONS);
   const [text, setText, search] = useUrlSearch('suche', 400, []);
   const [sending, setSending] = useState(params.get('ueberweisen') === '1');
+  const [filtering, setFiltering] = useState(false);
   const [done, setDone] = useState<string | null>(null);
 
   const now = logs.dataUpdatedAt;
@@ -290,11 +298,14 @@ export function BankPage() {
     </>
   );
 
+  const shortDate = (ms: number) => new Date(ms).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
   const source = loading
     ? '\u00a0'
     : truncated
-      ? `Letzte ${(logs.data?.content.length ?? 0).toLocaleString('de-DE')} von ${total.toLocaleString('de-DE')} Buchungen, ab ${oldest ? date(oldest) : '–'}`
-      : `${total.toLocaleString('de-DE')} Buchungen${oldest ? ` seit ${date(oldest)}` : ''}`;
+      ? isPhone
+        ? `${(logs.data?.content.length ?? 0).toLocaleString('de-DE')} von ${total.toLocaleString('de-DE')} Buchungen · ab ${oldest ? shortDate(oldest) : '–'}`
+        : `Letzte ${(logs.data?.content.length ?? 0).toLocaleString('de-DE')} von ${total.toLocaleString('de-DE')} Buchungen, ab ${oldest ? date(oldest) : '–'}`
+      : `${total.toLocaleString('de-DE')} Buchungen${oldest ? ` seit ${isPhone ? shortDate(oldest) : date(oldest)}` : ''}`;
 
   const transferButton = (
     <DS.Button variant="primary" size="sm" disabled={!accounts.length} onClick={() => setSending(true)}>
@@ -338,28 +349,148 @@ export function BankPage() {
     />
   );
 
-  if (!isWide) {
+  if (isPhone) {
+    const activeFilters = (range !== 'alle' ? 1 : 0) + (category !== 'alle' ? 1 : 0) + (direction !== 'alle' ? 1 : 0);
+    const resetFilters = () =>
+      setParams(
+        (prev) => {
+          const n = new URLSearchParams(prev);
+          n.delete('zeitraum');
+          n.delete('art');
+          n.delete('richtung');
+          return n;
+        },
+        { replace: true },
+      );
+    const miniStats = (
+      <MiniStats
+        label="Kontostand und Geldfluss"
+        items={[
+          { key: 'stand', label: 'Kontostand', value: account ? <Short value={cash} /> : <DS.Skeleton width="5em" /> },
+          { key: 'ein', label: '▲ Eingänge', value: loading ? <DS.Skeleton width="4em" /> : <Short value={sum.inflow} /> },
+          { key: 'aus', label: '▼ Ausgänge', value: loading ? <DS.Skeleton width="4em" /> : <Short value={sum.outflow} /> },
+        ]}
+      />
+    );
+    const phoneRows = loading ? (
+      <DS.Loading rows={8} />
+    ) : !listed.length ? (
+      rows.length ? <DS.EmptyState compact as="h3" title="Keine Buchung passt zum Filter" /> : empty
+    ) : (
+      <ul className="bank__rows" aria-label="Buchungen">
+        {listed.map((r) => {
+          const inner = (
+            <>
+              <span className="bank__what">
+                <span>{r.text}</span>
+                <small>
+                  <time dateTime={new Date(r.date).toISOString()}>{time(r.date)}</time> · {CATEGORY_SHORT[r.category]}
+                  {r.asin && <span className="bank__asin"> · {r.asin}</span>}
+                </small>
+              </span>
+              <span className="bank__sum">
+                <Flow value={r.amount} compact={1e5} />
+                <small>
+                  Saldo <DS.Amount value={r.balance} compact />
+                </small>
+              </span>
+            </>
+          );
+          return (
+            <li key={r.id}>
+              {r.asin ? (
+                <a className="bank__row" href={`/wertpapier/${r.asin}`}>
+                  {inner}
+                </a>
+              ) : (
+                <div className="bank__row">{inner}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    );
     const panel =
-      view === 'verlauf' ? (
-        <DS.Card className="panel" title={isPhone ? undefined : 'Kontostand und Geldfluss'} action={rangeControl}>
+      view === 'buchungen' ? (
+        <DS.Card flush className="panel bank__stmt">
+          <div className="bank__search">
+            <DS.Input aria-label="Buchungen durchsuchen" type="search" placeholder="Buchungen durchsuchen" value={text} onChange={(e) => setText(e.target.value)} />
+            <OptionsButton label="Filter" active={activeFilters} onClick={() => setFiltering(true)} />
+          </div>
+          <div className="panel__fill scroll bank__list">{phoneRows}</div>
+        </DS.Card>
+      ) : view === 'verlauf' ? (
+        <DS.Card className="panel" title="Saldo" action={rangeControl}>
           <div className="panel__fill bank__chart">{flowPanel}</div>
         </DS.Card>
       ) : (
-        <DS.Card flush className="panel" action={view !== 'buchungen' ? rangeControl : undefined} title={isPhone ? undefined : view === 'arten' ? 'Nach Art' : view === 'posten' ? 'Größte Posten' : 'Buchungen'}>
+        <DS.Card flush className="panel" title={view === 'arten' ? 'Je Art' : 'Posten'} action={rangeControl}>
+          <div className="panel__fill scroll bank__pad bank__fillpad">{view === 'arten' ? catPanel : subjectPanel}</div>
+        </DS.Card>
+      );
+    return (
+      <div className="page bank bank--phone" onClick={onLinkClick}>
+        {header}
+        <div className={`page__body bank__body${view === 'buchungen' ? ' bank__body--list' : ''}`}>
+          {view !== 'buchungen' && miniStats}
+          <DS.Tabs aria-label="Ansicht" size="sm" items={VIEWS} value={view} onChange={setView} />
+          {panel}
+          {/* Thumb zone: account and the one primary action sit right above the BottomNav */}
+          <div className="bank__dock">
+            {accountSelect}
+            <DS.Button variant="primary" fullWidth={!accountSelect} iconStart={<DS.Icon name="ueberweisung" size={16} />} disabled={!accounts.length} onClick={() => setSending(true)}>
+              Überweisen
+            </DS.Button>
+          </div>
+        </div>
+        <DS.Sheet
+          open={filtering}
+          onClose={() => setFiltering(false)}
+          title="Buchungen filtern"
+          side="bottom"
+          footer={
+            <div className="ph-sheet__foot">
+              <DS.Button variant="ghost" disabled={!activeFilters} onClick={resetFilters}>
+                Zurücksetzen
+              </DS.Button>
+              <DS.Button onClick={() => setFiltering(false)}>Fertig · {listed.length.toLocaleString('de-DE')}</DS.Button>
+            </div>
+          }
+        >
+          <div className="ph-sheet">
+            <Option title="Zeitraum">
+              <DS.SegmentedControl aria-label="Zeitraum" fullWidth options={RANGES} value={range} onChange={setRange} />
+            </Option>
+            <Option title="Art">
+              <DS.Select aria-label="Art" fullWidth value={category} options={categoryOptions} onChange={(e) => setCategory(e.target.value)} />
+            </Option>
+            <Option title="Richtung">
+              <DS.SegmentedControl aria-label="Richtung" fullWidth options={DIRECTIONS} value={direction} onChange={setDirection} />
+            </Option>
+          </div>
+        </DS.Sheet>
+        {sheet}
+        {toast}
+      </div>
+    );
+  }
+
+  if (!isWide) {
+    const panel =
+      view === 'verlauf' ? (
+        <DS.Card className="panel" title="Kontostand und Geldfluss" action={rangeControl}>
+          <div className="panel__fill bank__chart">{flowPanel}</div>
+        </DS.Card>
+      ) : (
+        <DS.Card flush className="panel" action={view !== 'buchungen' ? rangeControl : undefined} title={view === 'arten' ? 'Nach Art' : view === 'posten' ? 'Größte Posten' : 'Buchungen'}>
           {view === 'buchungen' ? statement : <div className="panel__fill scroll bank__pad bank__fillpad">{view === 'arten' ? catPanel : subjectPanel}</div>}
         </DS.Card>
       );
     return (
-      <div className={`page bank${isPhone ? ' bank--phone' : ''}`} onClick={onLinkClick}>
+      <div className="page bank" onClick={onLinkClick}>
         {header}
         <div className="page__body bank__body">
-          {isPhone && (
-            <div className="bank__bar">
-              {accountSelect}
-              {transferButton}
-            </div>
-          )}
-          {(!isPhone || view === 'verlauf') && stats}
+          {stats}
           <DS.Tabs aria-label="Ansicht" size="sm" items={VIEWS} value={view} onChange={setView} />
           {panel}
         </div>

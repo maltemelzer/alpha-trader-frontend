@@ -28,21 +28,130 @@
   width: 380px;
 }
 
+/* Single column that never grows with wide content (scrolling chip rows, long titles). */
+.forum {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Phone: one control row – [views][🔍] on /forum, [Abonnieren][🔍][Neues Thema] in a board;
+   the search icon swaps the row for the field (PhoneSearch). */
 @media (max-width: 719.98px) {
   .forum .bnk-ph__actions {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
   }
 
   .forum .bnk-ph__actions > .forum__views {
     width: auto;
-    flex: 1 1 100%;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
-  /* Board: [Abonnieren] [Neues Thema] in one row, search below */
-  .forum .bnk-ph__actions > .bnk-field {
-    order: 1;
-    flex: 1 1 100%;
+  .forum .bnk-ph__actions > .bnk-btn:not(.psearch__icon) {
+    flex: 1 1 0;
+    min-width: 0;
   }
+
+  .forum__meta {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .forum__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+    font-weight: 600;
+    min-width: 0;
+    max-width: 75%;
+    flex: 0 1 auto;
+  }
+
+  .forum__count {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* „‹“ up to the parent board: 44 px tap area without growing the meta line */
+  .forum .forum__up {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    margin: -14px -8px -14px -16px;
+    padding: 14px 0;
+    color: var(--text-primary);
+    font-size: 24px;
+    line-height: 16px;
+    text-decoration: none;
+  }
+
+  /* description: two lines, the rest belongs to the threads */
+  .forum__desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    padding: var(--space-2) var(--space-4);
+    font-size: 13px;
+    line-height: 18px;
+    white-space: normal;
+  }
+
+  /* thread: the reply bar sits under the card, above the bottom nav */
+  .forum--thread {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .forum--thread > .forum__thread {
+    grid-row: auto;
+  }
+}
+
+.forum__replybar .bnk-btn {
+  min-height: 44px;
+}
+
+.forum__subchips {
+  position: relative;
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--hairline) solid var(--line);
+  scrollbar-width: none;
+}
+
+.forum__subchip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  max-width: 220px;
+  padding: 0 var(--space-3);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.forum__subchipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.forum__subchipCount {
+  color: var(--text-secondary);
+  font: 400 12px/16px var(--font-mono);
 }
 
 .forum__more {
@@ -76,13 +185,6 @@
   flex: 0 1 240px;
   width: 240px;
   min-width: 160px;
-}
-
-@media (max-width: 719.98px) {
-  .forum .bnk-ph__actions > .forum__search {
-    flex: 1 1 100%;
-    width: 100%;
-  }
 }
 
 .forum__elsewhere {
@@ -318,5 +420,14 @@ a.forum-hit__title:hover,
     min-width: 140px;
     max-width: 200px;
     border: var(--hairline) solid var(--line);
+  }
+}
+
+@media (max-width: 719.98px) {
+  /* author names in posts: 44 px tap height without moving the text */
+  .forum .bnk-post__name {
+    display: inline-block;
+    padding: 12px 0;
+    margin: -12px 0;
   }
 }

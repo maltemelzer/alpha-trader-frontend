@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { DS, format } from '../ds';
 import { Plot, type PlotPoint } from '../charts/Plot';
@@ -14,7 +14,8 @@ import {
 import type { PortfolioView } from '../api/types';
 import { useParamState } from '../lib/useParamState';
 import { useNow } from '../lib/useNow';
-import { useMediaQuery } from '../lib/useMediaQuery';
+import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
+import { MiniStats, Option, OptionsButton } from '../app/phone';
 import { changeText } from '../lib/format';
 import { plBarsChart } from './charts';
 import { asinType, PERIODS, periodStart, plBars, tradeBars, unrealised, type PositionResult } from './performance';
@@ -72,25 +73,59 @@ export function Performance() {
     );
 
   const openPoint = useCallback((p: PlotPoint) => p.customdata && navigate(`/wertpapier/${p.customdata}`), [navigate]);
+  const phone = useIsPhone();
+  const [options, setOptions] = useState(false);
+
+  const periodControl = (
+    <DS.SegmentedControl size="sm" fullWidth={phone} aria-label="Zeitraum" options={PERIODS} value={period} onChange={setPeriod} />
+  );
+  const accountControl = (
+    <DS.Select
+      size="sm"
+      fullWidth={phone}
+      aria-label="Konto"
+      className={phone ? undefined : 'perf__account'}
+      options={accounts}
+      value={konto}
+      onChange={(e) => setKonto(e.target.value)}
+    />
+  );
+
+  if (phone) {
+    // Phone: one control row – result type + „Optionen“ (period, account) in a sheet.
+    const showOptions = view === 'realisiert' || accounts.length > 1;
+    const active = (view === 'realisiert' && period !== 'alle' ? 1 : 0) + (isPrivate ? 0 : 1);
+    return (
+      <div className="perf">
+        <div className="ph-bar">
+          <DS.SegmentedControl size="sm" aria-label="Ergebnis" options={VIEWS} value={view} onChange={setView} className="perf__seg" />
+          {showOptions && <OptionsButton iconOnly active={active} onClick={() => setOptions(true)} />}
+        </div>
+        {view === 'offen' ? (
+          <Unrealised portfolio={portfolio.data} loading={portfolio.isLoading || !konto} onPoint={openPoint} />
+        ) : (
+          <Realised account={konto} period={period} onPoint={openPoint} />
+        )}
+        <DS.Sheet open={options} onClose={() => setOptions(false)} title="Optionen" side="bottom">
+          <div className="ph-sheet">
+            {view === 'realisiert' && <Option title="Zeitraum">{periodControl}</Option>}
+            {accounts.length > 1 && (
+              <Option title="Konto" note="Privatportfolio oder ein Unternehmen, das du als CEO führst.">
+                {accountControl}
+              </Option>
+            )}
+          </div>
+        </DS.Sheet>
+      </div>
+    );
+  }
 
   return (
     <div className="perf">
       <div className="perf__bar">
         <DS.SegmentedControl size="sm" fullWidth={false} aria-label="Ergebnis" options={VIEWS} value={view} onChange={setView} />
-        {view === 'realisiert' && (
-          <DS.SegmentedControl size="sm" fullWidth={false} aria-label="Zeitraum" options={PERIODS} value={period} onChange={setPeriod} />
-        )}
-        {accounts.length > 1 && (
-          <DS.Select
-            size="sm"
-            fullWidth={false}
-            aria-label="Konto"
-            className="perf__account"
-            options={accounts}
-            value={konto}
-            onChange={(e) => setKonto(e.target.value)}
-          />
-        )}
+        {view === 'realisiert' && periodControl}
+        {accounts.length > 1 && accountControl}
       </div>
       {view === 'offen' ? (
         <Unrealised portfolio={portfolio.data} loading={portfolio.isLoading || !konto} onPoint={openPoint} />
@@ -123,27 +158,37 @@ function Unrealised({ portfolio, loading, onPoint }: { portfolio?: PortfolioView
     );
   return (
     <>
-      <DS.StatGroup aria-label="Buchgewinn" className="perf__stats">
-        <DS.StatTile
-          label="Buchgewinn"
-          value={u.pl}
-          currency="€"
-          signed
-          change={u.pct ?? undefined}
-          changeSuffix={phone ? undefined : 'auf Einstand'}
-          hint={phone ? `Einstand ${format.money(u.cost, '€', 2, 'auto')}` : undefined}
-        />
-        {!phone && <DS.StatTile label="Einstand" value={u.cost} currency="€" hint="Ø Kaufkurs × Anteile" />}
-        {!phone && <DS.StatTile label="Marktwert" value={u.value} currency="€" hint="zum Geldkurs" />}
-        <DS.StatTile
-          label="Im Plus"
-          value={num(u.winners)}
-          hint={`von ${num(u.rows.length)}${u.noBasis ? ` · ${num(u.noBasis)} ohne Einstand` : ''}`}
-        />
-      </DS.StatGroup>
-      <p className="perf__caption">
-        {phone ? 'Größte Buchgewinne und -verluste' : 'Größte Buchgewinne und -verluste je Position · Balken öffnet das Wertpapier'}
-      </p>
+      {phone ? (
+        <>
+          <MiniStats
+            plain
+            label="Buchgewinn"
+            items={[
+              { label: 'Buchgewinn', value: signedMoney(u.pl) },
+              { label: 'Auf Einstand', value: u.pct != null ? <DS.PriceChange value={u.pct} size="sm" /> : '–' },
+              { label: 'Im Plus', value: `${num(u.winners)} / ${num(u.rows.length)}` },
+            ]}
+          />
+          <p className="perf__caption">
+            Einstand {format.money(u.cost, '€', 2, 'auto')} · Marktwert {format.money(u.value, '€', 2, 'auto')}
+            {u.noBasis ? ` · ${num(u.noBasis)} ohne Einstand` : ''}
+          </p>
+        </>
+      ) : (
+        <>
+          <DS.StatGroup aria-label="Buchgewinn" className="perf__stats">
+            <DS.StatTile label="Buchgewinn" value={u.pl} currency="€" signed change={u.pct ?? undefined} changeSuffix="auf Einstand" />
+            <DS.StatTile label="Einstand" value={u.cost} currency="€" hint="Ø Kaufkurs × Anteile" />
+            <DS.StatTile label="Marktwert" value={u.value} currency="€" hint="zum Geldkurs" />
+            <DS.StatTile
+              label="Im Plus"
+              value={num(u.winners)}
+              hint={`von ${num(u.rows.length)}${u.noBasis ? ` · ${num(u.noBasis)} ohne Einstand` : ''}`}
+            />
+          </DS.StatGroup>
+          <p className="perf__caption">Größte Buchgewinne und -verluste je Position · Balken öffnet das Wertpapier</p>
+        </>
+      )}
       <div className="perf__chart">
         <Plot aria-label="Buchgewinn je Position; ein Balken öffnet das Wertpapier" figure={figure} onPointClick={onPoint} />
       </div>
@@ -180,17 +225,19 @@ function Realised({ account, period, onPoint }: { account?: string; period: stri
   return (
     <>
       {phone ? (
-        // TradeStats needs ~250 px on a phone – two tiles leave the chart above the fold.
-        <DS.StatGroup aria-label="Realisiertes Ergebnis" className="perf__stats">
-          <DS.StatTile label="Ergebnis" value={s.netProfitLoss} currency="€" signed hint={`${num(s.totalTrades)} Trades`} />
-          <DS.StatTile
-            label="Trefferquote"
-            value={s.winRate <= 1 ? s.winRate * 100 : s.winRate /* percent (81,46); a fraction like TradeStats accepts, too */}
-            unit="%"
-            decimals={1}
-            hint={`▲ ${num(s.winningTrades)} · ▼ ${num(s.losingTrades)}`}
-          />
-        </DS.StatGroup>
+        // TradeStats needs ~250 px on a phone – one row of figures leaves the chart the room.
+        <MiniStats
+          plain
+          label="Realisiertes Ergebnis"
+          items={[
+            { label: 'Ergebnis', value: signedMoney(s.netProfitLoss) },
+            {
+              label: 'Trefferquote',
+              value: `${(s.winRate <= 1 ? s.winRate * 100 : s.winRate /* percent (81,46); a fraction like TradeStats accepts, too */).toLocaleString('de-DE', { maximumFractionDigits: 1 })} %`,
+            },
+            { label: `${num(s.totalTrades)} Trades`, value: `▲ ${num(s.winningTrades)} ▼ ${num(s.losingTrades)}` },
+          ]}
+        />
       ) : (
         <DS.TradeStats summary={s} periodLabel={period === 'alle' ? 'gesamt' : `letzte ${label}`} />
       )}

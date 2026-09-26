@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { DS } from '../ds';
 import { useChatUnread, useMe, usePortfolio } from '../api/queries';
@@ -6,7 +6,8 @@ import type { ChatView, MessageView } from '../api/types';
 import { bookValue } from '../organisation/derive';
 import { useAuth } from '../auth/AuthProvider';
 import { primeLayoutInset, setLayoutInset, useIsPhone, useViewportQuery } from '../lib/useMediaQuery';
-import { AREAS, areaOf } from './nav';
+import { AREAS, areaOf, pageOf, pagesOf, titleOf } from './nav';
+import { SiteMap } from './SiteMap';
 import { Notifications } from './Notifications';
 import { GlobalSearch } from './GlobalSearch';
 import { MarketTape } from './MarketTape';
@@ -33,12 +34,27 @@ export function AppShell() {
   const me = useMe();
   const portfolio = usePortfolio();
   const book = portfolio.data ? bookValue(portfolio.data) : undefined;
+  // Phone: „Mehr“ and the page title in the header open the same sheet with every page.
   const [moreOpen, setMoreOpen] = useState(false);
   const valueTick = useTick(book);
   const unread = useChatUnread().messages;
   const badges: Record<string, number | undefined> = { community: unread || undefined, '/nachrichten': unread || undefined };
 
   const current = areaOf(pathname);
+  // The bottom tabs return to the page last opened in their area (Markt → Zentralbank stays Zentralbank).
+  const page = pageOf(pathname);
+  const inArea = !!current && !!page && !!AREAS.find((a) => a.value === current && pagesOf(a).some((p) => p.href === page.href));
+  const visited = inArea && current && page ? { [current]: page.href } : undefined;
+  const lastPage: Record<string, string> = { ...readLastPages(), ...visited };
+  const visitedKey = JSON.stringify(visited);
+  useEffect(() => {
+    if (!visitedKey) return;
+    try {
+      sessionStorage.setItem(LAST_PAGE_KEY, JSON.stringify({ ...readLastPages(), ...JSON.parse(visitedKey) }));
+    } catch {
+      /* private mode */
+    }
+  }, [visitedKey]);
   // Securities pages on the phone bring their own top bar and the TradeBar – no second bar at the bottom.
   const bare = isPhone && pathname.startsWith('/wertpapier/');
 
@@ -142,7 +158,7 @@ export function AppShell() {
         value: a.value,
         label: a.label,
         icon: a.icon,
-        href: a.href ?? a.children?.[0].href,
+        href: lastPage[a.value] ?? a.href ?? a.children?.[0].href,
         badge: badges[a.value],
       })),
       { value: 'mehr', label: 'Mehr', icon: 'menue' as const },
@@ -151,7 +167,9 @@ export function AppShell() {
       e.preventDefault();
       if (value === 'mehr') return setMoreOpen(true);
       const a = AREAS.find((x) => x.value === value);
-      const href = a?.href ?? a?.children?.[0].href;
+      // Tapping the active tab again shows the area's other pages.
+      if (a && value === current && pagesOf(a).length > 1) return setMoreOpen(true);
+      const href = lastPage[value] ?? a?.href ?? a?.children?.[0].href;
       if (href) navigate(href);
     },
   };
@@ -160,8 +178,17 @@ export function AppShell() {
     <div className={`shell${bare ? ' shell--bare' : ''}${isPhone && !bare ? ' shell--tabbar' : ''}${docked ? ' shell--chat' : ''}`}>
       {!bare && (
         <DS.AppHeader
-          brand="Alpha-Trader"
-          brandHref="/"
+          brand={
+            isPhone ? (
+              <button type="button" className="shell__title" aria-haspopup="dialog" onClick={() => setMoreOpen(true)}>
+                <span>{titleOf(pathname)}</span>
+                <span className="bnk-chev" aria-hidden="true" />
+              </button>
+            ) : (
+              'Alpha-Trader'
+            )
+          }
+          brandHref={isPhone ? undefined : '/'}
           items={items}
           className="shell__header"
           meta={[
@@ -181,7 +208,7 @@ export function AppShell() {
           )}
         />
       )}
-      {!bare && <MarketTape />}
+      {!bare && !isPhone && <MarketTape />}
       <main className="shell__main">
         <Outlet />
       </main>
@@ -204,26 +231,32 @@ export function AppShell() {
           </DS.Toast>
         </DS.ToastRegion>
       )}
-      <DS.Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Mehr">
-        <MoreList onPick={() => setMoreOpen(false)}>
-          <Link to="/highscores">Highscores</Link>
-          <Link to="/einstellungen">Einstellungen</Link>
-          <button type="button" onClick={logout}>
-            Abmelden
-          </button>
-        </MoreList>
+      <DS.Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Alle Seiten">
+        <SiteMap
+          pathname={pathname}
+          current={current}
+          badges={badges}
+          onPick={() => setMoreOpen(false)}
+          footer={
+            <li>
+              <button type="button" onClick={logout}>
+                <span className="sitemap__label">Abmelden</span>
+              </button>
+            </li>
+          }
+        />
         <DS.AppFooter note="Inoffizielle Oberfläche für Alpha-Trader – kein Angebot der Betreiber." />
       </DS.Sheet>
     </div>
   );
 }
 
-function MoreList({ children, onPick }: { children: ReactNode[]; onPick: () => void }) {
-  return (
-    <ul className="more-list" onClick={onPick}>
-      {children.map((c, i) => (
-        <li key={i}>{c}</li>
-      ))}
-    </ul>
-  );
+const LAST_PAGE_KEY = 'at.lastPage';
+
+function readLastPages(): Record<string, string> {
+  try {
+    return JSON.parse(sessionStorage.getItem(LAST_PAGE_KEY) ?? '{}') as Record<string, string>;
+  } catch {
+    return {};
+  }
 }

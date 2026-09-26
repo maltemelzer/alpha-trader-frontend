@@ -15,7 +15,7 @@ const pct = (n: number | undefined) =>
  * rate (POST /api/systembonds?companyId&numberOfBonds). Only for the CEO of a bank; the bar shows how much
  * of the credit line (10 % of the reserves) is used, with this credit included.
  */
-export function CreditForm() {
+export function CreditForm({ heading = true }: { heading?: boolean }) {
   const { banks, isLoading } = useMyBanks();
   const [bankId, setBankId] = useState<string>();
   const bank = banks.find((b) => b.id === bankId) ?? banks[0];
@@ -26,10 +26,10 @@ export function CreditForm() {
         <DS.Icon name="bank" size={16} /> Kredit nehmen können nur Banken – du führst keine.
       </span>
     );
-  return <BankCredit key={bank.id} bank={bank} banks={banks} onBank={setBankId} />;
+  return <BankCredit key={bank.id} bank={bank} banks={banks} onBank={setBankId} heading={heading} />;
 }
 
-function BankCredit({ bank, banks, onBank }: { bank: MyBank; banks: MyBank[]; onBank: (id: string) => void }) {
+function BankCredit({ bank, banks, onBank, heading }: { bank: MyBank; banks: MyBank[]; onBank: (id: string) => void; heading: boolean }) {
   const main = useMainInterestRate();
   const issue = useIssue(bank.id);
   const [raw, setRaw] = useState('');
@@ -44,7 +44,7 @@ function BankCredit({ bank, banks, onBank }: { bank: MyBank; banks: MyBank[]; on
   const max = bank.maxCentralBankLoans ?? 0;
   return (
     <div className="cb__stack tdr-credit">
-      <h3 className="cb__h">Kredit aufnehmen</h3>
+      {heading && <h3 className="cb__h">Kredit aufnehmen</h3>}
       {banks.length > 1 && (
         <DS.Select
           size="sm"

@@ -13,6 +13,8 @@
 }
 
 .spons__seg {
+  flex: none;
+  display: flex;
   padding: 0 var(--space-4) var(--space-3);
 }
 
@@ -35,6 +37,17 @@
   color: var(--text-primary);
 }
 
+/* The whole row opens the player (tap area ≥ 44 px instead of the 15 px name) */
+.spons__ranking > li {
+  position: relative;
+}
+
+.spons__ranking a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
 @media (max-width: 1099px) {
   .spons__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -55,5 +68,18 @@
 
   .spons__seg {
     padding-top: var(--space-3);
+  }
+}
+
+/* Phone: segment widths follow their labels, so „Features“ fits at 360 px */
+@media (max-width: 719.98px) {
+  .spons__seg > * {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .spons__seg .bnk-seg__opt {
+    flex: 1 0 auto;
+    padding-inline: 6px;
   }
 }

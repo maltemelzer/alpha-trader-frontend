@@ -57,12 +57,24 @@
   font: 400 12px/16px var(--font-mono);
 }
 
+/* Phone: name with the achievements below, the member bar narrower on the right. */
 @media (max-width: 719.98px) {
   .alliances li {
-    grid-template-columns: minmax(0, 1fr) minmax(100px, 1fr);
+    grid-template-columns: minmax(0, 1fr) 104px;
+    grid-template-areas: 'name bar' 'meta bar';
+    row-gap: 0;
+    column-gap: var(--space-3);
+    min-height: 56px;
+    padding-block: var(--space-1);
+  }
+  .alliances__name {
+    grid-area: name;
+  }
+  .alliances__bar {
+    grid-area: bar;
   }
   .alliances__meta {
-    display: none;
+    grid-area: meta;
   }
 }
 

@@ -2,13 +2,23 @@ import { useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import { useMyPolls, usePollActions, type PollFilter } from '../api/queries';
 import { useInternalLinks } from '../lib/useInternalLinks';
+import { useIsPhone } from '../lib/useMediaQuery';
+import './PollsPage.css';
 
 const FILTERS: PollFilter[] = ['NOT_VOTED', 'PARTIALLY_VOTED', 'VOTED', 'INITIATED'];
+/** Phone: the list's own tabs cut off „Von mir beantragt“ – four equal segments with short labels instead. */
+const PHONE_FILTERS = [
+  { value: 'NOT_VOTED', label: 'Offen' },
+  { value: 'PARTIALLY_VOTED', label: 'Teilweise' },
+  { value: 'VOTED', label: 'Abgestimmt' },
+  { value: 'INITIATED', label: 'Von mir' },
+];
 
 /** Polls of the companies the player holds shares in: vote, execute results, delete own polls. */
 export function PollsPage() {
   const [params, setParams] = useSearchParams();
   const onLinkClick = useInternalLinks();
+  const isPhone = useIsPhone();
   const filter = (FILTERS.find((f) => f === params.get('filter')) ?? 'NOT_VOTED') as PollFilter;
   const polls = useMyPolls(filter);
   const open = useMyPolls('NOT_VOTED');
@@ -22,7 +32,19 @@ export function PollsPage() {
         title="Abstimmungen"
         meta={open.data ? <span>{open.data.totalElements} offen</span> : '\u00a0'}
       />
-      <DS.Card className="panel">
+      <DS.Card className={`panel${isPhone ? ' polls--phone' : ''}`}>
+        {isPhone && (
+          <div className="polls__seg">
+            <DS.SegmentedControl
+              size="sm"
+              fullWidth
+              aria-label="Filter"
+              options={PHONE_FILTERS}
+              value={filter}
+              onChange={(f) => setParams({ filter: f }, { replace: true })}
+            />
+          </div>
+        )}
         <div className="panel__fill scroll">
           {error && <DS.Banner variant="error">Aktion fehlgeschlagen: {error.message}</DS.Banner>}
           {polls.isLoading ? (

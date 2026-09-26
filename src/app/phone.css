@@ -1,0 +1,485 @@
+/* Shared phone building blocks – see phone.tsx. One look for every page. */
+
+/* ---------- One control row: picker/tabs/segments grow, buttons keep their size ---------- */
+.ph-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.ph-bar > * {
+  flex: none;
+}
+
+.ph-bar > .ph-pick,
+.ph-bar > .ph-tabs,
+.ph-bar > .bnk-field,
+.ph-bar > .bnk-seg {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ---------- Count pill (views, options) ---------- */
+.ph-count {
+  flex: none;
+  box-sizing: border-box;
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  font: 600 12px/20px var(--font-mono);
+  text-align: center;
+}
+
+/* options changed: filled, so it is seen at a glance */
+.ph-count--on {
+  background: var(--text-primary);
+  color: var(--bg-page);
+}
+
+.ph-count--corner {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+/* ---------- 44 px outlined button („Optionen“, „Filter“, search) ---------- */
+.ph-btn {
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  min-width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0 var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: var(--hairline) solid var(--line-control);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  font: 600 14px/20px var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ph-btn--icon {
+  width: 44px;
+  padding: 0;
+}
+
+.ph-btn:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: 2px;
+}
+
+/* ---------- Key figures in one row ---------- */
+.ph-stats {
+  margin: 0;
+  display: grid;
+  border-top: var(--hairline) solid var(--line);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.ph-stats--plain {
+  border-top: 0;
+  border-bottom: 0;
+}
+
+.ph-stats__item {
+  min-width: 0;
+  padding: 6px var(--space-2);
+}
+
+.ph-stats__item:last-child {
+  padding-right: 0;
+}
+
+.ph-stats__item:first-child {
+  padding-left: 0;
+}
+
+.ph-stats__item + .ph-stats__item {
+  border-left: var(--hairline) solid var(--line);
+}
+
+.ph-stats dt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 11px/16px var(--font-sans);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.ph-stats dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 16px/24px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.ph-stats dd.ph-stats__hint {
+  white-space: normal;
+  font: 12px/16px var(--font-sans);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 380px) {
+  .ph-stats dd {
+    font-size: 14px;
+  }
+}
+
+/* ---------- Options sheet ---------- */
+.ph-sheet {
+  display: grid;
+  gap: var(--space-5, 20px);
+}
+
+.ph-sheet__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.ph-opt {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ph-opt__title {
+  margin: 0;
+  font: 600 12px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.ph-opt__note {
+  margin: 0;
+  font: 13px/18px var(--font-sans);
+  color: var(--text-secondary);
+}
+
+/* ---------- „Ansicht: Positionen ▾“ ---------- */
+.ph-pick {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  background: var(--bg-card);
+  border: var(--hairline) solid var(--line-control);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ph-pick:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: 2px;
+}
+
+.ph-pick__label {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.ph-pick__value {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Narrow phones: the value alone („Performance ▾“) – the chevron says it is a choice. */
+@media (max-width: 379.98px) {
+  .ph-pick > .ph-pick__label {
+    display: none;
+  }
+}
+
+/* ---------- View list in a sheet ---------- */
+.ph-views {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ph-views__item {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-left: var(--rule) solid transparent;
+  border-bottom: var(--hairline) solid var(--line);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ph-views__item[aria-current='true'] {
+  background: var(--bg-raised);
+  border-left-color: var(--brass);
+}
+
+.ph-views__item:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: -2px;
+}
+
+.ph-views__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 600 15px/22px var(--font-sans);
+}
+
+.ph-views__desc {
+  font: 13px/18px var(--font-sans);
+  color: var(--text-secondary);
+}
+
+/* ---------- Horizontally scrolling rows: fade the edge where more follows ---------- */
+.ph-fade[data-more='right']:not(.ph-tabs),
+.ph-fade.ph-tabs[data-more='right'] > .bnk-tabs > .bnk-tabs__list {
+  mask-image: linear-gradient(to right, black calc(100% - 48px), transparent);
+}
+
+.ph-fade[data-more='left']:not(.ph-tabs),
+.ph-fade.ph-tabs[data-more='left'] > .bnk-tabs > .bnk-tabs__list {
+  mask-image: linear-gradient(to left, black calc(100% - 48px), transparent);
+}
+
+.ph-fade[data-more='both']:not(.ph-tabs),
+.ph-fade.ph-tabs[data-more='both'] > .bnk-tabs > .bnk-tabs__list {
+  mask-image: linear-gradient(to right, transparent, black 48px, black calc(100% - 48px), transparent);
+}
+
+/* ---------- Scrolling tabs ---------- */
+.ph-tabs {
+  position: relative;
+  /* grid/flex item: must not grow to the width of all tabs */
+  min-width: 0;
+}
+
+.ph-tabs__menu {
+  display: none;
+}
+
+/* ☰ at the right end: the list leaves room for it and fades out before it */
+.ph-tabs--menu > .bnk-tabs > .bnk-tabs__list {
+  padding-right: 48px;
+}
+
+.ph-fade.ph-tabs--menu[data-more='right'] > .bnk-tabs > .bnk-tabs__list {
+  mask-image: linear-gradient(to right, black calc(100% - 88px), transparent calc(100% - 48px));
+}
+
+.ph-fade.ph-tabs--menu[data-more='both'] > .bnk-tabs > .bnk-tabs__list {
+  mask-image: linear-gradient(to right, transparent, black 40px, black calc(100% - 88px), transparent calc(100% - 48px));
+}
+
+.ph-fade.ph-tabs--menu[data-more='left'] > .bnk-tabs > .bnk-tabs__list {
+  mask-image: linear-gradient(to right, transparent, black 40px);
+}
+
+.ph-tabs--menu > .ph-tabs__menu {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.ph-tabs__menu:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: -4px;
+}
+
+@media (max-width: 719.98px) {
+  /* small tabs (in cards) are 44 px high on phones, so they are easy to hit */
+  .ph-tabs > .bnk-tabs--sm > .bnk-tabs__list > .bnk-tabs__tab {
+    height: 44px;
+    font-size: 14px;
+  }
+
+  .ph-tabs > .bnk-tabs > .bnk-tabs__panel {
+    padding-top: var(--space-2);
+  }
+}
+
+/* ---------- Compact profile header (company, player, alliance) ---------- */
+.pprof {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.pprof a {
+  color: inherit;
+}
+
+.pprof__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.pprof__back {
+  flex: none;
+  width: 28px;
+  height: 44px;
+  margin-left: calc(-1 * var(--space-2));
+  margin-right: calc(-1 * var(--space-2));
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+}
+
+.pprof__back:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: -2px;
+}
+
+.pprof__chev {
+  width: 9px;
+  height: 9px;
+  margin: 0 0 0 4px;
+  transform: rotate(135deg);
+  opacity: 1;
+}
+
+.pprof__logo {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  background: var(--bg-raised);
+}
+
+.pprof__main > .bnk-av {
+  flex: none;
+}
+
+.pprof__id {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pprof__name {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+}
+
+.pprof__meta {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.pprof__meta a {
+  text-decoration: underline;
+  text-decoration-color: var(--line-control);
+  text-underline-offset: 3px;
+}
+
+.pprof__meta .pprof__asin {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.pprof__more {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-right: calc(-1 * var(--space-2));
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.pprof__more:hover,
+.pprof__more[aria-expanded='true'] {
+  color: var(--text-primary);
+  background: var(--bg-raised);
+}
+
+.pprof__more:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: -2px;
+}
+
+/* The full header in the details sheet. */
+.pprof__sheet .bnk-prof {
+  gap: var(--space-3);
+}
+
+.pprof__sheet .bnk-prof a {
+  color: inherit;
+}

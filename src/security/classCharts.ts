@@ -36,8 +36,9 @@ export function yieldStrip(t: Theme, w: number, dots: YieldDot[], own: YieldDot 
   const ticks: number[] = [];
   for (let e = Math.ceil(lo); e <= Math.floor(hi); e++) ticks.push(10 ** e);
   const refLine = (x: number, color: string, dash: string) => ({ type: 'line', x0: x, x1: x, yref: 'paper', y0: 0, y1: 1, line: { color, width: 1, dash } });
-  const label = (x: number, text: string, y: number, anchor: 'left' | 'right') => ({
-    x: Math.log10(x), y, yref: 'paper', xanchor: anchor, yanchor: 'middle', xshift: anchor === 'left' ? 4 : -4, showarrow: false, text,
+  // Rows in pixels above the plot (a paper fraction would leave the 40 px margin on tall charts).
+  const label = (x: number, text: string, row: number, anchor: 'left' | 'right') => ({
+    x: Math.log10(x), y: 1, yref: 'paper', xanchor: anchor, yanchor: 'bottom', yshift: 2 + row * 17, xshift: anchor === 'left' ? 4 : -4, showarrow: false, text,
     font: { family: v('font-mono'), size: 11, color: v('text-secondary') },
   });
   const side = (x: number): 'left' | 'right' => (Math.log10(x) < (lo + hi) / 2 ? 'left' : 'right');
@@ -85,8 +86,8 @@ export function yieldStrip(t: Theme, w: number, dots: YieldDot[], own: YieldDot 
       ],
       // Two rows above the plot; each label runs towards the middle of the axis, so it stays inside.
       annotations: [
-        ...(reserveRate != null && reserveRate > 0 ? [label(reserveRate, `Zentralbankeinlage ${fmt(reserveRate)}`, 1.2, side(reserveRate))] : []),
-        ...(median != null && median > 0 ? [label(median, `Median Markt ${fmt(median)}`, 1.07, side(median))] : []),
+        ...(reserveRate != null && reserveRate > 0 ? [label(reserveRate, `Zentralbankeinlage ${fmt(reserveRate)}`, 1, side(reserveRate))] : []),
+        ...(median != null && median > 0 ? [label(median, `Median Markt ${fmt(median)}`, 0, side(median))] : []),
       ],
     },
   };

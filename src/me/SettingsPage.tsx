@@ -38,6 +38,7 @@ import {
 } from './account';
 import { ChangeFieldDialog, DeleteAccountDialog, NoteDialog, RedeemDialog, ReferrerDialog, SubscriptionDialog } from './AccountDialogs';
 import { referralsChart } from './charts';
+import { MiniStats } from '../app/phone';
 import './MePage.css';
 
 const AREAS = [
@@ -90,6 +91,7 @@ export function SettingsPage() {
   }, [deletionToken, setParams]);
   const onLinkClick = useInternalLinks();
   const wide = useMediaQuery('(min-width: 1100px)');
+  const phone = useMediaQuery('(max-width: 719.98px)');
   const now = useNow();
 
   const stats = onlineStats(online.data?.onlineMinutes, u?.registrationDate, now);
@@ -99,28 +101,40 @@ export function SettingsPage() {
   return (
     <div className="page me__settings" onClick={onLinkClick}>
       <DS.PageHeader size="md" title="Einstellungen" meta={<span>{u?.username ?? NBSP}</span>} />
-      <DS.StatGroup className="me__tiles" aria-label="Dein Konto in Zahlen">
-        <DS.StatTile
-          label="Dabei seit"
-          value={u?.registrationDate ? new Date(u.registrationDate).getFullYear().toString() : NBSP}
-          hint={years != null ? `${years.toLocaleString('de-DE', { maximumFractionDigits: 1 })} Jahre` : NBSP}
+      {phone ? (
+        // Phone: one compact row; „Geworben“ and the code are in the area „Werben“, the Gold end date in „Gold“
+        <MiniStats
+          label="Dein Konto in Zahlen"
+          items={[
+            { label: 'Dabei seit', value: u?.registrationDate ? new Date(u.registrationDate).getFullYear().toString() : NBSP },
+            { label: 'Online-Zeit', value: stats ? minutesText(stats.hours >= 10 ? Math.round(stats.hours) * 60 : stats.hours * 60) : NBSP },
+            { label: 'Gold', value: !u ? NBSP : goldDays ? `${goldDays.toLocaleString('de-DE')} Tage` : 'Nein' },
+          ]}
         />
-        <DS.StatTile
-          label="Online-Zeit"
-          value={stats ? minutesText(stats.hours >= 10 ? Math.round(stats.hours) * 60 : stats.hours * 60) : NBSP}
-          hint={stats?.perDay != null ? `Ø ${minutesText(stats.perDay)} am Tag` : NBSP}
-        />
-        <DS.StatTile
-          label="Gold"
-          value={!u ? NBSP : goldDays ? `${goldDays.toLocaleString('de-DE')} Tage` : 'Nicht aktiv'}
-          hint={goldDays ? `bis ${date(caps?.premiumEndDate)}` : 'kein Spielvorteil'}
-        />
-        <DS.StatTile
-          label="Geworben"
-          value={referred.data ? `${referred.data.totalElements.toLocaleString('de-DE')} Spieler` : NBSP}
-          hint={u?.refId ? `Code ${u.refId}` : NBSP}
-        />
-      </DS.StatGroup>
+      ) : (
+        <DS.StatGroup className="me__tiles" aria-label="Dein Konto in Zahlen">
+          <DS.StatTile
+            label="Dabei seit"
+            value={u?.registrationDate ? new Date(u.registrationDate).getFullYear().toString() : NBSP}
+            hint={years != null ? `${years.toLocaleString('de-DE', { maximumFractionDigits: 1 })} Jahre` : NBSP}
+          />
+          <DS.StatTile
+            label="Online-Zeit"
+            value={stats ? minutesText(stats.hours >= 10 ? Math.round(stats.hours) * 60 : stats.hours * 60) : NBSP}
+            hint={stats?.perDay != null ? `Ø ${minutesText(stats.perDay)} am Tag` : NBSP}
+          />
+          <DS.StatTile
+            label="Gold"
+            value={!u ? NBSP : goldDays ? `${goldDays.toLocaleString('de-DE')} Tage` : 'Nicht aktiv'}
+            hint={goldDays ? `bis ${date(caps?.premiumEndDate)}` : 'kein Spielvorteil'}
+          />
+          <DS.StatTile
+            label="Geworben"
+            value={referred.data ? `${referred.data.totalElements.toLocaleString('de-DE')} Spieler` : NBSP}
+            hint={u?.refId ? `Code ${u.refId}` : NBSP}
+          />
+        </DS.StatGroup>
+      )}
       <div className="me__settings-main">
         <DS.SegmentedControl aria-label="Bereich" options={AREAS} value={area} onChange={setArea} fullWidth={!wide} className="me__areas" />
         <div className={`me__settings-body${wide ? ' me__settings-body--wide' : ''}`}>

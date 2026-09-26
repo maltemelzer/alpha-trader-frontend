@@ -182,28 +182,31 @@ export function MarketPage() {
   ) : null;
 
   // Class overview above the list (scrolls away with it); ?ueb=aus hides it.
+  // Phone: only the three figures by default (one compact row); the chart opens with ?ueb=an.
   const kind = special ? null : overviewKind(types);
-  const showOverview = params.get('ueb') !== 'aus';
-  const overview =
-    kind && showOverview ? (
-      <ClassOverview
-        kind={kind}
-        rows={filtered}
-        now={now}
-        loading={loading || ((kind === 'bond' || kind === 'repo') && loadingBonds)}
-        onSelectType={(g) => setParam({ art: g, seite: null, sp: null, sort: null, immo: null })}
-      />
-    ) : null;
+  const showOverview = isPhone ? true : params.get('ueb') !== 'aus';
+  const phoneChart = params.get('ueb') === 'an';
+  const overviewEl = kind ? (
+    <ClassOverview
+      kind={kind}
+      rows={filtered}
+      now={now}
+      loading={loading || ((kind === 'bond' || kind === 'repo') && loadingBonds)}
+      onSelectType={(g) => setParam({ art: g, seite: null, sp: null, sort: null, immo: null })}
+    />
+  ) : null;
+  const overview = !overviewEl || !showOverview ? null : isPhone ? <div className={phoneChart ? 'ovw-wrap' : 'ovw-wrap ovw-wrap--figs'}>{overviewEl}</div> : overviewEl;
   const overviewToggle = kind ? (
     isPhone ? (
       <button
         type="button"
         className="ovw-toggle"
-        aria-pressed={showOverview}
-        aria-label={showOverview ? 'Diagramm ausblenden' : 'Diagramm zeigen'}
-        onClick={() => setParam({ ueb: showOverview ? 'aus' : null })}
+        aria-pressed={phoneChart}
+        aria-label={phoneChart ? 'Diagramm einklappen' : 'Diagramm zeigen'}
+        onClick={() => setParam({ ueb: phoneChart ? null : 'an' })}
       >
-        <DS.Icon name="markt" size={20} />
+        <DS.Icon name="markt" size={18} />
+        <span>Diagramm</span>
       </button>
     ) : (
       <DS.Button size="sm" variant="ghost" aria-pressed={showOverview} onClick={() => setParam({ ueb: showOverview ? 'aus' : null })}>
@@ -363,7 +366,11 @@ export function MarketPage() {
     <DS.Card
       className="panel market__map"
       title="Marktkarte"
-      action={<span className="market__heat-note">{mapAll.filter((n) => n.asin).length.toLocaleString('de-DE')} Wertpapiere mit Umsatz in 24 h</span>}
+      action={
+        <span className="market__heat-note">
+          {mapAll.filter((n) => n.asin).length.toLocaleString('de-DE')} {isPhone ? 'mit Umsatz' : 'Wertpapiere mit Umsatz in 24 h'}
+        </span>
+      }
       footer={<HeatLegend note="Fläche nach Umsatz · Gruppe antippen zum Vergrößern" suffix="zum Vortag" />}
     >
       <div className="panel__fill market__chart">
@@ -384,6 +391,19 @@ export function MarketPage() {
 
   const live = (
     <DS.Card flush className="panel">
+      {isPhone && stats.data && (
+        <div className="market__pulse">
+          <DS.MarketPulse
+            stats={{
+              onlineUsers: stats.data.numberOfOnlineUsers,
+              users: stats.data.numberOfUsers,
+              companies: stats.data.numberOfCompanies,
+              trades24h: stats.data.numberOfTrades24h,
+              volume24h: stats.data.tradeVolume24h,
+            }}
+          />
+        </div>
+      )}
       <div className="panel__fill scroll market__ticker">
         <DS.LiveTicker items={ticker} title="Letzte Trades" max={30} hrefFor={(i) => href(i.listing.securityIdentifier)} />
       </div>
@@ -400,8 +420,9 @@ export function MarketPage() {
         meta={
           s && isPhone ? (
             <>
-              <span>{s.numberOfTrades24h.toLocaleString('de-DE')} Trades in 24 h</span>
-              <span>{short(s.tradeVolume24h)} € Umsatz</span>
+              <span>{s.numberOfTrades24h.toLocaleString('de-DE')} Trades 24 h</span>
+              <span>{short(s.tradeVolume24h)} €</span>
+              <span className="market__meta-online">{s.numberOfOnlineUsers.toLocaleString('de-DE')} online</span>
             </>
           ) : isPhone ? (
             '\u00a0'

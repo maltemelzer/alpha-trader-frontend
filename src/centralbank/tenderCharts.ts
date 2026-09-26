@@ -331,7 +331,8 @@ export function bookChart(t: Theme, _w: number, rows: { price: number; shares: n
       barmode: 'stack',
       showlegend: false,
       bargap: 0.3,
-      margin: { l: 0, r: 150, t: 0, b: 0 },
+      // room for „98,00 % (−2,00 %)“ from the start: automargin alone came one draw late with a single row
+      margin: { l: 132, r: 150, t: 0, b: 0 },
       xaxis: { ...t.layout.xaxis, visible: false, range: [0, max], showspikes: false },
       yaxis: {
         ...t.layout.yaxis,

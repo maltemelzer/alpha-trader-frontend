@@ -751,3 +751,138 @@
     padding: var(--space-1) var(--space-3) var(--space-2);
   }
 }
+
+/* ---------- Phone (< 720 px): one fixed control row, everything else scrolls with the list ---------- */
+.scr-sheet .scr-types {
+  flex-wrap: wrap;
+}
+
+.scr-sheet .scr-types__opt {
+  flex: 1 0 30%;
+}
+
+@media (max-width: 719.98px) {
+  .scr-bar--phone {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: var(--hairline) solid var(--line);
+  }
+
+  .scr-bar--phone .scr-bar__row > * {
+    min-width: 0;
+  }
+
+  .scr-bar--phone .scr-bar__search {
+    flex: 1 1 0;
+  }
+
+  .scr-bar__type {
+    flex: 0 1 132px;
+  }
+
+  .scr-bar__type select {
+    width: 100%;
+  }
+
+  /* inside the scrolling results: every block keeps its natural height */
+  .market__results > * {
+    flex: none;
+  }
+
+  .market__results .scr-chips {
+    padding: var(--space-2) var(--space-3) 0;
+  }
+
+  .market__results .scr-status {
+    padding: var(--space-2) var(--space-3);
+    min-height: 44px;
+  }
+
+  .market__results .market__pages {
+    border-top: 0;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  /* class overview collapsed to its figures (one row); the chart opens with „Diagramm“ */
+  .ovw-wrap--figs .ovw {
+    grid-template-rows: auto;
+  }
+
+  .ovw-wrap--figs .ovw__chart,
+  .ovw-wrap--figs .ovw__note {
+    display: none;
+  }
+
+  .ovw .ovw__figs .bnk-stat__hint {
+    font-size: 11px;
+    line-height: 14px;
+  }
+
+  .ovw-toggle {
+    display: inline-flex;
+    gap: var(--space-1);
+    width: auto;
+    padding: 0 var(--space-2);
+    font: 600 13px/1 var(--font-sans);
+  }
+
+  .market__pulse {
+    flex: none;
+    padding: var(--space-3) var(--space-3) var(--space-2);
+    border-bottom: var(--hairline) solid var(--line);
+  }
+
+  .market__pulse .bnk-pulse {
+    gap: var(--space-1) var(--space-4);
+  }
+}
+
+@media (max-width: 719.98px) {
+  .market__results .scr-status {
+    gap: var(--space-2);
+  }
+
+  /* the sort select keeps room for its label and chevron; the chart button gives way first */
+  .market__results .scr-status__tools .bnk-select {
+    min-width: 128px;
+  }
+
+  /* building tiles: the hint may take two lines instead of ending in „…“ */
+  .estate__tiles .bnk-stat__hint {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}
+
+@media (max-width: 399.98px) {
+  .ovw-toggle span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .ovw-toggle {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 719.98px) {
+  /* the small select loses its right padding in the DS – the label ran under the chevron */
+  .market__results .scr-status__tools .bnk-select__control,
+  .scr-bar__type .bnk-select__control {
+    padding-right: 32px;
+  }
+}
+
+/* 360 px: the meta line keeps one line (online users are also in „Live“) */
+@media (max-width: 379.98px) {
+  .market__meta-online {
+    display: none;
+  }
+}

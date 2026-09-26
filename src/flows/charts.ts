@@ -259,14 +259,28 @@ export function netChart(t: Theme, w: number, rows: AccountStat[]) {
       showlegend: false,
       margin: { l: 0, r: 0, t: 4, b: 0 },
       xaxis: { ...t.layout.xaxis, visible: false, zeroline: true, zerolinecolor: v('line-strong'), range: symmetric(net) },
+      // Narrow (phone): names beside the zero line on the side without the bar – tick labels on the
+      // left collided with the value labels of sellers' bars.
+      annotations: narrow
+        ? bars.map((r, i) => ({
+            x: 0,
+            y: r.id,
+            text: clip(r.name || 'Privatdepot', 18),
+            showarrow: false,
+            xanchor: net[i] >= 0 ? 'right' : 'left',
+            xshift: net[i] >= 0 ? -6 : 6,
+            font: { family: v('font-sans'), size: 12, color: v('text-secondary') },
+          }))
+        : [],
       yaxis: {
         ...t.layout.yaxis,
         side: 'left',
         showgrid: false,
         automargin: true,
         type: 'category',
+        showticklabels: !narrow,
         tickvals: bars.map((r) => r.id),
-        ticktext: bars.map((r) => clip(r.name || 'Privatdepot', narrow ? 13 : 22)),
+        ticktext: bars.map((r) => clip(r.name || 'Privatdepot', 22)),
         tickfont: { family: v('font-sans'), size: 12, color: v('text-secondary') } },
     },
   };

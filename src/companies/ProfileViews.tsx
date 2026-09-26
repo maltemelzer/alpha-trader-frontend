@@ -3,6 +3,7 @@ import { DS } from '../ds';
 import { useCompanyHistograms, useEntityHistory } from '../api/queries';
 import { Plot } from '../charts/Plot';
 import { short } from '../lib/format';
+import { useIsPhone } from '../lib/useMediaQuery';
 import { chronicleChart, distributionChart } from './charts';
 import {
   chronicle,
@@ -184,6 +185,7 @@ export function ChronicleView({ companyId }: { companyId: string | undefined }) 
   const events = useMemo(() => chronicle(q.data?.content), [q.data]);
   const lanes = useMemo(() => usedLanes(events), [events]);
   const newestFirst = useMemo(() => [...events].reverse(), [events]);
+  const isPhone = useIsPhone();
   if (q.isError) return <DS.EmptyState compact as="h3" title="Chronik nicht verfügbar" />;
   if (!events.length) return q.isLoading || !companyId ? <DS.Loading rows={6} label="Chronik wird geladen" /> : <DS.EmptyState compact as="h3" title="Noch keine Ereignisse" />;
   return (
@@ -192,7 +194,21 @@ export function ChronicleView({ companyId }: { companyId: string | undefined }) 
         <Plot aria-label="Zeitstrahl der Ereignisse nach Art" figure={(t, w) => chronicleChart(t, w, events, lanes)} />
       </div>
       <div className="chron__list">
-        <DS.DataTable columns={COLUMNS} rows={newestFirst} rowKey="id" density="sm" stack="auto" caption="Ereignisse, neueste zuerst" />
+        {isPhone ? (
+          // Phone: one compact row per event (time · kind above the text) instead of stacked table cards
+          <ul className="chron__rows" aria-label="Ereignisse, neueste zuerst">
+            {newestFirst.map((e) => (
+              <li key={e.id} className="chron-row">
+                <span className="chron-row__meta">
+                  {DS.format.dateTime(e.date)} · {e.lane}
+                </span>
+                <span className="chron-row__text">{e.text}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <DS.DataTable columns={COLUMNS} rows={newestFirst} rowKey="id" density="sm" stack="auto" caption="Ereignisse, neueste zuerst" />
+        )}
       </div>
     </div>
   );

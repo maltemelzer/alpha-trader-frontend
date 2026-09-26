@@ -15,6 +15,8 @@ import {
 } from '../api/queries';
 import { Plot } from '../charts/Plot';
 import { useInternalLinks } from '../lib/useInternalLinks';
+import { useIsPhone } from '../lib/useMediaQuery';
+import { PhoneProfile, ScrollTabs } from '../app/phone';
 import { translate } from '../lib/messages';
 import { toPost } from '../news/derive';
 import { achievementItems } from '../players/derive';
@@ -53,6 +55,7 @@ export function CompanyPage() {
   const unclaimed = useUnclaimedCompanyAchievements(c?.id, isCeo);
   const claim = useClaimCompanyAchievements(c?.id);
   const sheetDate = params.get('bilanz') ? Number(params.get('bilanz')) : undefined;
+  const isPhone = useIsPhone();
 
   if (company.isError) {
     return (
@@ -74,6 +77,7 @@ export function CompanyPage() {
     {
       value: 'ueberblick',
       label: 'Überblick',
+      description: 'Kurs gegen Buchwert, Einordnung, Anteilseigner, Termine',
       content: (
         <Overview
           company={c}
@@ -88,6 +92,7 @@ export function CompanyPage() {
     {
       value: 'entwicklung',
       label: 'Entwicklung',
+      description: 'Buchwert, Net Cash und Bargeld im Verlauf',
       content: (
         <div className="company__chart">
           {history.data?.length ? (
@@ -103,6 +108,7 @@ export function CompanyPage() {
     {
       value: 'einordnung',
       label: 'Einordnung',
+      description: 'Wo das Unternehmen unter allen steht',
       content: (
         <RankingView
           companyId={c?.id}
@@ -115,6 +121,7 @@ export function CompanyPage() {
     {
       value: 'bilanz',
       label: 'Bilanz',
+      description: 'Tagesbilanzen',
       count: sheets.data?.totalElements || undefined,
       content: sheets.data?.content.length ? (
         <div className="company__pad">
@@ -127,6 +134,7 @@ export function CompanyPage() {
     {
       value: 'presse',
       label: 'Presse',
+      description: 'Pressemitteilungen des Unternehmens',
       count: news.data?.totalElements || undefined,
       content: news.data?.content.length ? (
         <div className="company__pad">
@@ -139,11 +147,13 @@ export function CompanyPage() {
     {
       value: 'chronik',
       label: 'Chronik',
+      description: 'Ereignisse seit der Gründung',
       content: <ChronicleView companyId={c?.id} />,
     },
     {
       value: 'abstimmungen',
       label: 'Abstimmungen',
+      description: 'Laufende Abstimmungen, als CEO bewerben',
       count: polls.data?.length || undefined,
       content: (
         <div className="company__pad company__polls">
@@ -165,6 +175,7 @@ export function CompanyPage() {
           {
             value: 'marketmaker',
             label: 'Market Maker',
+            description: 'Designated Sponsors und betreute Wertpapiere',
             count: (c.designatedSponsors?.length ?? 0) + (c.sponsoredListings?.length ?? 0) || undefined,
             content: quoting ? (
               <div className="company__pad">
@@ -191,6 +202,7 @@ export function CompanyPage() {
           {
             value: 'bank',
             label: 'Bank',
+            description: 'Einlage, Zinsertrag, Kreditrahmen',
             content: <BankFacts caps={caps} isCeo={isCeo} asin={asin} />,
           },
         ]
@@ -198,6 +210,7 @@ export function CompanyPage() {
     {
       value: 'erfolge',
       label: 'Erfolge',
+      description: 'Erfolge des Unternehmens',
       count: c ? `${c.achievementCount ?? 0}/${c.achievementTotal ?? 0}` : undefined,
       content: (
         <div className="company__pad">
@@ -221,58 +234,87 @@ export function CompanyPage() {
           {
             value: 'fuehren',
             label: 'Führen',
+            description: 'Kapitalmaßnahmen, Anleihen, Indizes, Gehalt, Logo …',
             content: <ManagePanel company={c} />,
           },
         ]
       : []),
   ];
 
+  const header = (
+    <DS.ProfileHeader
+      as={isPhone ? 'h2' : 'h1'}
+      kind="company"
+      kindLabel="Unternehmen"
+      name={c?.name ?? '…'}
+      logoUrl={c?.logoUrl ?? undefined}
+      eyebrow={[<a key="a" href={`/wertpapier/${asin}`}>{asin}</a>, 'Aktie']}
+      meta={[
+        ...(c?.ceo?.username
+          ? [
+              <span key="ceo">
+                CEO <a href={`/spieler/${encodeURIComponent(c.ceo.username)}`}>{c.ceo.username}</a>
+              </span>,
+            ]
+          : [c ? 'Kein CEO' : '\u00a0']),
+        ...(c?.ceoEmploymentAgreement?.dailyWage != null ? [`Gehalt ${DS.format.money(c.ceoEmploymentAgreement.dailyWage, '€', 2, 'auto')} je Tag`] : []),
+      ]}
+      // The tag row always exists (market maker policy is always shown, a placeholder while loading),
+      // so the key figures below do not jump when the profile arrives.
+      tags={
+        c
+          ? [
+              ...(caps?.bank ? [{ label: 'Banklizenz' }] : []),
+              { label: c.marketMakerPolicy === 'OPEN' ? 'Market Maker offen' : 'Market Maker geschlossen' },
+              ...(c.sponsoredListings?.length ? [{ label: 'Designated Sponsor' }] : []),
+              ...(isCeo ? [{ label: 'Du bist CEO' }] : []),
+            ]
+          : [{ label: <DS.Skeleton width="9em" /> }]
+      }
+      actions={
+        <DS.Button size="sm" onClick={() => navigate(`/wertpapier/${asin}`)}>
+          Zum Wertpapier
+        </DS.Button>
+      }
+      stats={[
+        { label: 'Kurs', value: c?.lastPrice ? c.lastPrice.value : '–', sub: c?.marketCap ? `Marktkap. ${DS.format.money(c.marketCap, '€', 2, true)}` : '\u00a0' },
+        { label: 'Buchwert', value: caps?.bookValue ?? '–', compact: true, sub: perShare(caps?.bookValuePerShare) },
+        { label: 'Net Cash', value: caps?.netCash ?? '–', compact: true, sub: perShare(caps?.netCashPerShare) },
+        { label: 'Bargeld', value: c?.bankAccount?.cash ?? '–', compact: true, sub: cashFlow(history.data?.at(-1)?.cashFlow) },
+      ]}
+    />
+  );
+  const setTab = (v: string) => setParams({ ansicht: v }, { replace: true });
+
   return (
-    <div className={`page company${tab === 'ueberblick' ? ' company--overview' : ''}`} onClick={onLinkClick}>
-      <DS.ProfileHeader
-        kind="company"
-        kindLabel="Unternehmen"
-        name={c?.name ?? '…'}
-        logoUrl={c?.logoUrl ?? undefined}
-        eyebrow={[<a key="a" href={`/wertpapier/${asin}`}>{asin}</a>, 'Aktie']}
-        meta={[
-          ...(c?.ceo?.username
-            ? [
-                <span key="ceo">
-                  CEO <a href={`/spieler/${encodeURIComponent(c.ceo.username)}`}>{c.ceo.username}</a>
-                </span>,
-              ]
-            : [c ? 'Kein CEO' : '\u00a0']),
-          ...(c?.ceoEmploymentAgreement?.dailyWage != null ? [`Gehalt ${DS.format.money(c.ceoEmploymentAgreement.dailyWage, '€', 2, 'auto')} je Tag`] : []),
-        ]}
-        // The tag row always exists (market maker policy is always shown, a placeholder while loading),
-        // so the key figures below do not jump when the profile arrives.
-        tags={
-          c
-            ? [
-                ...(caps?.bank ? [{ label: 'Banklizenz' }] : []),
-                { label: c.marketMakerPolicy === 'OPEN' ? 'Market Maker offen' : 'Market Maker geschlossen' },
-                ...(c.sponsoredListings?.length ? [{ label: 'Designated Sponsor' }] : []),
-                ...(isCeo ? [{ label: 'Du bist CEO' }] : []),
-              ]
-            : [{ label: <DS.Skeleton width="9em" /> }]
-        }
-        actions={
-          <DS.Button size="sm" onClick={() => navigate(`/wertpapier/${asin}`)}>
-            Zum Wertpapier
-          </DS.Button>
-        }
-        stats={[
-          { label: 'Kurs', value: c?.lastPrice ? c.lastPrice.value : '–', sub: c?.marketCap ? `Marktkap. ${DS.format.money(c.marketCap, '€', 2, true)}` : '\u00a0' },
-          { label: 'Buchwert', value: caps?.bookValue ?? '–', compact: true, sub: perShare(caps?.bookValuePerShare) },
-          { label: 'Net Cash', value: caps?.netCash ?? '–', compact: true, sub: perShare(caps?.netCashPerShare) },
-          { label: 'Bargeld', value: c?.bankAccount?.cash ?? '–', compact: true, sub: cashFlow(history.data?.at(-1)?.cashFlow) },
-        ]}
-      />
+    <div className="page company" onClick={onLinkClick}>
+      {isPhone ? (
+        <PhoneProfile
+          kind="company"
+          name={c?.name ?? '…'}
+          logoUrl={c?.logoUrl}
+          back={{ href: '/unternehmen', label: 'Zurück' }}
+          meta={
+            <>
+              <a className="pprof__asin" href={`/wertpapier/${asin}`}>
+                {asin}
+              </a>
+              {c ? (c.ceo?.username ? <> · CEO <a href={`/spieler/${encodeURIComponent(c.ceo.username)}`}>{c.ceo.username}</a></> : ' · Kein CEO') : null}
+            </>
+          }
+          stats={[
+            { label: 'Kurs', value: c?.lastPrice ? c.lastPrice.value : '–' },
+            { label: 'Buchwert', value: caps?.bookValue ?? '–' },
+            { label: 'Net Cash', value: caps?.netCash ?? '–' },
+          ]}
+          details={header}
+          detailsTitle="Unternehmen"
+        />
+      ) : (
+        header
+      )}
       <DS.Card flush className="panel">
-        <div className="panel__tabs">
-          <DS.Tabs size="sm" aria-label="Unternehmen" items={items} value={tab} onChange={(v) => setParams({ ansicht: v }, { replace: true })} />
-        </div>
+        <ScrollTabs className="panel__tabs" size="sm" label="Unternehmen" items={items} value={tab} onChange={setTab} menu={isPhone} />
       </DS.Card>
       {done && c && (
         <DS.ToastRegion>

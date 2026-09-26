@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { DS } from '../ds';
+import { DS, format } from '../ds';
 import { useCounterOtcOrders, useMe, useMyCompanies, useOpenOrders, useOrderLogs, usePortfolio } from '../api/queries';
 import { useInternalLinks } from '../lib/useInternalLinks';
+import { useIsPhone } from '../lib/useMediaQuery';
+import { MiniStats } from '../app/phone';
 import { OpenOrders } from './OpenOrders';
 import { OtcIncoming, type MyAccount } from './Otc';
 import { OtcNewSheet } from './OtcNew';
@@ -10,6 +12,7 @@ import { incomingOtc, orderTotals, otcTotals } from './derive';
 import './OrdersPage.css';
 
 type View = 'offen' | 'ausgefuehrt' | 'otc';
+const money = (n: number) => format.money(n, '€', 2, 'auto');
 const VIEWS: View[] = ['offen', 'ausgefuehrt', 'otc'];
 
 /**
@@ -19,6 +22,7 @@ const VIEWS: View[] = ['offen', 'ausgefuehrt', 'otc'];
 export function OrdersPage() {
   const [params, setParams] = useSearchParams();
   const onLinkClick = useInternalLinks();
+  const phone = useIsPhone();
   const me = useMe();
   const portfolio = usePortfolio();
   const companies = useMyCompanies(me.data?.id);
@@ -110,7 +114,28 @@ export function OrdersPage() {
         }
       />
       <div className="page__body orders__body">
-        {view === 'otc' ? (
+        {phone ? (
+          // Phone: one row of figures instead of a 2×2 tile block; the trade count sits on its tab.
+          view === 'otc' ? (
+            <MiniStats
+              label="OTC-Angebote"
+              items={[
+                { label: 'An dich', value: ot.count.toLocaleString('de-DE') },
+                { label: 'Kauf / Verk.', value: `${ot.toBuy.toLocaleString('de-DE')} / ${ot.toSell.toLocaleString('de-DE')}` },
+                { label: 'Volumen', value: money(ot.volume) },
+              ]}
+            />
+          ) : (
+            <MiniStats
+              label="Offene Orders"
+              items={[
+                { label: 'Offen', value: totals.count.toLocaleString('de-DE') },
+                { label: `Kauf · ${totals.buys}`, value: money(totals.buyVolume) },
+                { label: `Verkauf · ${totals.sells}`, value: money(totals.sellVolume) },
+              ]}
+            />
+          )
+        ) : view === 'otc' ? (
           <DS.StatGroup columns="repeat(auto-fit, minmax(150px, 1fr))" aria-label="OTC-Angebote">
             <DS.StatTile
               label="OTC an dich"
@@ -161,6 +186,7 @@ export function OrdersPage() {
                 {
                   value: 'ausgefuehrt',
                   label: 'Ausgeführt',
+                  count: phone ? logs.data?.content.length || undefined : undefined,
                   content:
                     logs.isLoading || !account ? (
                       <DS.Loading rows={6} />

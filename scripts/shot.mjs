@@ -7,6 +7,8 @@
 //   npm run shot -- /markt --size 390x844 --out /tmp/shots
 //   npm run shot -- /anmelden --anon                       # without login
 //   npm run shot -- /markt --local at.chatSidebar=1        # localStorage entry before loading (chat sidebar open)
+//   npm run shot -- / --hover '.bnk-psum__bar'              # hover an element before the shot (tooltips)
+//   npm run shot -- /markt --click '.shell__title'          # click an element before the shot (menus, sheets)
 //
 // Read-only: it only navigates; it never clicks buy/sell.
 
@@ -49,6 +51,8 @@ const sizes = opt('--size') ? [opt('--size')] : SIZES;
 const outDir = resolve(opt('--out', join(root, 'shots')));
 const app = opt('--app', 'http://localhost:5173');
 const wait = Number(opt('--wait', 2500));
+const hover = opt('--hover');
+const click = opt('--click');
 const local = args.flatMap((a, i) => (args[i - 1] === '--local' ? [a.split('=')] : []));
 
 const e = env();
@@ -86,6 +90,21 @@ try {
         scrollers,
       };
     });
+    if (click) {
+      const el = await page.$(click);
+      if (el) {
+        // With touch emulation a mouse click does not arrive – tap instead.
+        await (width < 720 ? el.tap() : el.click());
+        await new Promise((r) => setTimeout(r, 600));
+      } else console.log(`  click: no element matches ${click}`);
+    }
+    if (hover) {
+      const el = await page.$(hover);
+      if (el) {
+        await el.hover();
+        await new Promise((r) => setTimeout(r, 400));
+      } else console.log(`  hover: no element matches ${hover}`);
+    }
     const file = join(outDir, `${path.replace(/\W+/g, '_').replace(/^_|_$/g, '') || 'root'}-${size}.png`);
     await page.screenshot({ path: file });
     console.log(`${size}: ${file}`);

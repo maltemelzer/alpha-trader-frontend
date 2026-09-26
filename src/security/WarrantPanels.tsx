@@ -115,7 +115,7 @@ export function WarrantsOnView({ asin }: { asin: string }) {
       {rows.length > 0 && (
         <p className="class__note warrants__note">
           {calls.toLocaleString('de-DE')} Calls · {puts.toLocaleString('de-DE')} Puts · Balken: Referenzkurs bis Cap in % vom Kurs jetzt · daneben{' '}
-          <DS.Term title="Auszahlung (Annahme)" definition={PAYOUT_MODEL}>
+          <DS.Term title="Auszahlung" definition={PAYOUT_MODEL}>
             Auszahlung je Schein
           </DS.Term>{' '}
           und Ergebnis zum Brief
@@ -200,7 +200,7 @@ export function WithWarrants({
   return (
     <Panel
       className={className}
-      action={<DS.SegmentedControl size="sm" aria-label="Inhalt der Karte" options={tabs} value={tab} onChange={setTab} />}
+      action={<DS.SegmentedControl size="sm" fullWidth={false} aria-label="Inhalt der Karte" options={tabs} value={tab} onChange={setTab} />}
     >
       {tab === WARRANT_TAB ? <WarrantsOnView asin={asin} /> : children}
     </Panel>

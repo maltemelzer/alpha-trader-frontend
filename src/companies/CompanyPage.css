@@ -90,6 +90,29 @@
   gap: var(--space-4);
 }
 
+/* Phone: the three bank figures one below the other (label and value in one row), notes below. */
+@media (max-width: 719.98px) {
+  .company__bank .bnk-statgrp {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .company__bank .bnk-statgrp > .bnk-stat {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: var(--space-3);
+    padding: var(--space-2) 0;
+    border-left: 0;
+    border-top: var(--hairline) solid var(--line);
+  }
+  .company__bank .bnk-statgrp > .bnk-stat:first-child {
+    border-top: 0;
+  }
+  .company__bank .bnk-stat__hint {
+    grid-column: 1 / -1;
+    font-size: 12px;
+  }
+}
+
 .company__note {
   margin: 0;
   color: var(--text-secondary);
@@ -307,20 +330,6 @@
   .mm__cols {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-4);
-  }
-}
-
-/* Phone: the tag row stays one line (scrolls sideways) – wrapping when the profile arrived made the key figures jump. */
-@media (max-width: 719.98px) {
-  .company .bnk-prof__tags {
-    position: relative;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .company .bnk-prof__tag {
-    flex: none;
-    white-space: nowrap;
   }
 }
 
@@ -582,6 +591,32 @@
   position: relative;
   min-height: 0;
   overflow: auto;
+}
+
+.chron__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chron-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) 0;
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.chron-row__meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.chron-row__text {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-primary);
 }
 
 /* Short windows (1280×720): a flatter timeline leaves room for the list. */
@@ -899,21 +934,6 @@
 .ov .rank-row {
   row-gap: 2px;
   padding-block: 3px;
-}
-
-/* Phone, Überblick: the profile header alone is ~480 px high, which left the overview a 190 px
-   window. Here the page scrolls as a whole instead – header first, then the sections stacked. */
-@media (max-width: 719.98px) {
-  .company--overview {
-    height: auto;
-    grid-template-rows: auto auto;
-  }
-  .company--overview > .panel.bnk-card {
-    height: auto;
-  }
-  .company--overview .bnk-tabs__panel:has(> .ov) {
-    overflow: visible;
-  }
 }
 
 /* Four figures are always there – hold their height while the histograms load. */
