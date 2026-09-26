@@ -18,6 +18,7 @@ import {
   offMarket,
   pairs,
   parseAccount,
+  shownPrivateAccounts,
   REST_ID,
   roundTrips,
   sankey,
@@ -137,8 +138,18 @@ describe('parseAccount', () => {
     expect(accountHref('p', infos)).toBe('/spieler/bob');
     expect(accountHref('org:bob', infos)).toBe('/spieler/bob');
     expect(accountHref('zz', infos)).toBeUndefined();
-    expect(displayName('p', '', infos)).toBe('bob');
+    expect(displayName('p', '', infos)).toBe('bob (privat)');
     expect(displayName('zz', '', infos)).toBe('Privatdepot');
+  });
+});
+
+describe('shownPrivateAccounts', () => {
+  it('lists the private accounts the views show, never company accounts', () => {
+    const trade = (id: string, seller: string, sellerName: string, buyer: string, buyerName: string, volume: number, price = 10) =>
+      ({ id, asin: 'STAAAAAAAA', price, shares: volume / price, volume, date: 1, seller, sellerName, buyer, buyerName }) as Trade;
+    const trades = [trade('1', 'p1', '', 'c1', 'Firma AG', 500), trade('2', 'c1', 'Firma AG', 'p2', '', 300), trade('3', 'p2', '', 'p1', '', 50)];
+    const transfers = [trade('4', 'p3', '', 'p4', '', 0.01, 0.01)];
+    expect(shownPrivateAccounts(trades, transfers).sort()).toEqual(['p1', 'p2', 'p3', 'p4']);
   });
 });
 

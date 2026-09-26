@@ -12,6 +12,7 @@ import {
   accountHref,
   accountStats,
   accountsToResolve,
+  shownPrivateAccounts,
   displayName,
   grouping,
   involves,
@@ -111,11 +112,15 @@ export function FlowsPage() {
   const ofKind = useMemo(() => (kind ? all.filter((t) => kindOfAsin(t.asin) === kind) : all), [all, kind]);
 
   // Names: the largest and busiest accounts (for „Personen“ also the company accounts), plus the filter.
+  // Also every private account the lists and the money flow show, so busy private accounts carry their player's name.
   const toResolve = useMemo(() => {
     const ids = accountsToResolve(ofKind, 25);
+    const scopedTrades = konto ? ofKind.filter((t) => involves(t, konto)) : ofKind;
+    const scopedTransfers = konto ? transfers.filter((t) => involves(t, konto)) : transfers;
+    for (const id of shownPrivateAccounts(scopedTrades, scopedTransfers)) if (!ids.includes(id)) ids.push(id);
     if (konto && !konto.startsWith('org:') && !ids.includes(konto)) ids.push(konto);
     return ids;
-  }, [ofKind, konto]);
+  }, [ofKind, transfers, konto]);
   const details = useAccountDetails(toResolve);
   const infos = useMemo(() => {
     const out: Record<string, AccountInfo | undefined> = {};

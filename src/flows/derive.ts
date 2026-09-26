@@ -188,10 +188,13 @@ export function grouping(infos: Record<string, AccountInfo | undefined>, byOwner
   return (id, logName) => {
     const info = infos[id];
     if (byOwner && info?.owner) return { id: `org:${info.owner}`, name: info.owner, kind: 'player' };
-    const name = logName || info?.name || '';
+    const name = logName || labelOf(info);
     return { id, name, kind: info ? (info.fund ? 'fund' : info.private ? 'player' : 'company') : kindOfName(logName) };
   };
 }
+
+/** Resolved name; a private account is marked as such – the same person also runs companies. */
+export const labelOf = (info: AccountInfo | undefined) => (!info?.name ? '' : info.private ? `${info.name} (privat)` : info.name);
 
 const plain: Grouping = (id, name) => ({ id, name, kind: kindOfName(name) });
 
@@ -741,10 +744,27 @@ export function accountsToResolve(trades: Trade[], n = 30): string[] {
   return [...new Set([...byVolume, ...byTrades])];
 }
 
+/**
+ * Private accounts (empty name in the log) that the views actually show: money-flow columns, top pairs,
+ * net buyers/sellers and the unusual-activity lists. They get resolved too, so a busy private account
+ * appears with its player name instead of „Privatdepot“ (company names come with the log).
+ */
+export function shownPrivateAccounts(trades: Trade[], transfers: Trade[]): string[] {
+  const ids: [string, string][] = [];
+  const flow = sankey(trades, {});
+  for (const node of flow.nodes) if (node.column !== 'security' && node.ref && node.ref !== REST_ID) ids.push([node.ref, node.label === 'Privatdepot' ? '' : node.label]);
+  for (const p of pairs(trades).slice(0, 20)) ids.push([p.a, p.aName], [p.b, p.bName]);
+  for (const s of netFlows(accountStats(trades))) ids.push([s.id, s.name]);
+  for (const r of roundTrips(trades).slice(0, 8)) ids.push([r.a, r.aName], [r.b, r.bName]);
+  for (const o of offMarket(trades).slice(0, 8)) ids.push([o.trade.seller, o.trade.sellerName], [o.trade.buyer, o.trade.buyerName]);
+  for (const g of transferGroups(transfers).slice(0, 10)) ids.push([g.from, g.fromName], [g.to, g.toName]);
+  return [...new Set(ids.filter(([id, name]) => id && !name).map(([id]) => id))];
+}
+
 /** Display name: company name from the log, else the resolved one, else a neutral placeholder. */
 export function displayName(id: string, logName: string, infos: Record<string, AccountInfo | undefined>): string {
   if (id.startsWith('org:')) return id.slice(4);
-  return logName || infos[id]?.name || (id === REST_ID ? 'Übrige' : 'Privatdepot');
+  return logName || labelOf(infos[id]) || (id === REST_ID ? 'Übrige' : 'Privatdepot');
 }
 
 /** Link of an account: the player page for private accounts and organisations, the company page for companies. */
