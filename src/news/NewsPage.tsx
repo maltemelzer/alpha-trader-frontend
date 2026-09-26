@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { DS } from '../ds';
 import {
   useCompanyByAsin,
+  useCreatePost,
   useHotNews,
   useNews,
   useNewsFeed,
@@ -11,6 +12,7 @@ import {
   type PostView,
 } from '../api/queries';
 import { useHighlight } from '../lib/highlight';
+import { textToHtml } from '../lib/html';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
 import { useUrlSearch } from '../lib/useUrlSearch';
@@ -26,6 +28,7 @@ import './NewsPage.css';
  * ?suche= searches title and text (any part of a word); hits are highlighted.
  * An article opens at /zeitung/:postId (the filter and the search stay) – beside the feed on wide screens.
  * Narrower screens have no room for „Beliebt“ beside the feed: ?ansicht=beliebt shows it instead.
+ * „Artikel verfassen“ (?schreiben=1) opens the editor in a sheet; the article is a post without board.
  */
 export function NewsPage() {
   const { postId } = useParams();
@@ -57,6 +60,18 @@ export function NewsPage() {
   const filtered = useNewsFeed(source);
   const news = filter.kind === 'all' ? latest : filtered;
   const hot = useHotNews(8);
+  const create = useCreatePost();
+  const writing = params.get('schreiben') === '1';
+  const setWriting = (open: boolean) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (open) next.set('schreiben', '1');
+        else next.delete('schreiben');
+        return next;
+      },
+      { replace: true },
+    );
 
   const posts = useMemo(() => news.data?.pages.flatMap((p) => p.content) ?? [], [news.data]);
   const total = news.data?.pages[0]?.totalElements;
@@ -238,6 +253,9 @@ export function NewsPage() {
                 />
               )}
               {isPhone && <SearchIconButton label="Artikel suchen" onClick={() => setSearchOpen(true)} />}
+              <DS.Button variant="primary" size="sm" onClick={() => setWriting(true)}>
+                {isPhone ? 'Verfassen' : 'Artikel verfassen'}
+              </DS.Button>
             </>
           )
         }
@@ -257,6 +275,23 @@ export function NewsPage() {
           article || (showPopular ? popular : feed)
         )}
       </div>
+      <DS.Sheet open={writing} onClose={() => !create.isPending && setWriting(false)} title="Artikel verfassen" side="auto" width={640}>
+        <DS.ForumEditor
+          mode="thread"
+          titlePlaceholder="Überschrift"
+          placeholder="Dein Artikel – #Hashtags ordnen ihn Themen zu"
+          submitLabel="Veröffentlichen"
+          loading={create.isPending}
+          onCancel={() => setWriting(false)}
+          onSubmit={(v) =>
+            create.mutate(
+              { title: v.title, html: textToHtml(v.body) },
+              { onSuccess: (p) => navigate(p?.id ? `/zeitung/${p.id}` : '/zeitung', { replace: true }) },
+            )
+          }
+        />
+        {create.isError && <DS.Banner variant="error">Nicht veröffentlicht: {create.error.message}</DS.Banner>}
+      </DS.Sheet>
     </div>
   );
 }
