@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { DS } from '../ds';
 import {
   useCompaniesByAsin,
@@ -7,6 +7,7 @@ import {
   useMainInterestRate,
   useMoneySupply,
   useMoneySupplyBreakdown,
+  useMyBanks,
   useReservesPayment,
   useSystemBonds,
 } from '../api/queries';
@@ -19,6 +20,7 @@ import { bankSharesChart, dueChart, moneySupplyChart, potsChart, rateHistoryChar
 import { bankShares, dueByDay, potRows, rateOnlyBelowTarget, rateWindow, signedPct, supplySeries, targetGrowthPct } from './derive';
 import { CreditForm } from './CreditForm';
 import { AssumeControl, TenderBid, TenderPhone, TenderSide } from './TenderPanel';
+import { MiniStats, ScrollTabs } from '../app/phone';
 import './CentralBankPage.css';
 
 const DAY = 86_400_000;
@@ -40,10 +42,10 @@ const SIDE = [
 ];
 const PHONE = [
   { value: 'zinsen', label: 'Zinsen' },
+  { value: 'tender', label: 'Tender' },
   { value: 'banken', label: 'Banken' },
   { value: 'kredite', label: 'Kredite' },
-  { value: 'tender', label: 'Tender' },
-  { value: 'geld', label: 'Geldmenge' },
+  { value: 'geld', label: 'Geld' },
   { value: 'regeln', label: 'Regeln' },
 ];
 
@@ -104,7 +106,7 @@ export function CentralBankPage() {
   ) : (
     <DS.Card
       className="panel"
-      title={isPhone ? undefined : 'Zinsverlauf'}
+      title="Zinsverlauf"
       action={<DS.SegmentedControl size="sm" aria-label="Zeitraum" fullWidth={false} options={RANGES} value={range} onChange={setRange} />}
     >
       <div className="panel__fill cb__chart">
@@ -128,16 +130,48 @@ export function CentralBankPage() {
   };
 
   if (isPhone) {
+    // Phone: one control row (the views), the rest is the view. The main rates sit in the meta line; the
+    // „Zinsen“ view shows them as one compact row above the chart, with the last payout in the meta line instead.
+    const phoneStats = (
+      <MiniStats
+        label="Zinsen der Zentralbank"
+        items={[
+          { key: 'main', label: <HelpTerm id="mainInterestRate">Leitzins</HelpTerm>, value: pct(main.data?.value) },
+          { key: 'reserve', label: 'Einlage / Tag', value: pct(reserveRate) },
+          { key: 'system', label: <HelpTerm id="systemBond">Systemanl.</HelpTerm>, value: pct(systemRate) },
+        ]}
+      />
+    );
+    const meta =
+      view === 'zinsen' ? (
+        <span className="cb__meta">
+          Ausgezahlt {payment.data ? <DS.Amount value={payment.data.paidInterest} compact /> : '–'}
+          {payment.data?.nextPaymentDate ? (
+            <>
+              {' · '}
+              <DS.Countdown to={payment.data.nextPaymentDate} label="nächste in" short />
+            </>
+          ) : null}
+        </span>
+      ) : (
+        <span className="cb__meta">
+          Leitzins {pct(main.data?.value)} · Einlage {pct(reserveRate)} / Tag
+        </span>
+      );
     return (
       <div className="page cb cb--phone" onClick={onLinkClick}>
-        <DS.PageHeader size="md" title="Zentralbank" meta={<span>Leitzins {pct(main.data?.value)} · Einlage {pct(reserveRate)} / Tag</span>} />
-        <div className="page__body cb__body">
-          <DS.Tabs aria-label="Ansicht" items={PHONE} value={view} onChange={setView} />
+        <DS.PageHeader size="md" title="Zentralbank" meta={meta} />
+        <div className={`page__body cb__body${view === 'zinsen' ? ' cb__body--stats' : ''}`}>
+          <ScrollTabs label="Ansicht" items={PHONE} value={view} onChange={setView} />
           {view === 'zinsen' ? (
             <>
-              {stats}
+              {phoneStats}
               {chart}
             </>
+          ) : view === 'tender' ? (
+            <TenderPhone />
+          ) : view === 'kredite' ? (
+            <CreditPhone />
           ) : (
             <DS.Card flush className="panel">
               <div className="panel__fill scroll cb__pad">{panels[view]}</div>
@@ -244,8 +278,40 @@ function Banks() {
   );
 }
 
+/**
+ * Phone: the credit view fills the card and scrolls; taking credit sits in a bar at the bottom (thumb zone)
+ * and opens the form in a sheet – for non-banks the bar says why there is none.
+ */
+function CreditPhone() {
+  const { banks, isLoading } = useMyBanks();
+  const [open, setOpen] = useState(false);
+  return (
+    <DS.Card flush className="panel">
+      <div className="panel__fill scroll cb__pad">
+        <Credit phone />
+      </div>
+      <div className="cb-bar">
+        {isLoading ? (
+          <DS.Skeleton variant="text" />
+        ) : banks.length ? (
+          <DS.Button variant="primary" fullWidth onClick={() => setOpen(true)}>
+            Kredit aufnehmen …
+          </DS.Button>
+        ) : (
+          <span className="cb__note tdr__lock">
+            <DS.Icon name="bank" size={16} /> Kredit nehmen können nur Banken – du führst keine.
+          </span>
+        )}
+      </div>
+      <DS.Sheet open={open} onClose={() => setOpen(false)} title="Kredit aufnehmen" side="bottom">
+        <CreditForm heading={false} />
+      </DS.Sheet>
+    </DS.Card>
+  );
+}
+
 /** Central bank credit: the running system bonds, their volume and when it falls due. */
-function Credit() {
+function Credit({ phone }: { phone?: boolean }) {
   const bonds = useSystemBonds();
   const now = bonds.dataUpdatedAt;
   const running = useMemo(() => (bonds.data ?? []).filter((b) => (b.maturityDate ?? 0) > now), [bonds.data, now]);
@@ -257,15 +323,23 @@ function Credit() {
   if (!running.length) return <DS.EmptyState compact as="h3" title="Keine laufenden Systemanleihen" />;
   return (
     <div className="cb__stack">
-      <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Systemanleihen">
-        <DS.StatTile label="Laufend" value={String(running.length)} hint="Systemanleihen" />
-        <DS.StatTile label="Volumen" value={volume} compact hint="Kredit der Zentralbank" />
-        <DS.StatTile
-          label="Zins"
-          value={rates.length > 1 ? `${rates[0].toLocaleString('de-DE', { minimumFractionDigits: 2 })}–${pct(rates.at(-1))}` : pct(rates[0])}
-          hint="für die Laufzeit"
+      {phone ? (
+        <MiniStats
+          label="Systemanleihen"
+          columns="minmax(0, 0.6fr) minmax(0, 1fr) minmax(0, 1.15fr)"
+          items={[
+            { label: 'Laufend', value: String(running.length) },
+            { label: 'Volumen', value: <DS.Amount value={volume} compact /> },
+            { label: 'Zins', value: rates.length > 1 ? `${rates[0].toLocaleString('de-DE', { minimumFractionDigits: 2 })}–${pct(rates.at(-1))}` : pct(rates[0]) },
+          ]}
         />
-      </DS.StatGroup>
+      ) : (
+        <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Systemanleihen">
+          <DS.StatTile label="Laufend" value={String(running.length)} hint="Systemanleihen" />
+          <DS.StatTile label="Volumen" value={volume} compact hint="Kredit der Zentralbank" />
+          <DS.StatTile label="Zins" value={rates.length > 1 ? `${rates[0].toLocaleString('de-DE', { minimumFractionDigits: 2 })}–${pct(rates.at(-1))}` : pct(rates[0])} hint="für die Laufzeit" />
+        </DS.StatGroup>
+      )}
       <h3 className="cb__h">Fällig nach Tag</h3>
       <div className="cb__due">
         <Plot aria-label="Volumen der Systemanleihen nach Fälligkeitstag" figure={(t, w) => dueChart(t, w, days)} />
@@ -274,7 +348,7 @@ function Credit() {
         Banken leihen sich Geld bei der Zentralbank, indem sie Systemanleihen ausgeben – bis 10 % ihrer Einlage, zum Leitzins
         + 1 %, Laufzeit etwa 6½ Tage.
       </p>
-      <CreditForm />
+      {!phone && <CreditForm />}
     </div>
   );
 }
@@ -285,6 +359,7 @@ function Credit() {
  * the target is the previous supply + 0,1 %, and a rate was applied only below the target.
  */
 function MoneySupply() {
+  const phone = useIsPhone();
   const supply = useMoneySupply();
   const breakdown = useMoneySupplyBreakdown();
   const points = useMemo(() => supplySeries(supply.data?.snapshots), [supply.data]);
@@ -297,16 +372,23 @@ function MoneySupply() {
   if (supply.isLoading || breakdown.isLoading) return <DS.Loading rows={6} />;
   return (
     <div className="cb__stack">
-      <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Geldmenge">
-        <DS.StatTile label="Geld gesamt" value={b ? b.total : '–'} compact hint="Konten + Einlagen" />
-        <DS.StatTile
+      {phone ? (
+        <MiniStats
           label="Geldmenge"
-          value={last ? last.supply : '–'}
-          compact
-          hint={last ? `${signedPct(last.gapPct)} zum Ziel` : ' '}
+          columns="minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.8fr)"
+          items={[
+            { label: 'Geld gesamt', value: b ? <DS.Amount value={b.total} compact /> : '–' },
+            { label: 'Geldmenge', value: last ? <DS.Amount value={last.supply} compact /> : '–' },
+            { label: 'Zins zuletzt', value: last ? rate(last.ratePct) : '–' },
+          ]}
         />
-        <DS.StatTile label="Zins zuletzt" value={last ? rate(last.ratePct) : '–'} hint="beim letzten Schritt" />
-      </DS.StatGroup>
+      ) : (
+        <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Geldmenge">
+          <DS.StatTile label="Geld gesamt" value={b ? b.total : '–'} compact hint="Konten + Einlagen" />
+          <DS.StatTile label="Geldmenge" value={last ? last.supply : '–'} compact hint={last ? `${signedPct(last.gapPct)} zum Ziel` : ' '} />
+          <DS.StatTile label="Zins zuletzt" value={last ? rate(last.ratePct) : '–'} hint="beim letzten Schritt" />
+        </DS.StatGroup>
+      )}
       <h3 className="cb__h">Geldmenge und Ziel</h3>
       <div className="cb__supply">
         {points.length > 1 ? (

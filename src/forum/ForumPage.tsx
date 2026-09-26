@@ -20,9 +20,11 @@ import { ReportDialog, type ReportTarget } from './ReportDialog';
 import { htmlToText, textToHtml } from '../lib/html';
 import { useHighlight } from '../lib/highlight';
 import { useInternalLinks } from '../lib/useInternalLinks';
+import { useIsPhone } from '../lib/useMediaQuery';
 import { useUrlSearch } from '../lib/useUrlSearch';
 import { replyTitle } from '../news/derive';
 import { boardNewsThread, membershipBoard, sortBoards, toCategory, toThread } from './derive';
+import { PhoneSearchRow, SearchIconButton } from './PhoneSearch';
 import { SearchResults } from './SearchResults';
 import './ForumPage.css';
 
@@ -34,7 +36,7 @@ export function ForumPage() {
   const { boardId, postId } = useParams();
   const onLinkClick = useInternalLinks();
   return (
-    <div className="page forum" onClick={onLinkClick}>
+    <div className={`page forum${postId && boardId ? ' forum--thread' : ''}`} onClick={onLinkClick}>
       {postId && boardId ? <Thread boardId={boardId} postId={postId} /> : boardId ? <Board boardId={boardId} /> : <Boards />}
     </div>
   );
@@ -45,6 +47,8 @@ function Boards() {
   const boards = useBoards();
   const mine = useMyBoards();
   const [text, setText, search] = useUrlSearch('suche', 400, ['seite', 'forum']);
+  const isPhone = useIsPhone();
+  const [searchOpen, setSearchOpen] = useState(false);
   const view = params.get('ansicht') === 'meine' ? 'meine' : params.get('ansicht') === 'neu' ? 'neu' : 'alle';
   const onlyMine = view === 'meine';
   const myIds = new Set((mine.data?.content ?? []).map((b) => b.id));
@@ -59,29 +63,45 @@ function Boards() {
         title="Forum"
         meta={<span>{boards.data && mine.data ? `${all.length} Foren · ${own.length} abonniert` : '\u00a0'}</span>}
         actions={
-          <>
-            <DS.Input
-              type="search"
-              aria-label="Forum durchsuchen"
+          isPhone && (searchOpen || text) ? (
+            <PhoneSearchRow
+              label="Forum durchsuchen"
               placeholder="Forum durchsuchen"
-              size="sm"
-              className="forum__search"
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={setText}
+              onClose={() => {
+                setText('');
+                setSearchOpen(false);
+              }}
             />
-            <DS.SegmentedControl
-              size="sm"
-              aria-label="Ansicht"
-              className="forum__views"
-              value={view}
-              onChange={(v) => setParams(v === 'alle' ? {} : { ansicht: v }, { replace: true })}
-              options={[
-                { value: 'alle', label: 'Alle Foren' },
-                { value: 'meine', label: 'Meine Foren' },
-                { value: 'neu', label: 'Neue Themen' },
-              ]}
-            />
-          </>
+          ) : (
+            <>
+              {!isPhone && (
+                <DS.Input
+                  type="search"
+                  aria-label="Forum durchsuchen"
+                  placeholder="Forum durchsuchen"
+                  size="sm"
+                  className="forum__search"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                />
+              )}
+              <DS.SegmentedControl
+                size="sm"
+                aria-label="Ansicht"
+                className="forum__views"
+                value={view}
+                onChange={(v) => setParams(v === 'alle' ? {} : { ansicht: v }, { replace: true })}
+                options={[
+                  { value: 'alle', label: isPhone ? 'Alle' : 'Alle Foren' },
+                  { value: 'meine', label: isPhone ? 'Meine' : 'Meine Foren' },
+                  { value: 'neu', label: isPhone ? 'Neu' : 'Neue Themen' },
+                ]}
+              />
+              {isPhone && <SearchIconButton label="Forum durchsuchen" onClick={() => setSearchOpen(true)} />}
+            </>
+          )
         }
       />
       <DS.Card fill flush>
@@ -139,6 +159,8 @@ function Board({ boardId }: { boardId: string }) {
   const board = useBoard(boardId);
   const subs = useSubboards(boardId);
   const [q, setQ, search] = useUrlSearch();
+  const isPhone = useIsPhone();
+  const [searchOpen, setSearchOpen] = useState(false);
   const page = Math.max(0, Number(params.get('seite') ?? 1) - 1);
   const posts = useBoardPosts(boardId, page, search);
   const listRef = useRef<HTMLDivElement>(null);
@@ -155,19 +177,55 @@ function Board({ boardId }: { boardId: string }) {
         title={b?.name ?? 'Forum'}
         eyebrow={b?.parent ? <a href={`/forum/${b.parent.id}`}>{b.parent.name}</a> : <a href="/forum">Forum</a>}
         meta={
-          <span>
-            {total === 1 ? '1 Thema' : `${total.toLocaleString('de-DE')} Themen`}
-            {b?.numberOfMembers ? ` · ${b.numberOfMembers.toLocaleString('de-DE')} Abonnenten` : ''}
+          <span className="forum__meta">
+            {/* Phone: the title is only in the app header („Forum“) – name and the way up stay here. */}
+            {isPhone && !b ? (
+              '\u00a0'
+            ) : isPhone && (
+              <>
+                <a
+                  className="forum__up"
+                  href={b?.parent ? `/forum/${b.parent.id}` : '/forum'}
+                  aria-label={`Zurück zu ${b?.parent?.name ?? 'allen Foren'}`}
+                >
+                  ‹
+                </a>
+                <strong className="forum__name">{b?.name ?? '\u00a0'}</strong>
+                {/* flex drops plain edge spaces */}
+                {'\u00a0·\u00a0'}
+              </>
+            )}
+            {(!isPhone || b) && <span className="forum__count">
+              {total === 1 ? '1 Thema' : `${total.toLocaleString('de-DE')} Themen`}
+              {b?.numberOfMembers && !isPhone ? ` · ${b.numberOfMembers.toLocaleString('de-DE')} Abonnenten` : ''}
+            </span>}
           </span>
         }
         actions={
-          <>
-            <SubscribeButton board={b} />
-            <DS.Input type="search" aria-label="Themen durchsuchen" placeholder="Suchen" size="sm" value={q} onChange={(e) => setQ(e.target.value)} />
-            <DS.Button variant="primary" size="sm" onClick={() => setWriting(true)}>
-              Neues Thema
-            </DS.Button>
-          </>
+          isPhone && (searchOpen || q) ? (
+            <PhoneSearchRow
+              label="Themen durchsuchen"
+              placeholder={`In ${b?.name ?? 'diesem Forum'} suchen`}
+              value={q}
+              onChange={setQ}
+              onClose={() => {
+                setQ('');
+                setSearchOpen(false);
+              }}
+            />
+          ) : (
+            <>
+              <SubscribeButton board={b} />
+              {isPhone ? (
+                <SearchIconButton label="Themen durchsuchen" onClick={() => setSearchOpen(true)} />
+              ) : (
+                <DS.Input type="search" aria-label="Themen durchsuchen" placeholder="Suchen" size="sm" value={q} onChange={(e) => setQ(e.target.value)} />
+              )}
+              <DS.Button variant="primary" size="sm" onClick={() => setWriting(true)}>
+                Neues Thema
+              </DS.Button>
+            </>
+          )
         }
       />
       <DS.Card fill flush>
@@ -176,13 +234,26 @@ function Board({ boardId }: { boardId: string }) {
             <a href={`/forum?suche=${encodeURIComponent(search)}`}>„{search}“ im ganzen Forum suchen, auch in Antworten</a>
           </p>
         )}
-        {b?.description && !subs.isLoading && !posts.isLoading && <p className="forum__desc">{htmlToText(b.description)}</p>}
-        {subs.data?.content.length && !board.isLoading && !posts.isLoading ? (
-          <div className="forum__subs">
-            <DS.ForumCategoryList label="Unterforen" categories={subs.data.content.map((s) => toCategory(s))} />
-          </div>
-        ) : null}
+        {/* Description and sub-boards live in the same box as the list: they arrive with it, nothing below jumps. */}
         <div ref={listRef}>
+          {b?.description && !subs.isLoading && !posts.isLoading && <p className="forum__desc">{htmlToText(b.description)}</p>}
+          {subs.data?.content.length && !board.isLoading && !posts.isLoading ? (
+            isPhone ? (
+              // Phone: sub-boards as one scrolling row of links, so the threads start right below.
+              <nav className="forum__subchips" aria-label="Unterforen">
+                {subs.data.content.map((s) => (
+                  <a key={s.id} href={`/forum/${s.id}`} className="forum__subchip">
+                    <span className="forum__subchipName">{s.name}</span>
+                    <span className="forum__subchipCount">{(s.numberOfPosts ?? 0).toLocaleString('de-DE')}</span>
+                  </a>
+                ))}
+              </nav>
+            ) : (
+              <div className="forum__subs">
+                <DS.ForumCategoryList label="Unterforen" categories={subs.data.content.map((s) => toCategory(s))} />
+              </div>
+            )
+          ) : null}
           {posts.isLoading || board.isLoading || subs.isLoading ? (
             <DS.Loading rows={8} />
           ) : (
@@ -299,6 +370,8 @@ function Thread({ boardId, postId }: { boardId: string; postId: string }) {
   const comments = useComments(postId);
   const reply = useCreateComment();
   const [report, setReport] = useState<ReportTarget | null>(null);
+  const isPhone = useIsPhone();
+  const [replying, setReplying] = useState(false);
   const p = post.data;
   const author = (u?: { username?: string }) => ({
     name: u?.username ?? '?',
@@ -317,44 +390,65 @@ function Thread({ boardId, postId }: { boardId: string; postId: string }) {
 
   if (post.isLoading) return <DS.Loading rows={10} />;
   if (!p) return <DS.EmptyState title="Thema nicht gefunden" />;
-  return (
-    <DS.Card fill flush className="forum__thread">
-      <DS.ForumThread
-        title={p.title}
-        eyebrow={<a href={`/forum/${boardId}`}>{board.data?.name ?? 'Forum'}</a>}
-        meta={`${(p.numberOfComments ?? 0).toLocaleString('de-DE')} Antworten`}
-        reply={
-          <>
-            <DS.ForumEditor
-              mode="reply"
-              submitLabel="Antworten"
-              loading={reply.isPending}
-              onSubmit={(v) => reply.mutate({ postId, title: replyTitle(p.title), html: textToHtml(v.body) })}
-            />
-            {reply.isError && <DS.Banner variant="error">Antwort nicht gesendet: {reply.error.message}</DS.Banner>}
-          </>
+  const editor = (
+    <>
+      <DS.ForumEditor
+        mode="reply"
+        submitLabel="Antworten"
+        loading={reply.isPending}
+        onSubmit={(v) =>
+          reply.mutate(
+            { postId, title: replyTitle(p.title), html: textToHtml(v.body) },
+            { onSuccess: () => setReplying(false) },
+          )
         }
-      >
-        <DS.ForumPost
-          op
-          number={1}
-          author={author(p.author)}
-          time={p.dateCreated ? DS.format.dateTime(p.dateCreated) : undefined}
-          text={htmlToText(p.content)}
-          actions={reportButton(p.id, p.author, 1)}
-        />
-        {(comments.data ?? []).map((c, i) => (
+      />
+      {reply.isError && <DS.Banner variant="error">Antwort nicht gesendet: {reply.error.message}</DS.Banner>}
+    </>
+  );
+  return (
+    <>
+      <DS.Card fill flush className="forum__thread">
+        <DS.ForumThread
+          title={p.title}
+          eyebrow={<a href={`/forum/${boardId}`}>{board.data?.name ?? 'Forum'}</a>}
+          meta={`${(p.numberOfComments ?? 0).toLocaleString('de-DE')} Antworten`}
+          // Phone: answering sits in the thumb zone below the thread (bar + sheet), not after the last post.
+          reply={isPhone ? undefined : editor}
+        >
           <DS.ForumPost
-            key={c.id}
-            number={i + 2}
-            author={author(c.author)}
-            time={c.dateCreated ? DS.format.dateTime(c.dateCreated) : undefined}
-            text={htmlToText(c.content)}
-            actions={reportButton(c.id, c.author, i + 2)}
+            op
+            number={1}
+            author={author(p.author)}
+            time={p.dateCreated ? DS.format.dateTime(p.dateCreated) : undefined}
+            text={htmlToText(p.content)}
+            actions={reportButton(p.id, p.author, 1)}
           />
-        ))}
-      </DS.ForumThread>
-      <ReportDialog target={report} onClose={() => setReport(null)} />
-    </DS.Card>
+          {(comments.data ?? []).map((c, i) => (
+            <DS.ForumPost
+              key={c.id}
+              number={i + 2}
+              author={author(c.author)}
+              time={c.dateCreated ? DS.format.dateTime(c.dateCreated) : undefined}
+              text={htmlToText(c.content)}
+              actions={reportButton(c.id, c.author, i + 2)}
+            />
+          ))}
+        </DS.ForumThread>
+        <ReportDialog target={report} onClose={() => setReport(null)} />
+      </DS.Card>
+      {isPhone && (
+        <>
+          <div className="forum__replybar">
+            <DS.Button variant="primary" fullWidth onClick={() => setReplying(true)}>
+              Antworten
+            </DS.Button>
+          </div>
+          <DS.Sheet open={replying} onClose={() => !reply.isPending && setReplying(false)} title="Antworten" side="auto">
+            {editor}
+          </DS.Sheet>
+        </>
+      )}
+    </>
   );
 }

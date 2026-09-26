@@ -6,6 +6,7 @@ import { DS, format } from '../ds';
 import type { DataTableColumn } from '../../vendor/bankiersgruen';
 import { parseDe, ratePct, short, span } from '../lib/format';
 import { useDebounced } from '../lib/useDebounced';
+import { OptionsButton } from '../app/phone';
 import {
   activePreset,
   chips,
@@ -241,6 +242,7 @@ function FilterSheet({
   isPhone,
   base,
   now,
+  note,
 }: {
   open: boolean;
   onClose: () => void;
@@ -251,6 +253,7 @@ function FilterSheet({
   isPhone: boolean;
   base: ScreenRow[];
   now: number;
+  note: string;
 }) {
   const sec = sections(screen.types);
   // Distribution of each figure over the chosen types (other filters left out), only while open.
@@ -301,6 +304,13 @@ function FilterSheet({
       }
     >
       <div className="scr-sheet__body">
+        {isPhone && (
+          <fieldset className="scr-sec">
+            <legend className="scr-sec__title">Wertpapierart</legend>
+            <TypeToggles types={screen.types} onChange={(art) => setParam({ art, seite: null, sp: null, sort: null, immo: null })} />
+            <p className="scr-range__hint">Mehrere Arten zugleich möglich · {note}</p>
+          </fieldset>
+        )}
         {isPhone && (
           <fieldset className="scr-sec">
             <legend className="scr-sec__title">Vorlagen</legend>
@@ -587,12 +597,13 @@ export function Screener(p: ScreenerProps) {
           const [first, second] = c.dir === 'desc' ? ['desc', 'asc'] : ['asc', 'desc'];
           const word = (d: string) => (d === 'desc' ? 'absteigend' : 'aufsteigend');
           return [
-            { value: `${k}:${first}`, label: `${c.short} ${first === 'desc' ? '↓' : '↑'} ${word(first)}` },
-            { value: `${k}:${second}`, label: `${c.short} ${second === 'desc' ? '↓' : '↑'} ${word(second)}` },
+            // phone: short labels, the closed select shows only the chosen one in ~110 px
+            { value: `${k}:${first}`, label: `${c.short} ${first === 'desc' ? '↓' : '↑'}${isPhone ? '' : ` ${word(first)}`}` },
+            { value: `${k}:${second}`, label: `${c.short} ${second === 'desc' ? '↓' : '↑'}${isPhone ? '' : ` ${word(second)}`}` },
           ];
         }),
     ],
-    [screen],
+    [screen, isPhone],
   );
   const filterButton = (
     <DS.Button size="sm" variant="secondary" iconStart={<DS.Icon name="filter" size={16} />} onClick={() => setOpen(true)} aria-haspopup="dialog">
@@ -600,6 +611,91 @@ export function Screener(p: ScreenerProps) {
       {count > 0 && <span className="scr-badge" aria-label={`${count} aktiv`}>{count}</span>}
     </DS.Button>
   );
+  const sortSelect = (
+    <DS.Select
+      aria-label="Sortieren"
+      size="sm"
+      fullWidth={false}
+      value={`${p.sort.key}:${p.sort.dir}`}
+      options={sortOptions.some((o) => o.value === `${p.sort.key}:${p.sort.dir}`) ? sortOptions : [{ value: `${p.sort.key}:${p.sort.dir}`, label: 'Sortierung' }, ...sortOptions]}
+      onChange={(e) => {
+        const [key, dir] = e.target.value.split(':');
+        setParam({ sort: sortParam({ key: key as ColKey, dir: dir as 'asc' | 'desc' }), seite: null });
+      }}
+    />
+  );
+  const sheet = (
+    <FilterSheet open={open} onClose={() => setOpen(false)} screen={screen} params={params} setParam={setParam} count={p.total} isPhone={isPhone} base={p.base} now={p.now} note={p.note} />
+  );
+
+  // Phone: one fixed row (search · type · filter); count, sort, chips, overview and pages scroll with
+  // the list, so the results get the screen (was: three rows of controls above a ~314 px list).
+  if (isPhone) {
+    const types = screen.types;
+    const typeValue = !types.length ? 'alle' : types.length === 1 ? types[0] : 'mehrere';
+    const typeOptions = [
+      { value: 'alle', label: 'Alle Arten' },
+      ...GROUPS.map((g) => ({ value: g.value, label: g.label })),
+      ...(typeValue === 'mehrere' ? [{ value: 'mehrere', label: `${types.length} Arten` }] : []),
+    ];
+    return (
+      <>
+        <div className="scr-bar scr-bar--phone">
+          <div className="scr-bar__row">
+            <DS.Input
+              className="scr-bar__search"
+              type="search"
+              size="sm"
+              aria-label="Name, ASIN oder Emittent"
+              placeholder="Suchen …"
+              value={p.text}
+              onChange={(e) => p.setText(e.target.value)}
+            />
+            <DS.Select
+              className="scr-bar__type"
+              aria-label="Wertpapierart"
+              size="sm"
+              fullWidth={false}
+              value={typeValue}
+              options={typeOptions}
+              onChange={(e) => {
+                if (e.target.value === 'mehrere') return;
+                setParam({ art: e.target.value, seite: null, sp: null, sort: null, immo: null });
+              }}
+            />
+            <OptionsButton iconOnly label="Filter" description="Filter und Vorlagen" active={count} onClick={() => setOpen(true)} />
+          </div>
+        </div>
+        <div className="panel__fill scroll market__results">
+          <Chips screen={screen} setParam={setParam} onOpen={() => setOpen(true)} />
+          {(!p.special || p.estateSwitch) && (
+            <div className="scr-status">
+              <span className="scr-status__count">{p.special ? 'Immobilien' : p.total == null ? 'Lädt …' : `${p.total.toLocaleString('de-DE')} Treffer`}</span>
+              {p.estateSwitch}
+              {!p.special && (
+                <span className="scr-status__tools">
+                  {p.overviewToggle}
+                  {sortSelect}
+                </span>
+              )}
+            </div>
+          )}
+          {p.special ?? p.overview}
+          {!p.special &&
+            (p.loading ? (
+              <DS.Loading rows={10} label="Wertpapiere werden geladen" />
+            ) : p.error ? (
+              <DS.Banner variant="error">Laden fehlgeschlagen: {p.error.message}</DS.Banner>
+            ) : (
+              <PhoneList rows={p.pageRows} sort={p.sort} now={p.now} />
+            ))}
+          {p.pagination}
+        </div>
+        {sheet}
+      </>
+    );
+  }
+
   return (
     <>
       <div className="scr-bar">
@@ -634,27 +730,10 @@ export function Screener(p: ScreenerProps) {
       <div className="scr-status">
         <span className="scr-status__count">
           {p.special ? '\u00a0' : p.total == null ? 'Lädt …' : `${p.total.toLocaleString('de-DE')} Treffer`}
-          {!isPhone && !p.special && <span className="scr-status__note">{p.note}</span>}
+          {!p.special && <span className="scr-status__note">{p.note}</span>}
         </span>
         {p.estateSwitch}
-        {!p.special && (p.overviewToggle || isPhone) && (
-          <span className="scr-status__tools">
-            {p.overviewToggle}
-            {isPhone && (
-              <DS.Select
-                aria-label="Sortieren"
-                size="sm"
-                fullWidth={false}
-                value={`${p.sort.key}:${p.sort.dir}`}
-                options={sortOptions.some((o) => o.value === `${p.sort.key}:${p.sort.dir}`) ? sortOptions : [{ value: `${p.sort.key}:${p.sort.dir}`, label: 'Sortierung' }, ...sortOptions]}
-                onChange={(e) => {
-                  const [key, dir] = e.target.value.split(':');
-                  setParam({ sort: sortParam({ key: key as ColKey, dir: dir as 'asc' | 'desc' }), seite: null });
-                }}
-              />
-            )}
-          </span>
-        )}
+        {!p.special && p.overviewToggle && <span className="scr-status__tools">{p.overviewToggle}</span>}
       </div>
       <div className="panel__fill scroll market__results">
         {p.special ?? p.overview}
@@ -663,14 +742,12 @@ export function Screener(p: ScreenerProps) {
             <DS.Loading rows={10} label="Wertpapiere werden geladen" />
           ) : p.error ? (
             <DS.Banner variant="error">Laden fehlgeschlagen: {p.error.message}</DS.Banner>
-          ) : isPhone ? (
-            <PhoneList rows={p.pageRows} sort={p.sort} now={p.now} />
           ) : (
             <ResultsTable rows={p.pageRows} screen={screen} now={p.now} sort={p.sort} setParam={setParam} maxVolume={p.maxVolume} />
           ))}
       </div>
       {p.pagination}
-      <FilterSheet open={open} onClose={() => setOpen(false)} screen={screen} params={params} setParam={setParam} count={p.total} isPhone={isPhone} base={p.base} now={p.now} />
+      {sheet}
     </>
   );
 }

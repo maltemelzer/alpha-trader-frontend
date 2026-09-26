@@ -32,13 +32,15 @@ export interface ChatPanelProps {
   autoOpen?: boolean;
   /** sidebar: fewer head actions, the send button stays outlined (the page may have its brass button) */
   compact?: boolean;
+  /** phone: head actions in one ⋯ menu, short placeholder, rules in the menu */
+  phone?: boolean;
 }
 
 /**
  * Conversations and one open chat – the chat page and the sidebar share it. The design system's
  * ChatWindow switches between list and chat by its own width (container query), not the viewport.
  */
-export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen, compact }: ChatPanelProps) {
+export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen, compact, phone }: ChatPanelProps) {
   const meQuery = useMe();
   const me = meQuery.data?.username;
   const chats = useMyChats();
@@ -94,30 +96,50 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
     </div>
   );
 
-  const actions = chat && (
-    <>
-      {kind !== 'direct' && (
-        <DS.Button variant="ghost" size="sm" onClick={() => setMembersOpen(true)}>
-          Mitglieder
-        </DS.Button>
-      )}
-      {!compact && (
-        <DS.Button
-          variant="ghost"
-          size="sm"
-          loading={leave.isPending}
-          onClick={() =>
-            leave.mutate(chat.id, {
-              onSuccess: onLeft,
-              onError: (e) => setError(`Verlassen fehlgeschlagen: ${e.message}`),
-            })
-          }
-        >
-          Verlassen
-        </DS.Button>
-      )}
-    </>
+  const leaveChat = () =>
+    chat &&
+    leave.mutate(chat.id, {
+      onSuccess: onLeft,
+      onError: (e) => setError(`Verlassen fehlgeschlagen: ${e.message}`),
+    });
+
+  // Phone: one ⋯ menu keeps the head to a single row, so the thread gets the height.
+  const menu = chat && phone && (
+    <DS.DropdownMenu
+      className="chat-menu"
+      variant="ghost"
+      align="end"
+      label={
+        <>
+          <span aria-hidden="true">⋯</span>
+          <span className="bnk-sr">Chat-Aktionen</span>
+        </>
+      }
+      items={[
+        ...(kind === 'public' ? [{ heading: 'Regeln: keine Beleidigungen, keine Kaufempfehlungen gegen Geld' }] : []),
+        ...(kind !== 'direct' ? [{ label: 'Mitglieder', onSelect: () => setMembersOpen(true) }] : []),
+        ...(kind !== 'direct' ? [{ divider: true }] : []),
+        { label: leave.isPending ? 'Verlässt …' : 'Chat verlassen', danger: true, disabled: leave.isPending, onSelect: leaveChat },
+      ]}
+    />
   );
+
+  const actions =
+    menu ||
+    (chat && (
+      <>
+        {kind !== 'direct' && (
+          <DS.Button variant="ghost" size="sm" onClick={() => setMembersOpen(true)}>
+            Mitglieder
+          </DS.Button>
+        )}
+        {!compact && (
+          <DS.Button variant="ghost" size="sm" loading={leave.isPending} onClick={leaveChat}>
+            Verlassen
+          </DS.Button>
+        )}
+      </>
+    ));
 
   return (
     <>
@@ -127,7 +149,13 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
         // Head and composer keep their size from the first frame on: while the
         // chats load (and the desktop redirects to the newest chat) placeholders hold the space, so the
         // thread below does not jump. The public-chat rule sits in the composer's placeholder for the same reason.
-        subtitle={chat ? subtitle(kind) : room ? `Öffentlicher Raum · ${room.numberOfMembers.toLocaleString('de-DE')} Mitglieder` : '\u00a0'}
+        subtitle={
+          chat
+            ? subtitle(kind)
+            : room
+              ? `${phone ? 'Öffentlich' : 'Öffentlicher Raum'} · ${room.numberOfMembers.toLocaleString('de-DE')} Mitglieder`
+              : '\u00a0'
+        }
         actions={actions}
         list={list}
         mobileShowList={showList}
@@ -139,6 +167,7 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
               readonly={!!chat?.readonly}
               publicChat={kind === 'public' && !!chat}
               secondary={compact}
+              short={phone}
               onError={setError}
             />
           ) : !chatId && autoOpen && (chats.isLoading || firstId) ? (
@@ -286,12 +315,15 @@ function Composer({
   readonly,
   publicChat,
   secondary,
+  short,
   onError,
 }: {
   chatId: string;
   readonly: boolean;
   publicChat: boolean;
   secondary?: boolean;
+  /** phone: a placeholder that fits the narrow field (the public rules sit in the ⋯ menu) */
+  short?: boolean;
   onError: (e: string) => void;
 }) {
   const send = useSendMessage();
@@ -305,7 +337,15 @@ function Composer({
       disabled={readonly || send.isPending}
       sendVariant={secondary ? 'secondary' : undefined}
       placeholder={
-        readonly ? 'Nur lesen – hier kann nicht geschrieben werden' : publicChat ? 'Nachricht an alle – keine Beleidigungen, keine Kaufempfehlungen gegen Geld' : undefined
+        readonly
+          ? short
+            ? 'Nur lesen'
+            : 'Nur lesen – hier kann nicht geschrieben werden'
+          : publicChat
+            ? short
+              ? 'Nachricht an alle'
+              : 'Nachricht an alle – keine Beleidigungen, keine Kaufempfehlungen gegen Geld'
+            : undefined
       }
       onSend={(content) =>
         send.mutate(

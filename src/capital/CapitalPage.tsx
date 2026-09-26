@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { DS } from '../ds';
 import { useCapitalMeasures, useDividendPayments, useMergers } from '../api/queries';
@@ -75,8 +75,10 @@ function Measures() {
         <DS.StatTile label="Erhöhungen" value={totals.increase} compact hint="Volumen" />
         <DS.StatTile label="Herabsetzungen" value={totals.reduction} compact hint="Volumen" />
       </DS.StatGroup>
-      <DS.Card className="panel" title="Zeichnungsfristen">
-        <div className="panel__fill capital__chart">
+      <ChartAndList
+        title="Zeichnungsfristen"
+        chart={
+          <>
           {loading ? (
             <DS.Loading rows={4} />
           ) : rows.length ? (
@@ -86,10 +88,10 @@ function Measures() {
               Gerade läuft keine Kapitalerhöhung oder -herabsetzung.
             </DS.EmptyState>
           )}
-        </div>
-      </DS.Card>
-      <DS.Card flush className="panel">
-        <div className="panel__fill scroll capital__table">
+          </>
+        }
+        table={
+          <>
           {loading ? (
             <DS.Loading rows={4} />
           ) : (
@@ -128,8 +130,36 @@ function Measures() {
               ]}
             />
           )}
-        </div>
-      </DS.Card>
+          </>
+        }
+        list={
+          <>
+          <List label="Kapitalmaßnahmen" head={['Unternehmen · Art · Preis', 'Volumen · Frist']} loading={loading} empty="Keine Kapitalmaßnahmen.">
+            {rows.map((r) => (
+              <Row
+                key={r.id}
+                href={`/unternehmen/${r.asin}`}
+                name={r.name}
+                // the countdown's label says the status (Beginn in = geplant, Ende in = läuft, beendet)
+                meta={
+                  <>
+                    {r.kind === 'increase' ? '▲ Erhöhung' : '▼ Herabsetzung'} · zu <DS.Amount value={r.price} compact />
+                  </>
+                }
+                value={<DS.Amount value={r.cashVolume} compact />}
+                when={
+                  r.status === 'planned' ? (
+                    <DS.Countdown to={r.startDate} label="Beginn in" short />
+                  ) : (
+                    <DS.Countdown to={r.endDate} label="Ende in" short endedText="beendet" />
+                  )
+                }
+              />
+            ))}
+          </List>
+          </>
+        }
+      />
     </>
   );
 }
@@ -173,8 +203,10 @@ function Dividends() {
         <DS.StatTile label="Höchstvolumen" value={cap} compact hint="zusammen, Obergrenze" />
         <DS.StatTile label="Nächste" value={next ? <DS.Countdown to={next} short /> : '–'} hint={next ? rows.find((r) => r.startDate === next)?.name : ' '} />
       </DS.StatGroup>
-      <DS.Card className="panel" title="Höchstvolumen je Unternehmen">
-        <div className="panel__fill capital__chart">
+      <ChartAndList
+        title="Höchstvolumen je Unternehmen"
+        chart={
+          <>
           {q.isLoading ? (
             <DS.Loading rows={4} />
           ) : rows.length ? (
@@ -185,10 +217,10 @@ function Dividends() {
           ) : (
             <DS.EmptyState compact as="h3" title="Keine Ausschüttungen angekündigt" />
           )}
-        </div>
-      </DS.Card>
-      <DS.Card flush className="panel">
-        <div className="panel__fill scroll capital__table">
+          </>
+        }
+        table={
+          <>
           {q.isLoading ? (
             <DS.Loading rows={4} />
           ) : (
@@ -203,8 +235,25 @@ function Dividends() {
               columns={[{ key: 'name', label: 'Unternehmen', mobile: 'title', sticky: true }, termColumn, capColumn]}
             />
           )}
-        </div>
-      </DS.Card>
+          </>
+        }
+        list={
+          <>
+          <List label="Angekündigte Gewinnausschüttungen" head={['Unternehmen · Termin', 'Höchstvolumen']} loading={q.isLoading} empty="Keine Ausschüttungen angekündigt.">
+            {rows.map((r) => (
+              <Row
+                key={r.id}
+                href={`/unternehmen/${r.asin}`}
+                name={r.name}
+                meta={dateText(r.startDate)}
+                value={<DS.Amount value={r.maximalCashVolume} compact />}
+                when={<DS.Countdown to={r.startDate} label="in" short endedText="fällig" />}
+              />
+            ))}
+          </List>
+          </>
+        }
+      />
     </>
   );
 }
@@ -226,8 +275,10 @@ function Mergers() {
         <DS.StatTile label="Übernehmende" value={q.isLoading ? '–' : String(acquirers)} hint="Unternehmen" />
         <DS.StatTile label="Nächste" value={next ? <DS.Countdown to={next} short /> : '–'} hint={next ? rows.find((r) => r.startDate === next)?.name : ' '} />
       </DS.StatGroup>
-      <DS.Card className="panel" title="Wer übernimmt">
-        <div className="panel__fill capital__chart">
+      <ChartAndList
+        title="Wer übernimmt"
+        chart={
+          <>
           {q.isLoading ? (
             <DS.Loading rows={4} />
           ) : rows.length ? (
@@ -235,10 +286,10 @@ function Mergers() {
           ) : (
             <DS.EmptyState compact as="h3" title="Keine Fusionen angekündigt" />
           )}
-        </div>
-      </DS.Card>
-      <DS.Card flush className="panel">
-        <div className="panel__fill scroll capital__table">
+          </>
+        }
+        table={
+          <>
           {q.isLoading ? (
             <DS.Loading rows={4} />
           ) : (
@@ -269,8 +320,116 @@ function Mergers() {
               ]}
             />
           )}
+          </>
+        }
+        list={
+          <>
+          <List label="Angekündigte Fusionen" head={['Firma → geht auf in', 'Höchstens · Termin']} loading={q.isLoading} empty="Keine Fusionen angekündigt.">
+            {rows.map((r) => (
+              <Row
+                key={r.id}
+                href={`/unternehmen/${r.asin}`}
+                name={r.name}
+                meta={
+                  r.acquirerAsin ? (
+                    <a className="capital__link" href={`/unternehmen/${r.acquirerAsin}`}>
+                      → {r.acquirer}
+                    </a>
+                  ) : (
+                    `→ ${r.acquirer}`
+                  )
+                }
+                value={<DS.Amount value={r.maximalCashVolume} compact />}
+                when={
+                  <>
+                    {dateText(r.startDate)} · <DS.Countdown to={r.startDate} label="in" short endedText="fällig" />
+                  </>
+                }
+              />
+            ))}
+          </List>
+          </>
+        }
+      />
+    </>
+  );
+}
+
+/**
+ * Chart + details. Wide: two cards (chart above, table below). Phone: one card that scrolls as a whole –
+ * the chart first (scrolls away), then the rows as a compact list – so the list gets the full height
+ * instead of a small box under the chart.
+ */
+function ChartAndList({ title, chart, table, list }: { title: string; chart: ReactNode; table: ReactNode; list: ReactNode }) {
+  const isPhone = useIsPhone();
+  if (isPhone)
+    return (
+      <DS.Card flush className="panel">
+        <div className="panel__fill scroll capital__scroll">
+          <section className="capital__phonechart" aria-label={title}>
+            <h3 className="capital__h">{title}</h3>
+            <div className="capital__plot">{chart}</div>
+          </section>
+          {list}
         </div>
+      </DS.Card>
+    );
+  return (
+    <>
+      <DS.Card className="panel" title={title}>
+        <div className="panel__fill capital__chart">{chart}</div>
+      </DS.Card>
+      <DS.Card flush className="panel">
+        <div className="panel__fill scroll capital__table">{table}</div>
       </DS.Card>
     </>
   );
 }
+
+/** Phone row: name + meta left, amount + when right; the whole row opens the company. */
+function Row({ href, name, meta, value, when }: { href: string; name: string; meta: ReactNode; value: ReactNode; when: ReactNode }) {
+  return (
+    <li className="capital__row">
+      {/* the link covers the whole row (≥ 44 px tap target); the name is its visible label */}
+      <a className="capital__rowlink" href={href} aria-label={name} />
+      <span className="capital__rowname" aria-hidden>
+        {name}
+      </span>
+      <span className="capital__rowmeta">{meta}</span>
+      <span className="capital__rowval">{value}</span>
+      <span className="capital__rowwhen">{when}</span>
+    </li>
+  );
+}
+
+/** Phone list with a one-line head naming the columns (the rows carry no labels). */
+function List({
+  label,
+  head,
+  loading,
+  empty,
+  children,
+}: {
+  label: string;
+  head: [string, string];
+  loading: boolean;
+  empty: string;
+  children: ReactNode[];
+}) {
+  if (loading) return <DS.Loading rows={4} />;
+  if (!children.length) return <p className="capital__empty">{empty}</p>;
+  return (
+    <>
+      <div className="capital__listhead" aria-hidden>
+        <span>{head[0]}</span>
+        <span>{head[1]}</span>
+      </div>
+      <ul className="capital__list" aria-label={label}>
+        {children}
+      </ul>
+    </>
+  );
+}
+
+const dateText = (ms: number) =>
+  new Date(ms).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });

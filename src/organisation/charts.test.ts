@@ -24,4 +24,8 @@ describe('plRange', () => {
     expect(lo).toBeCloseTo(-0.2);
     expect(hi).toBeCloseTo(10 + (200 * 6.8) / (100 / 10));
   });
+  it('keeps a smaller share for the bars on phones, so the text fits', () => {
+    const [, hi] = plRange([{ value: 10, chars: 200 }], 300, 1 / 5);
+    expect(hi).toBeCloseTo(10 + (200 * 6.8) / (60 / 10));
+  });
 });

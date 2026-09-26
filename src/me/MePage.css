@@ -22,10 +22,6 @@
   grid-template-rows: auto auto minmax(0, 1fr);
 }
 
-.bank--phone .bank__body {
-  grid-template-rows: auto auto auto minmax(0, 1fr);
-}
-
 .bank__grid {
   min-height: 0;
   display: grid;
@@ -47,21 +43,6 @@
 
 .bank__account {
   min-width: 250px;
-}
-
-.bank__bar {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-.bank__bar .bnk-field {
-  flex: 1;
-  min-width: 0;
-}
-
-.bank__bar .bank__account {
-  min-width: 0;
 }
 
 /* Bar charts fill the tab panel and only scroll when there are many rows. */
@@ -150,12 +131,6 @@
   .bank__left {
     gap: var(--space-3);
   }
-}
-
-.bank--phone .bnk-stat__value {
-  font-size: 17px;
-  line-height: 24px;
-  white-space: nowrap;
 }
 
 /* Transfer sheet */
@@ -335,4 +310,345 @@
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 16px;
+}
+
+/* ---------- Miner ---------- */
+
+.miner__body {
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.miner__body > .bnk-card:first-child {
+  align-self: start;
+}
+
+.miner__body--tabs {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.miner__body--tabs > .bnk-segmented {
+  justify-self: start;
+}
+
+.miner__scroll {
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}
+
+.miner__planbody {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(160px, 1fr) auto;
+  gap: var(--space-3);
+}
+
+.miner__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-4);
+}
+
+.miner__slider {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.miner__slider-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.miner__mono {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.miner__range {
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  accent-color: var(--brass);
+  background: transparent;
+  cursor: pointer;
+}
+
+.miner__quick {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.miner__quick [aria-pressed='true'] {
+  color: var(--brass);
+  box-shadow: inset 0 -2px 0 var(--brass);
+}
+
+.miner__price {
+  width: 150px;
+}
+
+.miner__tiles {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.miner__summary {
+  margin: 0;
+  min-height: 40px; /* two lines, so the chart does not move when the text arrives */
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+
+.miner__chart {
+  min-height: 0;
+  position: relative;
+}
+
+.miner__note {
+  margin: 0;
+  min-height: 32px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+}
+
+.miner__key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin: 0 4px 0 0;
+  vertical-align: -1px;
+  border-radius: 1px;
+}
+
+.miner__key + .miner__key,
+.miner__note .miner__key:not(:first-child) {
+  margin-left: var(--space-3);
+}
+
+.miner__key--best {
+  background: var(--chart-1);
+}
+
+.miner__key--hatch {
+  background: repeating-linear-gradient(135deg, var(--text-secondary) 0 2px, transparent 2px 5px);
+  box-shadow: inset 0 0 0 1px var(--text-secondary);
+}
+
+@media (pointer: coarse) {
+  .miner__range {
+    height: 44px;
+  }
+}
+
+@media (max-height: 800px) {
+  .miner .bnk-ph__desc,
+  .miner__tiles .bnk-stat__hint {
+    display: none;
+  }
+
+  .miner__planbody {
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 719.98px) {
+  /* the profit („+58,6 Mio. €“) needs the most room, the target level („5,65 AC“) the least */
+  .miner__tiles {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1.2fr) !important;
+  }
+
+  .miner__tiles > .bnk-stat {
+    padding: var(--space-2);
+  }
+
+  .miner__tiles > .bnk-stat:first-child {
+    padding-left: 0;
+  }
+
+  .miner__planbody {
+    height: auto;
+    grid-template-rows: auto auto minmax(280px, auto) auto auto;
+  }
+
+  .miner__chart {
+    order: 3;
+    height: 280px;
+  }
+
+  .miner__summary {
+    order: 4;
+  }
+
+  .miner__note {
+    order: 5;
+  }
+
+  .miner__quick {
+    flex: none;
+  }
+
+  .miner__quick .bnk-btn {
+    padding-inline: var(--space-2);
+  }
+
+  .miner__tiles .bnk-stat__hint {
+    display: none;
+  }
+
+  .miner__tiles .bnk-stat__value {
+    font-size: 14px;
+    line-height: 22px;
+    white-space: nowrap;
+  }
+
+  .miner__price {
+    flex: 1 1 100px;
+    width: auto;
+    min-width: 0;
+  }
+
+  .miner .bnk-ph__desc {
+    display: none;
+  }
+}
+
+.miner__key--worth {
+  background: var(--chart-2);
+}
+
+/* ---------- Bank am Handy ---------- */
+/* Stats row · tabs · card (fills) · dock with account + „Überweisen“ above the BottomNav */
+.bank.bank--phone .bank__body {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+
+.bank.bank--phone .bank__body--list {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.bank--phone .bnk-card__header {
+  align-items: center;
+}
+
+.bank__dock {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.bank__dock .bnk-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.bank__dock .bank__account {
+  min-width: 0;
+}
+
+.bank__dock > .bnk-btn {
+  flex: none;
+  min-height: 44px;
+}
+
+.bank__dock > .bnk-btn:only-child {
+  flex: 1;
+}
+
+.bank__search {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+}
+
+.bank__search > .bnk-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.bank__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bank__row {
+  box-sizing: border-box;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--hairline) solid var(--line);
+  color: inherit;
+  text-decoration: none;
+}
+
+.bank__rows > li:first-child > .bank__row {
+  border-top: 0;
+}
+
+.bank__row .bank__what {
+  flex: 1;
+}
+
+.bank__row .bank__what > span {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.bank__sum {
+  flex: none;
+  display: grid;
+  justify-items: end;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.bank__sum small {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+a.bank__row:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: -2px;
+}
+
+/* Settings on the phone: a row with a single short button („Ändern“, „Abmelden“) keeps it on the right
+   instead of a line of its own – saves ~50 px per row. Rows with fields still wrap (DS rule ≤ 480 px). */
+@media (max-width: 480px) {
+  .me__settings .bnk-set__row:not(.is-stacked):has(> .bnk-set__control > .bnk-btn:only-child) {
+    flex-wrap: nowrap;
+  }
+
+  .me__settings .bnk-set__row:not(.is-stacked) > .bnk-set__control:has(> .bnk-btn:only-child) {
+    flex: none;
+  }
+}
+
+/* Erfolge: on touch devices the DS gives every .bnk-btn `position: relative` (44 px tap area), which beats
+   `.bnk-achb__claim { position: absolute }` – „Abholen“ then slides out of its card to the left. */
+.ach-page .bnk-achb__cell > .bnk-achb__claim {
+  position: absolute;
 }

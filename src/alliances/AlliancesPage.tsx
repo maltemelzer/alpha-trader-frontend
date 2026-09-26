@@ -37,11 +37,10 @@ export function AlliancesPage() {
                 Meine Allianz
               </DS.Button>
             ) : (
-              mine.isSuccess && (
-                <DS.Button variant="primary" size="sm" onClick={() => setParams({ gruenden: '1' }, { replace: true })}>
-                  Allianz gründen
-                </DS.Button>
-              )
+              // disabled while the membership loads – the button holds the row height (no jump)
+              <DS.Button variant="primary" size="sm" disabled={!mine.isSuccess} onClick={() => setParams({ gruenden: '1' }, { replace: true })}>
+                Allianz gründen
+              </DS.Button>
             )}
           </>
         }

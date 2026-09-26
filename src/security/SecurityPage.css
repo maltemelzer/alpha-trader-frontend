@@ -120,6 +120,217 @@
   background: transparent;
 }
 
+/* Phone header, one compact block: the name is in the top bar (up to two lines there), the header keeps
+   price, change and one row of at most three facts. Everything else is in the „⋯“ sheet. */
+.sec--phone .bnk-mtop__h {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: 15px;
+  line-height: 19px;
+}
+
+.sec__more-icon {
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+}
+
+.sec--phone .bnk-sech__id {
+  display: none;
+}
+
+.sec--phone .bnk-sech__px {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: 2px;
+}
+
+.sec--phone .bnk-sech__price {
+  font-size: 28px;
+  line-height: 32px;
+}
+
+.sec--phone .bnk-sech__time {
+  flex-basis: 100%;
+}
+
+.sec--phone .bnk-sech__quote {
+  margin-top: var(--space-2);
+}
+
+.sec--phone .bnk-sech__facts {
+  flex-wrap: nowrap;
+  border-top: var(--hairline) solid var(--line);
+}
+
+.sec--phone .bnk-sech__fact {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: var(--space-2) var(--space-4) var(--space-2) 0;
+}
+
+.sec--phone .bnk-sech__fact:last-child {
+  flex: 1 1 0;
+  padding-right: 0;
+}
+
+.sec--phone .bnk-sech__fact dt,
+.sec--phone .bnk-sech__fact dd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Links in the facts (issuer, operator, CEO): the whole fact cell is the tap target. */
+.sec--phone .bnk-sech__fact {
+  position: relative;
+}
+
+.sec--phone .bnk-sech__fact dd a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+/* Order book rows open the ticket: 44 px tall on the phone (the list scrolls anyway). */
+.sec--phone .bnk-ob__btn {
+  min-height: 44px;
+}
+
+/* Without a TradeBar (index, nothing in the book yet) the content reaches down to the edge. */
+.sec--nobar .sec__phone-scroll {
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+}
+
+/* Phone panels have no title: the card head is one control row (range, market switch, comparison set)
+   flush with the page gutter, never a second row above it. */
+.sec--phone .panel .bnk-card__head {
+  padding: 0 0 var(--space-2);
+}
+
+.sec--phone .panel .bnk-card__heading:empty {
+  display: none;
+}
+
+.sec--phone .panel .bnk-card__action {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.sec--phone .panel__actions {
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.sec--phone .panel__actions .bnk-chg {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sec--phone .panel__actions .bnk-seg {
+  flex: none;
+}
+
+.sec--phone .panel--market .bnk-card__action > .bnk-seg {
+  width: 100%;
+}
+
+.sec__phone-panel--holders,
+.sec__phone-panel--scheine {
+  padding-top: var(--space-1);
+}
+
+/* ETF „Zeichnen“: the form keeps its natural height, the view scrolls if the owner tabs need more. */
+.sec__units {
+  flex: none !important;
+}
+
+/* „⋯“ sheet: all key figures, then the actions (whole row tappable, ≥ 44 px). */
+.sec-more {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sec-more__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.sec-more__fact dt {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sec-more__fact dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+
+.sec-more__fact dd a {
+  color: var(--text-primary);
+}
+
+.sec-more__fact dd small {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+}
+
+.sec-more__actions {
+  display: flex;
+  flex-direction: column;
+  border-top: var(--hairline) solid var(--line);
+}
+
+.sec-more__action {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: var(--space-2) 0;
+  border: 0;
+  border-bottom: var(--hairline) solid var(--line);
+  background: transparent;
+  color: var(--text-primary);
+  font: 500 15px/20px var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sec-more__action small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+}
+
+.sec-more__action:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: 2px;
+}
+
 /* ---------- class panels (bond, index, ETF, building) ---------- */
 .class__stack {
   height: 100%;
@@ -190,9 +401,23 @@
   gap: var(--space-4);
 }
 
+/* Phone: the four yield figures in one row without hints (the chart below needs the height). */
 @media (max-width: 719.98px) {
   .class__stats .bnk-statgrp {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  .class__stats .bnk-stat {
+    padding: var(--space-1) var(--space-1) var(--space-1) 0;
+  }
+  .class__stats .bnk-stat__value {
+    font-size: 15px;
+  }
+  .class__stats .bnk-stat__label {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  .class__stats .bnk-stat__hint {
+    display: none;
   }
 }
 
@@ -481,6 +706,24 @@
     overflow: auto;
   }
   .panel--scenario .panel__fill > .scn {
+    flex: none;
+  }
+}
+
+/* Phone: the payoff chart right under the summary (it is the story), the scenario below it –
+   the view scrolls as one inside its panel. */
+@media (max-width: 719.98px) {
+  .scn__body {
+    grid-template-rows: 230px auto;
+  }
+  .scn__box {
+    order: 0;
+  }
+  .scn__if .scn__label {
+    display: none;
+  }
+  .scn__in::before {
+    content: 'Wenn am Ende bei';
     flex: none;
   }
 }

@@ -2579,6 +2579,7 @@
       .filter(function (x) { return x.value !== 0 || x.key === 'FREE'; });
     var total = parts.reduce(function (a, x) { return a + Math.abs(x.value); }, 0) || 1;
     var Tag = props.as || 'h2';
+    var hotSt = React.useState(null), hot = hotSt[0], setHot = hotSt[1];
     return h('section', { className: cx('bnk-psum', props.className), 'aria-labelledby': props.id ? props.id + '-t' : undefined },
       h('div', { className: 'bnk-psum__head' },
         h('div', null,
@@ -2586,11 +2587,20 @@
           h(Tag, { id: props.id ? props.id + '-t' : undefined, className: 'bnk-psum__value' }, h(Amount, { value: book, currency: cur, compact: props.compact == null ? 'auto' : props.compact }))),
         props.change != null ? h(PriceChange, { value: props.change, amount: props.changeAmount, variant: 'tag', size: 'lg', suffix: props.changeSuffix }) : null,
         props.aside ? h('div', { className: 'bnk-psum__aside' }, props.aside) : null),
-      h('div', { className: 'bnk-psum__bar', role: 'img', 'aria-label': 'Zusammensetzung: ' + parts.map(function (x) { return x.label + ' ' + fmt(Math.abs(x.value) / total * 100, 1) + ' %'; }).join(', ') },
-        parts.map(function (x) {
-          var w = Math.abs(x.value) / total * 100;
-          return w > 0 ? h('span', { key: x.key, className: cx('bnk-psum__seg', x.hatch && 'is-hatch', x.value < 0 && 'is-neg'), style: { width: w + '%', background: x.hatch ? undefined : x.color, color: x.color } }) : null;
-        })),
+      h(Tooltip, { className: 'bnk-psum__tip', decorative: true, delay: 80, width: 280, title: 'Zusammensetzung',
+          content: h('span', { className: 'bnk-psum__tiplist' }, parts.map(function (x) {
+            var q = Math.abs(x.value) / total * 100;
+            return h('span', { key: x.key, className: cx('bnk-psum__tiprow', hot === x.key && 'is-hot') },
+              h('span', { className: cx('bnk-psum__sw', x.hatch && 'is-hatch'), style: { background: x.hatch ? undefined : x.color, color: x.color }, 'aria-hidden': 'true' }),
+              h('span', { className: 'bnk-psum__tiplabel' }, x.key === 'FREE' ? 'Bargeld frei' : x.key === 'COMMITTED' ? 'In Orders' : x.label),
+              h('span', { className: 'bnk-psum__tipval' }, money(x.value, cur, 2, true)),
+              h('span', { className: 'bnk-psum__tippct' }, q > 0 && q < 0.1 ? '< 0,1 %' : fmt(q, 1) + ' %'));
+          })) },
+        h('div', { className: 'bnk-psum__bar', role: 'img', tabIndex: 0, onMouseLeave: function () { setHot(null); }, 'aria-label': 'Zusammensetzung: ' + parts.map(function (x) { return x.label + ' ' + fmt(Math.abs(x.value) / total * 100, 1) + ' %'; }).join(', ') },
+          parts.map(function (x) {
+            var w = Math.abs(x.value) / total * 100;
+            return w > 0 ? h('span', { key: x.key, onMouseEnter: function () { setHot(x.key); }, className: cx('bnk-psum__seg', x.hatch && 'is-hatch', x.value < 0 && 'is-neg', hot === x.key && 'is-hot'), style: { width: w + '%', background: x.hatch ? undefined : x.color, color: x.color } }) : null;
+          }))),
       h('dl', { className: 'bnk-psum__list' },
         h('div', { className: 'bnk-psum__row is-sub' }, h('dt', null, 'Bargeld'), h('dd', null, h(Amount, { value: cash, currency: cur, compact: true }))),
         parts.map(function (x) {

@@ -1,11 +1,12 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import { useHighscoreHistory, useHighscores, useMe, type HighscoreKind } from '../api/queries';
 import { Plot } from '../charts/Plot';
 import { useDebounced } from '../lib/useDebounced';
 import { useInternalLinks } from '../lib/useInternalLinks';
-import { useMediaQuery } from '../lib/useMediaQuery';
+import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
+import { ViewList } from '../app/phone';
 import { positionChart } from './charts';
 import type { HighscoreType } from '../../vendor/bankiersgruen';
 import './HighscoresPage.css';
@@ -34,6 +35,10 @@ const hrefFor = (e: { username?: string; securityIdentifier?: string; id?: strin
 /** Highscores: players, companies or alliances by category; own place and its history on the side. */
 export function HighscoresPage() {
   const isWide = useMediaQuery('(min-width: 1100px)');
+  const phone = useIsPhone();
+  const [picking, setPicking] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [mineOpen, setMineOpen] = useState(false);
   const onLinkClick = useInternalLinks();
   const [params, setParams] = useSearchParams();
   const set = useCallback(
@@ -72,31 +77,75 @@ export function HighscoresPage() {
 
   const table = (
     <DS.Card flush className="panel">
-      <div className="hs__controls">
-        <DS.SegmentedControl
-          aria-label="Rangliste"
-          size="sm"
-          value={kind}
-          options={KINDS}
-          onChange={(v) => set({ art: v === 'user' ? null : v, kategorie: null, seite: null })}
-        />
-        <DS.Select
-          aria-label="Kategorie"
-          size="sm"
-          fullWidth={false}
-          value={type}
-          options={typeOptions}
-          onChange={(e) => set({ kategorie: e.target.value, seite: null })}
-        />
-        <DS.Input
-          aria-label="Name suchen"
-          placeholder="Name suchen"
-          size="sm"
-          value={search}
-          onChange={(e) => set({ suche: e.target.value || null, seite: null })}
-        />
-      </div>
-      <p className="hs__desc">{info.description}</p>
+      {phone ? (
+        // Phone: one row – „Spieler · Trades ▾“ (sheet with kind, categories and their descriptions) + search.
+        <div className="ph-bar hs__phonebar">
+          {searchOpen || search ? (
+            <>
+              <DS.Input
+                aria-label="Name suchen"
+                placeholder="Name suchen"
+                type="search"
+                autoFocus={searchOpen}
+                value={search}
+                onChange={(e) => set({ suche: e.target.value || null, seite: null })}
+              />
+              <button
+                type="button"
+                className="ph-btn ph-btn--icon"
+                aria-label="Suche schließen"
+                onClick={() => {
+                  setSearchOpen(false);
+                  set({ suche: null, seite: null });
+                }}
+              >
+                <DS.Icon name="schliessen" size={20} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="ph-pick hs__pick" aria-haspopup="dialog" aria-expanded={picking} onClick={() => setPicking(true)}>
+                <span className="hs__pickText">
+                  <span className="ph-pick__label">{KINDS.find((k) => k.value === kind)?.label}</span>
+                  <span className="ph-pick__value">{info.label}</span>
+                </span>
+                <span className="bnk-chev" aria-hidden="true" />
+              </button>
+              <button type="button" className="ph-btn ph-btn--icon" aria-label="Name suchen" onClick={() => setSearchOpen(true)}>
+                <DS.Icon name="suche" size={20} />
+              </button>
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="hs__controls">
+            <DS.SegmentedControl
+              aria-label="Rangliste"
+              size="sm"
+              value={kind}
+              options={KINDS}
+              onChange={(v) => set({ art: v === 'user' ? null : v, kategorie: null, seite: null })}
+            />
+            <DS.Select
+              aria-label="Kategorie"
+              size="sm"
+              fullWidth={false}
+              value={type}
+              options={typeOptions}
+              onChange={(e) => set({ kategorie: e.target.value, seite: null })}
+            />
+            <DS.Input
+              aria-label="Name suchen"
+              placeholder="Name suchen"
+              size="sm"
+              value={search}
+              onChange={(e) => set({ suche: e.target.value || null, seite: null })}
+            />
+          </div>
+          <p className="hs__desc">{info.description}</p>
+        </>
+      )}
       <div className="panel__fill scroll hs__table">
         {list.isLoading ? (
           <DS.Loading rows={12} label="Rangliste wird geladen" />
@@ -123,30 +172,47 @@ export function HighscoresPage() {
           />
         </div>
       )}
+      {/* last in the card (thumb zone), so the pagination arriving later does not move it */}
+      {phone && kind === 'user' && (
+        <button type="button" className="hs__me" aria-haspopup="dialog" onClick={() => setMineOpen(true)}>
+          <span className="hs__meLabel">Dein Platz</span>
+          <span className="hs__meValue num">
+            {myEntry?.historyPosition != null ? `${myEntry.historyPosition.toLocaleString('de-DE')}.` : '–'}
+          </span>
+          <span className="hs__meMeta">
+            {info.label} {myEntry ? formatValue(type, myEntry.value) : '–'}
+          </span>
+          <span className="hs__meMore">Verlauf</span>
+        </button>
+      )}
     </DS.Card>
+  );
+
+  const mineBody = (
+    <>
+      <DS.StatGroup columns="1fr 1fr">
+        <DS.StatTile
+          label="Platz"
+          value={myEntry?.historyPosition != null ? myEntry.historyPosition.toLocaleString('de-DE') : '–'}
+          hint={total ? `von ${total.toLocaleString('de-DE')}` : '\u00a0'}
+        />
+        <DS.StatTile label={info.label} value={myEntry ? formatValue(type, myEntry.value) : '–'} />
+      </DS.StatGroup>
+      <div className="hs__chart">
+        {history.data?.length ? (
+          <Plot aria-label={`Platz im Verlauf, ${info.label}`} figure={(t, w) => positionChart(t, w, history.data!)} />
+        ) : history.isLoading ? (
+          <DS.Loading rows={4} />
+        ) : (
+          <DS.EmptyState compact as="h3" title="Noch kein Verlauf" />
+        )}
+      </div>
+    </>
   );
 
   const side = kind === 'user' && (
     <DS.Card className="panel" title="Mein Platz" footer={`${info.label} · Verlauf der letzten Tage`}>
-      <div className="panel__fill hs__mine">
-        <DS.StatGroup columns="1fr 1fr">
-          <DS.StatTile
-            label="Platz"
-            value={myEntry?.historyPosition != null ? myEntry.historyPosition.toLocaleString('de-DE') : '–'}
-            hint={total ? `von ${total.toLocaleString('de-DE')}` : '\u00a0'}
-          />
-          <DS.StatTile label={info.label} value={myEntry ? formatValue(type, myEntry.value) : '–'} />
-        </DS.StatGroup>
-        <div className="hs__chart">
-          {history.data?.length ? (
-            <Plot aria-label={`Platz im Verlauf, ${info.label}`} figure={(t, w) => positionChart(t, w, history.data!)} />
-          ) : history.isLoading ? (
-            <DS.Loading rows={4} />
-          ) : (
-            <DS.EmptyState compact as="h3" title="Noch kein Verlauf" />
-          )}
-        </div>
-      </div>
+      <div className="panel__fill hs__mine">{mineBody}</div>
     </DS.Card>
   );
 
@@ -157,6 +223,33 @@ export function HighscoresPage() {
         {table}
         {isWide && side}
       </div>
+      {phone && (
+        <DS.Sheet open={picking} onClose={() => setPicking(false)} title="Rangliste" side="bottom">
+          <div className="ph-sheet">
+            <DS.SegmentedControl
+              aria-label="Rangliste"
+              size="sm"
+              value={kind}
+              options={KINDS}
+              onChange={(v) => set({ art: v === 'user' ? null : v, kategorie: null, seite: null })}
+            />
+            <ViewList
+              label="Kategorie"
+              views={types.map((t) => ({ value: t, label: DS.HIGHSCORE_TYPES[t].label, description: DS.HIGHSCORE_TYPES[t].description }))}
+              value={type}
+              onPick={(t) => {
+                set({ kategorie: t, seite: null });
+                setPicking(false);
+              }}
+            />
+          </div>
+        </DS.Sheet>
+      )}
+      {phone && kind === 'user' && (
+        <DS.Sheet open={mineOpen} onClose={() => setMineOpen(false)} title={`Mein Platz · ${info.label}`} side="bottom">
+          <div className="hs__mine hs__mine--sheet">{mineBody}</div>
+        </DS.Sheet>
+      )}
     </div>
   );
 }

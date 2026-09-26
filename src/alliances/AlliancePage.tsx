@@ -20,7 +20,8 @@ import { toPost } from '../news/derive';
 import { htmlToText } from '../lib/html';
 import { translate } from '../lib/messages';
 import { useInternalLinks } from '../lib/useInternalLinks';
-import { useMediaQuery } from '../lib/useMediaQuery';
+import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
+import { PhoneProfile, ScrollTabs } from '../app/phone';
 import './AlliancePage.css';
 
 /**
@@ -30,6 +31,7 @@ import './AlliancePage.css';
 export function AlliancePage() {
   const { id = '' } = useParams();
   const isWide = useMediaQuery('(min-width: 1100px)');
+  const isPhone = useIsPhone();
   const [params, setParams] = useSearchParams();
   const onLinkClick = useInternalLinks();
   const navigate = useNavigate();
@@ -130,52 +132,115 @@ export function AlliancePage() {
   );
   const achievementCount = a ? `${a.achievementCount ?? 0}/${a.achievementTotal ?? 0}` : undefined;
   const infoTabs = [
-    { value: 'ueber', label: 'Über uns', content: <div className="alliance__about">{about}</div> },
-    { value: 'erfolge', label: 'Erfolge', count: open.length ? `${open.length} neu` : achievementCount, content: achievementBoard },
-    { value: 'presse', label: 'Presse', count: newsTotal || undefined, content: press },
+    { value: 'ueber', label: 'Über uns', description: 'Beschreibung der Allianz', content: <div className="alliance__about">{about}</div> },
+    { value: 'erfolge', label: 'Erfolge', description: 'Gemeinsame Erfolge, abholen für Mitglieder', count: open.length ? `${open.length} neu` : achievementCount, content: achievementBoard },
+    { value: 'presse', label: 'Presse', description: 'Artikel der Allianz', count: newsTotal || undefined, content: press },
+  ];
+  // Narrow: members are a tab of their own, first
+  const narrowTabs = [
+    {
+      value: 'mitglieder',
+      label: 'Mitglieder',
+      description: 'Wer dabei ist, wer online ist',
+      content: (
+        <>
+          {addButton && <div className="alliance__add">{addButton}</div>}
+          {memberList}
+        </>
+      ),
+    },
+    ...infoTabs,
   ];
   const view = params.get('ansicht');
   const setView = (v: string) => setParams({ ansicht: v }, { replace: true });
 
+  const menu = [
+    ...(a?.index ? [{ label: 'Allianz-Index', onSelect: () => navigate(`/wertpapier/${a.index!.securityIdentifier}`) }] : []),
+    ...(canManage ? [{ label: 'Mitglied aufnehmen', onSelect: () => openSheet('aufnehmen') }] : []),
+    ...(isOwner ? [{ label: 'Bearbeiten', onSelect: () => openSheet('bearbeiten') }] : []),
+    ...(isMember ? [{ label: 'Verlassen', danger: true, onSelect: () => setConfirm({ kind: 'leave' }) }] : []),
+  ];
+  const header = (
+    <DS.ProfileHeader
+      as={isPhone ? 'h2' : 'h1'}
+      kind="alliance"
+      kindLabel="Allianz"
+      name={a?.name ?? '…'}
+      logoUrl={a?.logoUrl}
+      meta={a?.dateCreated ? [`Gegründet ${new Date(a.dateCreated).toLocaleDateString('de-DE')}`] : ['\u00a0']}
+      tags={isMember ? [{ label: 'Deine Allianz' }] : undefined}
+      actions={
+        <>
+          {isOwner && (
+            <DS.Button variant="ghost" size="sm" onClick={() => openSheet('bearbeiten')}>
+              Bearbeiten
+            </DS.Button>
+          )}
+          {isMember && (
+            <DS.Button variant="ghost" size="sm" onClick={() => setConfirm({ kind: 'leave' })}>
+              Verlassen
+            </DS.Button>
+          )}
+          {a?.index && (
+            <DS.Button variant="secondary" size="sm" onClick={() => navigate(`/wertpapier/${a.index!.securityIdentifier}`)}>
+              Allianz-Index
+            </DS.Button>
+          )}
+          {hasChat && (
+            <DS.Button variant="primary" size="sm" onClick={() => navigate(`/nachrichten/${a!.chatId}`)}>
+              Allianz-Chat
+            </DS.Button>
+          )}
+        </>
+      }
+      stats={[
+        { label: 'Mitglieder', value: String(list.length || a?.numberOfMembers || '–') },
+        { label: 'Online', value: members.data ? String(online) : '–' },
+        { label: 'Erfolge', value: a ? `${a.achievementCount ?? 0} von ${a.achievementTotal ?? 0}` : '–' },
+      ]}
+    />
+  );
+
   return (
     <div className="page alliance" onClick={onLinkClick}>
-      <DS.ProfileHeader
-        kind="alliance"
-        kindLabel="Allianz"
-        name={a?.name ?? '…'}
-        logoUrl={a?.logoUrl}
-        meta={a?.dateCreated ? [`Gegründet ${new Date(a.dateCreated).toLocaleDateString('de-DE')}`] : ['\u00a0']}
-        tags={isMember ? [{ label: 'Deine Allianz' }] : undefined}
-        actions={
-          <>
-            {isOwner && (
-              <DS.Button variant="ghost" size="sm" onClick={() => openSheet('bearbeiten')}>
-                Bearbeiten
-              </DS.Button>
-            )}
-            {isMember && (
-              <DS.Button variant="ghost" size="sm" onClick={() => setConfirm({ kind: 'leave' })}>
-                Verlassen
-              </DS.Button>
-            )}
-            {a?.index && (
-              <DS.Button variant="secondary" size="sm" onClick={() => navigate(`/wertpapier/${a.index!.securityIdentifier}`)}>
-                Allianz-Index
-              </DS.Button>
-            )}
-            {hasChat && (
-              <DS.Button variant="primary" size="sm" onClick={() => navigate(`/nachrichten/${a!.chatId}`)}>
-                Allianz-Chat
-              </DS.Button>
-            )}
-          </>
-        }
-        stats={[
-          { label: 'Mitglieder', value: String(list.length || a?.numberOfMembers || '–') },
-          { label: 'Online', value: members.data ? String(online) : '–' },
-          { label: 'Erfolge', value: a ? `${a.achievementCount ?? 0} von ${a.achievementTotal ?? 0}` : '–' },
-        ]}
-      />
+      {isPhone ? (
+        <PhoneProfile
+          kind="alliance"
+          name={a?.name ?? '…'}
+          logoUrl={a?.logoUrl}
+          back={{ href: '/allianzen', label: 'Zurück zu allen Allianzen' }}
+          meta={
+            <>
+              {isMember ? 'Deine Allianz · ' : ''}
+              {a?.dateCreated ? `Gegründet ${new Date(a.dateCreated).toLocaleDateString('de-DE')}` : '\u00a0'}
+            </>
+          }
+          action={
+            <>
+              {hasChat && (
+                <DS.Button variant="primary" size="sm" onClick={() => navigate(`/nachrichten/${a!.chatId}`)}>
+                  Chat
+                </DS.Button>
+              )}
+              {menu.length > 0 && <DS.DropdownMenu
+                  label={
+                    <>
+                      <span aria-hidden="true">⋯</span>
+                      <span className="bnk-sr">Aktionen</span>
+                    </>
+                  }
+                  variant="ghost" size="sm" align="end" items={menu} className="alliance__menu" />}
+            </>
+          }
+          stats={[
+            { label: 'Mitglieder', value: String(list.length || a?.numberOfMembers || '–') },
+            { label: 'Online', value: members.data ? String(online) : '–' },
+            { label: 'Erfolge', value: a ? `${a.achievementCount ?? 0}/${a.achievementTotal ?? 0}` : '–' },
+          ]}
+        />
+      ) : (
+        header
+      )}
       {isWide ? (
         <div className="page__body alliance__body">
           <DS.Card flush className="panel">
@@ -195,27 +260,15 @@ export function AlliancePage() {
         </div>
       ) : (
         <DS.Card flush className="panel">
-          <div className="panel__tabs">
-            <DS.Tabs
-              size="sm"
-              aria-label="Allianz"
-              value={view ?? 'mitglieder'}
-              onChange={setView}
-              items={[
-                {
-                  value: 'mitglieder',
-                  label: 'Mitglieder',
-                  content: (
-                    <>
-                      {addButton && <div className="alliance__add">{addButton}</div>}
-                      {memberList}
-                    </>
-                  ),
-                },
-                ...infoTabs,
-              ]}
-            />
-          </div>
+          <ScrollTabs
+            className="panel__tabs"
+            size="sm"
+            label="Allianz"
+            value={view ?? 'mitglieder'}
+            onChange={setView}
+            items={narrowTabs}
+            menu={isPhone}
+          />
         </DS.Card>
       )}
       {failed && (

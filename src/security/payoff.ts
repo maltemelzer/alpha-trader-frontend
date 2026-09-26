@@ -1,10 +1,16 @@
 // „Wenn … dann …“ for warrants: payout at maturity, profit/loss and plain-language texts – pure functions.
 //
-// Payout model (see CLAUDE.md „Optionsscheine“): European capped warrant with cash settlement, as in
-// the forum concept „Markt für Derivate“ (k-m, 16.02.2017): a call pays ratio × (underlying − strike),
-// at most ratio × (cap − strike), a put ratio × (strike − underlying), at most ratio × (strike − cap);
-// out of the money it expires worthless. The settlement price is assumed to be the underlying's last
-// price at maturity. Neither is confirmed by the server – the UI says so.
+// Payout model, worked out from the game's own bookings (see CLAUDE.md „Optionsscheine“): every warrant
+// has an escrow account. The issuer deposits, the buyers' money goes in too, and at maturity the escrow
+// pays the holders and refunds the rest to the issuer.
+// - Call: pays ratio × min(underlying, cap) – the full value of the underlying up to the cap, not the
+//   distance to the strike. Confirmed by a settlement (WAS6HHKLOM, 26.09.2026: ratio 0,1, underlying
+//   1,66 € → 0,16 € per warrant) and by 9 deposits: deposit = ratio × cap − issue price.
+// - Put: the mirror image around the issue price P: pays 2P − ratio × max(underlying, cap), at least 0.
+//   Derived from 8 deposits (deposit = P − ratio × cap, so the escrow holds 2P − ratio × cap per
+//   warrant); no put settlement seen yet.
+// The payout per warrant is rounded down to the cent (0,166 → 0,16). The settlement price is the
+// underlying's last price at maturity.
 import type { WarrantApiView } from '../api/queries';
 import { short } from '../lib/format';
 
@@ -12,53 +18,72 @@ const NBSP = String.fromCharCode(0xa0);
 
 /** The payout model in words, for a Term next to every payout. */
 export const PAYOUT_MODEL =
-  'Angenommen: Barausgleich bei Fälligkeit zum letzten Kurs des Basiswerts. Call = Bezugsverhältnis × (Kurs − Referenzkurs), ' +
-  'Put = Bezugsverhältnis × (Referenzkurs − Kurs), jeweils höchstens bis zum Cap; sonst 0. So beschreibt es das Konzept im Forum ' +
-  '(„Markt für Derivate“) – das Spiel selbst bestätigt die Formel nirgends.';
+  'Call: Bezugsverhältnis × Kurs des Basiswerts bei Fälligkeit, höchstens × Cap – also der volle Wert, nicht nur der Abstand zum Referenzkurs. ' +
+  'So wurde am 26.09.2026 ein Call eingelöst (0,1 × 1,66 € → 0,16 € je Schein, auf den Cent abgerundet). ' +
+  'Put: spiegelbildlich um den Ausgabepreis P: 2 × P − Bezugsverhältnis × Kurs, höchstens bis zum Cap, nie unter 0 – aus den Hinterlegungen der Emittenten abgeleitet, eine Put-Einlösung ist noch nicht gesehen.';
 
 export interface Terms {
   type: 'CALL' | 'PUT';
-  /** Referenzkurs (strike) */
+  /** Referenzkurs (strike) – for the payout itself only the cap and the issue price matter */
   strike: number;
   /** Cap on the underlying; without it the payout is not capped */
   cap?: number;
   /** Underlying per warrant (0,1 shares, 0,001 indexes) */
   ratio: number;
+  /** Issue price per warrant (the issuer's ask); a put pays around it. Without it: ratio × strike. */
+  issuePrice?: number;
 }
 
-export function termsOf(w: Pick<WarrantApiView, 'type' | 'underlyingValue' | 'underlyingCapValue' | 'ratio'> | undefined): Terms | undefined {
+/** Terms from the API warrant; `issuePrice` = the issuer's ask (needed for puts). */
+export function termsOf(
+  w: Pick<WarrantApiView, 'type' | 'underlyingValue' | 'underlyingCapValue' | 'ratio'> | undefined,
+  issuePrice?: number,
+): Terms | undefined {
   if (!w?.underlyingValue || !w.ratio) return undefined;
   const cap = w.underlyingCapValue ?? undefined;
-  return { type: w.type === 'PUT' ? 'PUT' : 'CALL', strike: w.underlyingValue, cap: cap || undefined, ratio: w.ratio };
+  return {
+    type: w.type === 'PUT' ? 'PUT' : 'CALL',
+    strike: w.underlyingValue,
+    cap: cap || undefined,
+    ratio: w.ratio,
+    issuePrice: issuePrice && issuePrice > 0 ? issuePrice : undefined,
+  };
 }
 
-const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi);
+/** The price a put mirrors around: the issue price, else ratio × strike. */
+const base = (t: Terms) => t.issuePrice ?? t.ratio * t.strike;
+const cents = (x: number) => Math.max(0, Math.floor(x * 100 + 1e-7) / 100);
 
-/** Cash per warrant at maturity when the underlying ends at `s`. */
+/** Cash per warrant at maturity when the underlying ends at `s` (rounded down to the cent). */
 export function payout(t: Terms, s: number): number {
   if (!(s >= 0)) return 0;
-  if (t.type === 'CALL') return t.ratio * clamp(s - t.strike, 0, t.cap != null ? Math.max(0, t.cap - t.strike) : Infinity);
-  return t.ratio * clamp(t.strike - s, 0, t.cap != null ? Math.max(0, t.strike - t.cap) : t.strike);
+  if (t.type === 'CALL') return cents(t.ratio * (t.cap != null ? Math.min(s, t.cap) : s));
+  return cents(2 * base(t) - t.ratio * (t.cap != null ? Math.max(s, t.cap) : s));
 }
 
 /** The most a warrant can pay (call without cap: Infinity). */
 export function maxPayout(t: Terms): number {
-  if (t.type === 'CALL') return t.cap != null ? t.ratio * Math.max(0, t.cap - t.strike) : Infinity;
-  return t.ratio * (t.cap != null ? Math.max(0, t.strike - t.cap) : t.strike);
+  if (t.type === 'CALL') return t.cap != null ? cents(t.ratio * t.cap) : Infinity;
+  return cents(2 * base(t) - t.ratio * (t.cap ?? 0));
 }
 
 /** Underlying price from which the payout covers `price` – undefined when not even the cap pays that much. */
 export function breakEven(t: Terms, price: number | undefined): number | undefined {
   if (price == null || !(price >= 0)) return undefined;
   if (price > maxPayout(t) + 1e-12) return undefined;
-  return t.type === 'CALL' ? t.strike + price / t.ratio : t.strike - price / t.ratio;
+  return t.type === 'CALL' ? price / t.ratio : (2 * base(t) - price) / t.ratio;
+}
+
+/** Underlying price at which a put pays nothing any more (twice its issue value). */
+export function putZero(t: Terms): number {
+  return (2 * base(t)) / t.ratio;
 }
 
 /** Where the underlying price `s` lies for this warrant. */
 export type Zone = 'worthless' | 'between' | 'capped';
 export function zoneOf(t: Terms, s: number): Zone {
-  if (t.type === 'CALL') return s <= t.strike ? 'worthless' : t.cap != null && s >= t.cap ? 'capped' : 'between';
-  return s >= t.strike ? 'worthless' : t.cap != null && s <= t.cap ? 'capped' : 'between';
+  if (t.type === 'CALL') return s <= 0 ? 'worthless' : t.cap != null && s >= t.cap ? 'capped' : 'between';
+  return s >= putZero(t) ? 'worthless' : t.cap != null && s <= t.cap ? 'capped' : 'between';
 }
 
 export interface Outcome {
@@ -163,9 +188,12 @@ export function dueText(end: number, now: number): string {
 /** Which price the profit/loss is measured against. */
 export type PriceBasis = 'Brief' | 'Limit' | 'letzter Kurs';
 
+/** Ratio as a factor in a text: „0,1“, „0,001“. */
+const ratioWord = (r: number) => r.toLocaleString('de-DE', { maximumFractionDigits: 6 });
+
 /**
- * The bet in one line, e.g. „Du wettest, dass Alphakasse SE bis morgen 13:26 über 71,32 € steigt.
- * Höchstens 0,71 € je Schein (ab 78,45 €) – zum Brief von 7,20 € selbst dann ein Verlust.“
+ * The bet in one line, e.g. „Du wettest, dass Alphakasse SE bis morgen 13:26 steigt: Der Schein zahlt
+ * 0,1 × den Kurs, höchstens 7,84 € (ab 78,45 €). Gewinn zum Brief von 7,20 € ab 72,00 €.“
  */
 export function betSummary(
   t: Terms,
@@ -174,29 +202,33 @@ export function betSummary(
 ): string {
   const call = t.type === 'CALL';
   const when = opts.end ? ` bis ${dueText(opts.end, opts.now)}` : '';
-  const head = `Du wettest, dass ${name}${when} ${call ? 'über' : 'unter'} ${money(t.strike)} ${call ? 'steigt' : 'fällt'}.`;
+  const r = ratioWord(t.ratio);
+  const rule = call
+    ? `Der Schein zahlt ${r} × den Kurs`
+    : `Der Schein zahlt ${money(2 * base(t))} − ${r} × den Kurs`;
+  const head = `Du wettest, dass ${name}${when} ${call ? 'steigt' : 'fällt'}: ${rule}`;
   const max = maxPayout(t);
-  const top = Number.isFinite(max) ? ` Höchstens ${money(max)} je Schein${t.cap != null ? ` (${call ? 'ab' : 'bis'} ${money(t.cap)})` : ''}` : '';
+  const top = Number.isFinite(max) ? `, höchstens ${money(max)}${t.cap != null ? ` (${call ? 'ab' : 'bis'} ${money(t.cap)})` : ''}` : '';
   const { price, basis = 'Brief' } = opts;
-  if (price == null || !(price > 0)) return head + (top ? `${top}.` : '');
+  if (price == null || !(price > 0)) return `${head}${top}.`;
   const at = basis === 'Limit' ? 'zu deinem Limit von' : basis === 'Brief' ? 'zum Brief von' : 'zum letzten Kurs von';
   const be = breakEven(t, price);
   if (be == null) {
     const best = (max / price - 1) * 100;
     return `${head}${top} – ${at} ${money(price)} selbst dann ${best < 0 ? `ein Verlust (${pctText(best)})` : 'kein Gewinn'}.`;
   }
-  return `${head}${top}. Gewinn ${at} ${money(price)} ${call ? 'ab' : 'unter'} ${money(be)}.`;
+  const best = (max / price - 1) * 100;
+  return `${head}${top}. Gewinn ${at} ${money(price)} ${call ? 'über' : 'unter'} ${money(be)}, höchstens ${pctText(best)}.`;
 }
 
 /** Why the payout is what it is, for the scenario result. */
 export function zoneText(t: Terms, s: number): string {
   const z = zoneOf(t, s);
   const call = t.type === 'CALL';
-  if (z === 'worthless') return `${call ? 'nicht über' : 'nicht unter'} dem Referenzkurs – der Schein verfällt wertlos`;
+  const r = ratioWord(t.ratio);
+  if (z === 'worthless') return call ? 'Basiswert ohne Kurs – der Schein zahlt nichts' : `ab ${money(putZero(t))} zahlt der Put nichts mehr`;
   if (z === 'capped') return `${call ? 'über' : 'unter'} dem Cap – mehr zahlt der Schein nicht`;
-  const d = Math.abs(s / t.strike - 1) * 100;
-  const pct = d.toLocaleString('de-DE', { maximumFractionDigits: d < 10 ? 1 : 0 });
-  return `${pct}\u00a0% ${call ? 'über' : 'unter'} dem Referenzkurs`;
+  return call ? `${r} × ${money(s)}` : `${money(2 * base(t))} − ${r} × ${money(s)}`;
 }
 
 /** An order ticket draft as the scenario needs it. */
@@ -243,8 +275,8 @@ export interface ScenarioLabel {
 }
 
 /**
- * Per warrant (by its ASIN): payout at `s` and profit/loss in % at its ask. Warrants without terms are
- * left out; without an ask only the payout is shown.
+ * Per warrant (by its ASIN): payout at `s` and profit/loss in % at its ask (a put's issue price is taken
+ * to be its ask). Warrants without terms are left out; without an ask only the payout is shown.
  */
 export function scenarioLabels(
   ws: Pick<WarrantApiView, 'type' | 'underlyingValue' | 'underlyingCapValue' | 'ratio' | 'listing'>[],
@@ -254,9 +286,10 @@ export function scenarioLabels(
   const out: Record<string, ScenarioLabel> = {};
   for (const w of ws) {
     const asin = w.listing?.securityIdentifier;
-    const t = termsOf(w);
+    const ask = asin ? askOf(asin) : undefined;
+    const t = termsOf(w, ask);
     if (!asin || !t) continue;
-    const o = outcome(t, s, askOf(asin), 1);
+    const o = outcome(t, s, ask, 1);
     if (o.plPct == null) {
       out[asin] = { text: money(o.perWarrant), sign: 0 };
       continue;

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import { useAccountDetails, useListings, useTradeWindow, useTradeWindowProgress } from '../api/queries';
@@ -37,6 +37,7 @@ import {
   type Pair,
   type Trade,
 } from './derive';
+import { MiniStats, Option, OptionsButton, ScrollTabs } from '../app/phone';
 import './FlowsPage.css';
 
 const NBSP = String.fromCharCode(0xa0);
@@ -102,6 +103,7 @@ export function FlowsPage() {
   const [side, setSide] = useParamState('liste', 'paare', SIDE);
   const [metric, setMetric] = useParamState('gewicht', 'umsatz', METRICS);
   const konto = params.get('konto') ?? '';
+  const [options, setOptions] = useState(false);
   const minutes = RANGES.find((r) => r.value === range)!.minutes;
   const kind = ARTS.find((a) => a.value === art)?.kind;
 
@@ -235,7 +237,7 @@ export function FlowsPage() {
             grp={grp}
             focus={focusId || undefined}
             onPick={setKonto}
-            control={<DS.SegmentedControl size="sm" fullWidth={false} aria-label="Größe der Kreise" options={METRICS} value={metric} onChange={setMetric} />}
+            control={isPhone ? null : <DS.SegmentedControl size="sm" fullWidth={false} aria-label="Größe der Kreise" options={METRICS} value={metric} onChange={setMetric} />}
             by={metric === 'trades' ? 'trades' : 'volume'}
           />
         );
@@ -257,20 +259,82 @@ export function FlowsPage() {
   const groupControl = <DS.SegmentedControl size="sm" fullWidth={false} aria-label="Zusammenfassen" options={GROUPS} value={group} onChange={setGroup} />;
 
   if (isPhone) {
+    // One control row: the six views as scrolling tabs plus „Optionen“ (Art, Zeitraum, Zusammenfassen,
+    // Kreisgröße) in a sheet; the current choice is spelled out in the meta line.
+    const changed = [art !== 'aktien', range !== '1h', group !== 'konten', metric !== 'umsatz'].filter(Boolean).length;
+    const artLabel = ARTS.find((a) => a.value === art)?.label ?? '';
+    const phoneMeta = loading ? (
+      meta
+    ) : covered ? (
+      <span>
+        {count(all.length)} Trades · {artLabel} · {clock(covered.from)}–{clock(covered.to)}
+        {covered.complete ? '' : ' (gekürzt)'}
+      </span>
+    ) : (
+      meta
+    );
     return (
       <div className="page fl fl--phone" onClick={onLinkClick}>
-        <DS.PageHeader size="md" title="Geldflüsse" meta={meta} />
+        <DS.PageHeader size="md" title="Geldflüsse" meta={phoneMeta} />
         <div className="page__body fl__body">
-          <div className="fl__controls">
-            <DS.Select aria-label="Wertpapierart" options={ARTS} value={art} onChange={(e) => setArt(e.target.value)} />
-            {rangeControl}
+          <div className="ph-bar">
+            <ScrollTabs label="Ansicht" items={PHONE} value={main} onChange={setMain} />
+            <OptionsButton iconOnly active={changed} onClick={() => setOptions(true)} description="Optionen: Art, Zeitraum, Zusammenfassen" />
           </div>
           {kontoBar}
-          <DS.Tabs aria-label="Ansicht" items={PHONE} value={main} onChange={setMain} />
+          <MiniStats
+            label="Kennzahlen des Zeitraums"
+            columns="minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)"
+            items={[
+              { label: 'Umsatz', value: loading ? '–' : eur(sum.volume) },
+              ...(kontoStat
+                ? [
+                    { label: 'Gekauft', value: eur(kontoStat.bought) },
+                    { label: 'Verkauft', value: eur(kontoStat.sold) },
+                  ]
+                : [
+                    { label: 'Konten', value: loading ? '–' : count(sum.accounts) },
+                    { label: 'Top 10', value: loading ? '–' : `${Math.round(sum.top10Share * 100)}${NBSP}%` },
+                  ]),
+            ]}
+          />
           <DS.Card flush className="panel">
             <div className={`panel__fill fl__pad${['paare', 'auffaellig'].includes(main) ? ' scroll' : ''}`}>{body(main)}</div>
           </DS.Card>
         </div>
+        <DS.Sheet
+          open={options}
+          onClose={() => setOptions(false)}
+          title="Optionen"
+          side="bottom"
+          footer={
+            <DS.Button variant="primary" fullWidth onClick={() => setOptions(false)}>
+              Fertig
+            </DS.Button>
+          }
+        >
+          <div className="ph-sheet">
+            <Option title="Wertpapierart">
+              <DS.SegmentedControl aria-label="Wertpapierart" fullWidth options={ARTS} value={art} onChange={setArt} />
+            </Option>
+            <Option title="Zeitraum">
+              <DS.SegmentedControl aria-label="Zeitraum" fullWidth options={RANGES} value={range} onChange={setRange} />
+            </Option>
+            <Option title="Zusammenfassen" note="Personen: alle Konten mit demselben CEO bzw. Inhaber als ein Kreis.">
+              <DS.SegmentedControl aria-label="Zusammenfassen" fullWidth options={GROUPS} value={group} onChange={setGroup} />
+            </Option>
+            <Option
+              title="Kreisgröße im Netz"
+              note={
+                <>
+                  {count(sum.securities)} Wertpapiere · {count(scopedTransfers.length)} Übertragungen (0 € oder 0,01 €) nicht mitgezählt – siehe „Auffällig“.
+                </>
+              }
+            >
+              <DS.SegmentedControl aria-label="Kreisgröße im Netz" fullWidth options={METRICS} value={metric} onChange={setMetric} />
+            </Option>
+          </div>
+        </DS.Sheet>
       </div>
     );
   }

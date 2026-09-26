@@ -223,3 +223,63 @@
     line-height: 30px;
   }
 }
+
+/* Phone: one control row – [Neueste | Beliebt][🔍] or the filter's [Folgen][Ausblenden][✕]; the
+   search icon swaps the row for the field (forum/PhoneSearch). */
+@media (max-width: 719.98px) {
+  .news .bnk-ph__actions {
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+  }
+
+  .news .bnk-ph__actions > .news__views {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .news__meta {
+    display: flex;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .news__metaName {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+}
+
+/* Between phone and wide: the view switch sits beside the search field */
+@media (min-width: 720px) {
+  .news .bnk-ph__actions > .news__views {
+    flex: 0 0 220px;
+    width: 220px;
+  }
+}
+
+/* Phone: „Kommentieren“ sticks to the bottom of the scrolling article */
+.article__bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-4));
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  background: var(--bg-card);
+  border-top: var(--hairline) solid var(--line);
+}
+
+.article__bar .bnk-btn {
+  min-height: 44px;
+}
+
+@media (max-width: 719.98px) {
+  /* „Beliebt“ list: whole rows are small – 44 px tap height for the titles */
+  .news .bnk-news--brief .bnk-news__link {
+    display: inline-block;
+    padding: 14px 0;
+    margin: -14px 0;
+  }
+}

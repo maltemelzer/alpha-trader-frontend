@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { DS } from '../ds';
 import { useParamState } from '../lib/useParamState';
@@ -39,7 +39,7 @@ import {
 } from './ClassPanels';
 import { candles, depthChart, holdersBars, priceLine, tradesChart } from './charts';
 import { Panel } from './Panel';
-import { WarrantPanel, WarrantTabs, WithWarrants } from './WarrantPanels';
+import { WarrantPanel, WarrantsOnView, useWarrantsOf, WithWarrants } from './WarrantPanels';
 import { WarrantScenarioPanel } from './WarrantScenario';
 import { readTicketDraft, type Draft } from './payoff';
 import { parseDe } from '../lib/format';
@@ -90,6 +90,8 @@ export function SecurityPage() {
 
   const [pick, setPick] = useState<Pick | null>(null);
   const [sheet, setSheet] = useState(false);
+  // Phone: facts and actions that do not fit the screen (company, quote, OTC, all key figures).
+  const [more, setMore] = useState(false);
   const [toast, setToast] = useState<Result | null>(null);
   // Warrants: what the player types in the ticket (number, buy limit) feeds the „Wenn … dann …“ scenario.
   const [draft, setDraft] = useState<Draft>({});
@@ -242,14 +244,54 @@ export function SecurityPage() {
   );
 
   if (isPhone) {
+    const hasBar = !!sp && tradable;
     return (
-      <div className={`sec sec--phone sec--${cls}`} onClick={onLinkClick}>
-        <DS.MobileTopBar title={p.name} eyebrow={p.securityIdentifier} onBack={() => navigate(-1)} backText="Zurück" />
+      <div className={`sec sec--phone sec--${cls}${hasBar ? '' : ' sec--nobar'}`} onClick={onLinkClick}>
+        <DS.MobileTopBar
+          title={p.name}
+          eyebrow={p.securityIdentifier}
+          onBack={() => navigate(-1)}
+          backText="Zurück"
+          actions={[
+            {
+              icon: (
+                <span className="sec__more-icon" aria-hidden="true">
+                  ⋯
+                </span>
+              ),
+              label: 'Mehr: Kennzahlen und Aktionen',
+              pressed: more,
+              onClick: () => setMore(true),
+            },
+          ]}
+        />
         <div className="sec__phone-scroll">
           {header}
           <PhonePanels asin={asin} profile={p} cls={cls} onPick={openOrder} ownsEtf={ownsEtf} draft={draft} />
         </div>
-        {sp && tradable && (
+        <DS.Sheet open={more} onClose={() => setMore(false)} title={p.name}>
+          {more && (
+            <PhoneMore
+              profile={p}
+              cls={cls}
+              tradable={tradable}
+              canQuote={!!sponsoring}
+              onClose={() => setMore(false)}
+              onQuote={() => {
+                setMore(false);
+                setHandel('quote');
+              }}
+            />
+          )}
+        </DS.Sheet>
+        {sponsoring && (
+          <DS.Sheet open={handel === 'quote'} onClose={() => setHandel('boerse')} title={`Quote stellen: ${p.name}`}>
+            {handel === 'quote' && (
+              <QuotePanel compact sponsorship={sponsoring} owner={sponsorAccount} onDone={(text) => setToast({ ok: true, text })} />
+            )}
+          </DS.Sheet>
+        )}
+        {hasBar && (
           <DS.TradeBar
             listing={listing}
             spread={sp}
@@ -299,8 +341,8 @@ const pct = (n: number, d = 2) => `${n.toLocaleString('de-DE', { minimumFraction
 const when = (ms: number) =>
   new Date(ms).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-/** Key figures in the header, chosen by asset class; at most five, fewer on the phone. */
-function useClassFacts(p: ListingProfile, cls: AssetClass, compact: boolean, sideFacts: boolean): Facts {
+/** Key figures in the header, chosen by asset class; at most five, three on the phone (one row). */
+function useClassFacts(p: ListingProfile, cls: AssetClass, compact: boolean, sideFacts: boolean, limit = compact ? 3 : 5): Facts {
   const bondInfo = useBondOf(p);
   const index = useIndexDetails(p.securityIdentifier, cls === 'index');
   const warrant = useWarrant(cls === 'warrant' ? p.securityIdentifier : undefined);
@@ -351,7 +393,8 @@ function useClassFacts(p: ListingProfile, cls: AssetClass, compact: boolean, sid
         if (w.underlyingCapValue != null) f.push({ label: 'Cap', value: w.underlyingCapValue, compact: false });
         const end = warrantEnd(w);
         if (end) f.push({ label: 'Fällig', value: when(end) });
-        else if (!compact && w.ratio != null) f.push({ label: 'Bezugsverhältnis', value: ratioText(w.ratio) });
+        // Desktop header: only when there is room (no maturity); the phone „⋯“ sheet shows all.
+        if (!compact && w.ratio != null) f.push({ label: 'Bezugsverhältnis', value: ratioText(w.ratio) });
       }
       break;
     }
@@ -376,7 +419,7 @@ function useClassFacts(p: ListingProfile, cls: AssetClass, compact: boolean, sid
       if (!compact && c?.marketMakerPolicy)
         f.push({ label: 'Market Maker', value: c.marketMakerPolicy === 'OPEN' ? 'offen' : 'geschlossen' });
   }
-  return f.slice(0, 5);
+  return f.slice(0, limit);
 }
 
 /** SecurityHeader with the class-specific facts (the facts need queries, hence a component). */
@@ -599,25 +642,34 @@ function HoldersView({ asin }: { asin: string }) {
   return <Plot aria-label="Größte Anteilseigner in Prozent" figure={figure} />;
 }
 
-/** Phone: one panel at a time; the class decides which. */
+/**
+ * Phone: one panel at a time, at most four views per class. The market (order book, depth, trades)
+ * is one view with its own small switch in the card head – like the desktop card. Warrants on a
+ * stock, coin or index are a view of their own (not a second switch inside „Eigner“).
+ */
 function phoneViews(cls: AssetClass) {
   const price = { value: 'price', label: 'Kurs' };
+  const market = { value: 'markt', label: 'Markt' };
+  const warrants = { value: 'scheine', label: 'Scheine' };
   switch (cls) {
     case 'index':
-      return [price, { value: 'weights', label: 'Gewichtung' }, { value: 'members', label: 'Mitglieder' }];
+      return [price, { value: 'weights', label: 'Gewichte' }, { value: 'members', label: 'Mitglieder' }, warrants];
     case 'bond':
     case 'repo':
-      return [{ value: 'yield', label: 'Rendite' }, price, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }];
+      return [{ value: 'yield', label: 'Rendite' }, price, market];
     case 'etf':
-      return [price, { value: 'tracking', label: 'vs. Index' }, { value: 'book', label: 'Orderbuch' }, { value: 'units', label: 'Zeichnen' }];
+      return [price, { value: 'tracking', label: 'vs. Index' }, market, { value: 'units', label: 'Zeichnen' }];
     case 'building':
-      return [price, { value: 'compare', label: 'Vergleich' }, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }];
+      return [price, { value: 'compare', label: 'Vergleich' }, market];
     case 'warrant':
-      return [{ value: 'szenario', label: 'Szenario' }, { value: 'basis', label: 'Basiswert' }, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }];
+      return [{ value: 'szenario', label: 'Szenario' }, { value: 'basis', label: 'Basiswert' }, market];
     default:
-      return [price, { value: 'book', label: 'Orderbuch' }, { value: 'trades', label: 'Trades' }, { value: 'holders', label: 'Eigner' }];
+      return [price, market, { value: 'holders', label: 'Eigner' }, warrants];
   }
 }
+
+/** Old phone links (?ansicht=book|trades, ?karte=scheine) still open the right view. */
+const LEGACY_MARKET = new Set(['book', 'depth', 'trades']);
 
 function PhonePanels({
   asin,
@@ -635,33 +687,75 @@ function PhonePanels({
   draft?: Draft;
 }) {
   const views = phoneViews(cls);
-  const [view, setView] = useParamState('ansicht', views[0].value, views);
+  const [params, setParams] = useSearchParams();
+  const raw = params.get('ansicht');
+  const legacyMarket = raw != null && LEGACY_MARKET.has(raw);
+  // ?karte=scheine is the desktop card switch (and the old phone switch under „Eigner“/„Mitglieder“).
+  const legacyWarrants =
+    params.get('karte') === 'scheine' && views.some((v) => v.value === 'scheine') && (raw == null || raw === 'holders' || raw === 'members');
+  const view = legacyMarket
+    ? 'markt'
+    : legacyWarrants
+      ? 'scheine'
+      : views.some((v) => v.value === raw)
+        ? raw!
+        : views[0].value;
+  const marketParam = params.get('markt');
+  const market = MARKET_VIEWS.some((v) => v.value === marketParam) ? marketParam! : legacyMarket ? raw! : 'book';
+  // One call per interaction (see CLAUDE.md): view, market sub-view and the old card switch together.
+  const go = useCallback(
+    (v: string, m?: string) =>
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (v === views[0].value) next.delete('ansicht');
+          else next.set('ansicht', v);
+          next.delete('karte');
+          if (m) {
+            if (m === 'book') next.delete('markt');
+            else next.set('markt', m);
+          }
+          return next;
+        },
+        { replace: true },
+      ),
+    [setParams, views],
+  );
   const [note, setNote] = useState<Result | null>(null);
   return (
     <div className="sec__phone-panels">
-      <DS.SegmentedControl aria-label="Ansicht" size="sm" options={views} value={view} onChange={setView} />
-      <div className="sec__phone-panel">
+      <DS.SegmentedControl aria-label="Ansicht" size="sm" options={views} value={view} onChange={(v) => go(v, legacyMarket ? raw! : undefined)} />
+      <div className={`sec__phone-panel sec__phone-panel--${view}`}>
         {view === 'price' && <PricePanel asin={asin} profile={profile} bare />}
-        {view === 'book' && <BookView asin={asin} profile={profile} onPick={onPick} />}
-        {view === 'trades' && <TradesView asin={asin} type={profile.type} />}
-        {view === 'holders' && (
-          <WarrantTabs asin={asin} label="Eigner">
-            <HoldersView asin={asin} />
-          </WarrantTabs>
+        {view === 'markt' && (
+          <Panel
+            className="panel--market"
+            action={
+              <DS.SegmentedControl
+                aria-label="Markt"
+                size="sm"
+                options={MARKET_VIEWS}
+                value={market}
+                onChange={(m) => go('markt', m)}
+              />
+            }
+          >
+            {market === 'book' && <BookView asin={asin} profile={profile} onPick={onPick} />}
+            {market === 'depth' && <DepthView asin={asin} type={profile.type} />}
+            {market === 'trades' && <TradesView asin={asin} type={profile.type} />}
+          </Panel>
         )}
+        {view === 'holders' && <HoldersView asin={asin} />}
+        {view === 'scheine' && <PhoneWarrants asin={asin} name={profile.name} />}
         {view === 'yield' && <BondPanel profile={profile} bare />}
         {view === 'weights' && <IndexWeightsPanel asin={asin} bare />}
-        {view === 'members' && (
-          <WarrantTabs asin={asin} label="Mitglieder">
-            <IndexMembersPanel asin={asin} bare />
-          </WarrantTabs>
-        )}
+        {view === 'members' && <IndexMembersPanel asin={asin} bare />}
         {view === 'tracking' && <EtfTrackingPanel profile={profile} bare />}
         {view === 'compare' && <BuildingPanel profile={profile} bare />}
         {view === 'basis' && <WarrantPanel profile={profile} bare />}
         {view === 'szenario' && <WarrantScenarioPanel profile={profile} draft={draft} bare />}
         {view === 'units' && (
-          <div>
+          <div className="sec__units">
             {ownsEtf ? (
               <DS.Tabs
                 size="sm"
@@ -678,6 +772,103 @@ function PhonePanels({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Phone view „Scheine“: warrants on this security, or why there are none. */
+function PhoneWarrants({ asin, name }: { asin: string; name: string }) {
+  const { list, isLoading } = useWarrantsOf(asin);
+  if (isLoading) return <DS.Skeleton variant="rows" />;
+  if (!list.length)
+    return (
+      <DS.EmptyState compact title="Keine laufenden Optionsscheine">
+        Auf {name} läuft gerade kein Optionsschein. Scheine laufen etwa einen Tag, neue gibt der Emittent aus.
+      </DS.EmptyState>
+    );
+  return <WarrantsOnView asin={asin} />;
+}
+
+/**
+ * Phone sheet behind „⋯“: every key figure the header has no room for, and the actions that sit in
+ * the header or the ticket column on the desktop (company, underlying, market maker quote, OTC, miner).
+ */
+function PhoneMore({
+  profile,
+  cls,
+  tradable,
+  canQuote,
+  onClose,
+  onQuote,
+}: {
+  profile: ListingProfile;
+  cls: AssetClass;
+  tradable: boolean;
+  canQuote: boolean;
+  onClose: () => void;
+  onQuote: () => void;
+}) {
+  const navigate = useNavigate();
+  const facts = useClassFacts(profile, cls, false, false, 10);
+  const index = useIndexDetails(profile.securityIdentifier, cls === 'index');
+  const warrant = useWarrant(cls === 'warrant' ? profile.securityIdentifier : undefined);
+  const etf = useEtf(profile.securityIdentifier, cls === 'etf');
+  const go = (to: string) => {
+    onClose();
+    navigate(to);
+  };
+  const underlying = warrant.data?.underlying?.securityIdentifier;
+  const baseIndex = etf.data?.baseIndexAsin;
+  const actions: { label: string; hint?: string; run: () => void }[] = [];
+  if (profile.company) actions.push({ label: 'Unternehmen öffnen', hint: 'Profil, Bilanz, Chronik, Abstimmungen', run: () => go(`/unternehmen/${profile.securityIdentifier}`) });
+  if (underlying) actions.push({ label: `Basiswert öffnen: ${warrant.data?.underlying?.name ?? underlying}`, run: () => go(`/wertpapier/${underlying}`) });
+  if (baseIndex) actions.push({ label: `Basisindex öffnen: ${etf.data?.baseIndexName ?? baseIndex}`, run: () => go(`/wertpapier/${baseIndex}`) });
+  if (canQuote) actions.push({ label: 'Quote stellen (Market Maker)', hint: 'Geld- und Briefkurs deines Unternehmens', run: onQuote });
+  if (tradable)
+    actions.push({ label: 'Außerbörslich (OTC) an einen Spieler …', hint: 'Angebot direkt an ein anderes Depot', run: () => go(`/orders?ansicht=otc&neu=${profile.securityIdentifier}`) });
+  if (cls === 'coin') actions.push({ label: 'Miner: AlphaCoins schürfen', run: () => go('/miner') });
+  return (
+    <div className="sec-more">
+      {cls === 'index' ? (
+        index.data ? (
+          <>
+            <DS.IndexFacts index={index.data} />
+            <p className="class__note">
+              Ein Index wird aus den Kursen seiner Mitglieder berechnet und nicht gehandelt. Handelbar sind ETFs und Optionsscheine darauf.
+            </p>
+          </>
+        ) : (
+          <DS.Skeleton variant="rows" />
+        )
+      ) : (
+        facts.length > 0 && (
+          <dl className="sec-more__facts" aria-label="Kennzahlen">
+            {facts.map((f, i) => (
+              <div key={i} className="sec-more__fact">
+                <dt>{f.label}</dt>
+                <dd>
+                  {typeof f.value === 'number' ? (
+                    <DS.Amount value={f.value} currency={f.currency} unit={f.unit} decimals={f.decimals} compact={f.compact ?? 'auto'} />
+                  ) : (
+                    f.value
+                  )}
+                  {f.sub && <small>{f.sub}</small>}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )
+      )}
+      {actions.length > 0 && (
+        <div className="sec-more__actions">
+          {actions.map((a) => (
+            <button key={a.label} type="button" className="sec-more__action" onClick={a.run}>
+              <span>{a.label}</span>
+              {a.hint && <small>{a.hint}</small>}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

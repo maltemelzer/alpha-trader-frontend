@@ -3,6 +3,8 @@ import { DS } from '../ds';
 import { useAllianceOf, useCeoCompaniesByName, useUserAchievements, useUserProfile } from '../api/queries';
 import { useDirectChat } from '../chat/useDirectChat';
 import { useInternalLinks } from '../lib/useInternalLinks';
+import { useIsPhone } from '../lib/useMediaQuery';
+import { PhoneProfile } from '../app/phone';
 import { translate } from '../lib/messages';
 import { achievementItems } from './derive';
 import './PlayerPage.css';
@@ -19,6 +21,7 @@ export function PlayerPage() {
   const achievements = useUserAchievements(username);
   const alliance = useAllianceOf(username);
   const chat = useDirectChat();
+  const isPhone = useIsPhone();
 
   if (profile.isError) {
     return (
@@ -95,29 +98,60 @@ export function PlayerPage() {
   ];
 
   const al = alliance.data?.alliance;
+  const message =
+    !own && user ? (
+      <DS.Button variant="primary" size="sm" loading={chat.pending} onClick={() => chat.open(user)}>
+        Nachricht
+      </DS.Button>
+    ) : undefined;
+  const header = (
+    <DS.ProfileHeader
+      as={isPhone ? 'h2' : 'h1'}
+      kind="user"
+      kindLabel="Spieler"
+      name={username}
+      eyebrow={al ? [<a key="a" href={`/allianz/${al.id}`}>{al.name}</a>] : [alliance.isLoading ? '\u00a0' : 'Keine Allianz']}
+      meta={user?.registrationDate ? [`Dabei seit ${new Date(user.registrationDate).getFullYear()}`] : ['\u00a0']}
+      tags={tags}
+      actions={isPhone ? undefined : message}
+      stats={[
+        { label: 'Erfolge', value: caps ? `${caps.achievementCount} von ${caps.achievementTotal}` : '–' },
+        { label: 'Unternehmen', value: companies.data ? String(companies.data.length) : '–', sub: 'als CEO' },
+        { label: 'Anstellungen', value: profile.data ? String(profile.data.employments.length) : '–' },
+        ...(al ? [{ label: 'Allianz', value: al.name, sub: ALLIANCE_ROLE[alliance.data!.role] }] : []),
+      ]}
+    />
+  );
   return (
     <div className="page player" onClick={onLinkClick}>
-      <DS.ProfileHeader
-        kind="user"
-        kindLabel="Spieler"
-        name={username}
-        eyebrow={al ? [<a key="a" href={`/allianz/${al.id}`}>{al.name}</a>] : [alliance.isLoading ? '\u00a0' : 'Keine Allianz']}
-        meta={user?.registrationDate ? [`Dabei seit ${new Date(user.registrationDate).getFullYear()}`] : ['\u00a0']}
-        tags={tags}
-        actions={
-          !own && user ? (
-            <DS.Button variant="primary" size="sm" loading={chat.pending} onClick={() => chat.open(user)}>
-              Nachricht
-            </DS.Button>
-          ) : undefined
-        }
-        stats={[
-          { label: 'Erfolge', value: caps ? `${caps.achievementCount} von ${caps.achievementTotal}` : '–' },
-          { label: 'Unternehmen', value: companies.data ? String(companies.data.length) : '–', sub: 'als CEO' },
-          { label: 'Anstellungen', value: profile.data ? String(profile.data.employments.length) : '–' },
-          ...(al ? [{ label: 'Allianz', value: al.name, sub: ALLIANCE_ROLE[alliance.data!.role] }] : []),
-        ]}
-      />
+      {isPhone ? (
+        <PhoneProfile
+          kind="user"
+          name={username}
+          back={{ href: '/highscores', label: 'Zurück' }}
+          meta={
+            <>
+              {al && (
+                <>
+                  <a href={`/allianz/${al.id}`}>{al.name}</a>
+                  {' · '}
+                </>
+              )}
+              {user?.registrationDate ? `Dabei seit ${new Date(user.registrationDate).getFullYear()}` : '\u00a0'}
+            </>
+          }
+          action={message}
+          stats={[
+            { label: 'Erfolge', value: caps ? `${caps.achievementCount}/${caps.achievementTotal}` : '–' },
+            { label: 'Unternehmen', value: companies.data ? String(companies.data.length) : '–' },
+            { label: 'Anstellungen', value: profile.data ? String(profile.data.employments.length) : '–' },
+          ]}
+          details={header}
+          detailsTitle="Spieler"
+        />
+      ) : (
+        header
+      )}
       <DS.Card flush className="panel">
         <div className="panel__tabs">
           <DS.Tabs

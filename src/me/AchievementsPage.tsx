@@ -2,6 +2,7 @@ import { DS } from '../ds';
 import { useClaimAchievements, useMe, useUnclaimedAchievements, useUserAchievements } from '../api/queries';
 import { translate } from '../lib/messages';
 import { achievementItems } from '../players/derive';
+import './MePage.css';
 
 /** Own achievements: progress bar over all, board with claimable rewards on top. */
 export function AchievementsPage() {
@@ -22,7 +23,7 @@ export function AchievementsPage() {
   const caps = me.data?.userCapabilities;
 
   return (
-    <div className="page">
+    <div className="page ach-page">
       <DS.PageHeader
         size="md"
         title="Erfolge"

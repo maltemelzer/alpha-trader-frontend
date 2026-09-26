@@ -4,6 +4,7 @@ import { useSponsoringGoals, useSponsors } from '../api/queries';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone } from '../lib/useMediaQuery';
 import { useParamState } from '../lib/useParamState';
+import { MiniStats } from '../app/phone';
 import { goalHours, goalName, goalSponsors, groupGoals, hoursText, pctText, periodCoverage, type SponsoringGoal } from './derive';
 import './SponsoringPage.css';
 
@@ -110,25 +111,46 @@ export function SponsoringPage() {
       <DS.PageHeader
         size="md"
         title="Sponsoring"
-        meta={<span>Gold-Stunden für Server und neue Funktionen</span>}
+        meta={
+          <span>
+            {isPhone && goals.data
+              ? `Finanziert: ${groups.funded.length} Features, ${groups.fundedPeriods} Monate`
+              : 'Gold-Stunden für Server und neue Funktionen'}
+          </span>
+        }
       />
       <div className="spons__body">
-        <DS.StatGroup columns="repeat(4, minmax(0, 1fr))" aria-label="Sponsoring in Zahlen" className="spons__stats">
-          <DS.StatTile label="Gold-Stunden" value={sponsors.data ? hoursText(total) : '–'} hint={`von ${list.length} Sponsoren`} />
-          <DS.StatTile
-            label="Kosten diesen Monat"
-            value={goals.data ? pctText(cover.pct) : '–'}
-            hint={groups.periodEnd ? `gedeckt · Monat endet ${day(groups.periodEnd - 1)}` : ' '}
-          />
-          <DS.StatTile label="Offene Features" value={goals.data ? String(groups.features.length) : '–'} hint="warten auf Sponsoren" />
-          <DS.StatTile
-            label="Finanziert"
-            value={goals.data ? String(groups.funded.length) : '–'}
-            hint={goals.data ? `Features · ${groups.fundedPeriods} Monate Betrieb` : ' '}
-          />
-        </DS.StatGroup>
         {isPhone ? (
-          <DS.Card fill flush className="spons__card">
+          // Phone: one compact row; what is funded moves into the meta line, the month into the label
+          <MiniStats
+            label="Sponsoring in Zahlen"
+            items={[
+              { label: 'Gold-Stunden', value: sponsors.data ? hoursText(total) : '–' },
+              {
+                label: groups.periodEnd ? `Kosten ${new Date(groups.periodEnd - 1).toLocaleDateString('de-DE', { month: 'short' })}` : 'Kosten',
+                value: goals.data ? pctText(cover.pct) : '–',
+              },
+              { label: 'Features', value: goals.data ? `${groups.features.length} offen` : '–' },
+            ]}
+          />
+        ) : (
+          <DS.StatGroup columns="repeat(4, minmax(0, 1fr))" aria-label="Sponsoring in Zahlen" className="spons__stats">
+            <DS.StatTile label="Gold-Stunden" value={sponsors.data ? hoursText(total) : '–'} hint={`von ${list.length} Sponsoren`} />
+            <DS.StatTile
+              label="Kosten diesen Monat"
+              value={goals.data ? pctText(cover.pct) : '–'}
+              hint={groups.periodEnd ? `gedeckt · Monat endet ${day(groups.periodEnd - 1)}` : ' '}
+            />
+            <DS.StatTile label="Offene Features" value={goals.data ? String(groups.features.length) : '–'} hint="warten auf Sponsoren" />
+            <DS.StatTile
+              label="Finanziert"
+              value={goals.data ? String(groups.funded.length) : '–'}
+              hint={goals.data ? `Features · ${groups.fundedPeriods} Monate Betrieb` : ' '}
+            />
+          </DS.StatGroup>
+        )}
+        {isPhone ? (
+          <DS.Card fill flush className="panel spons__card">
             <div className="spons__seg">
               <DS.SegmentedControl size="sm" fullWidth aria-label="Ansicht" options={PHONE} value={view} onChange={setView} />
             </div>
@@ -136,13 +158,13 @@ export function SponsoringPage() {
           </DS.Card>
         ) : (
           <div className="spons__grid">
-            <DS.Card fill flush className="spons__card" title="Ziele">
+            <DS.Card fill flush className="panel spons__card" title="Ziele">
               <div className="spons__seg">
                 <DS.SegmentedControl size="sm" aria-label="Ziele" options={GOALS} value={view} onChange={setView} />
               </div>
               <div className="panel__fill scroll spons__scroll">{goalContent}</div>
             </DS.Card>
-            <DS.Card fill flush className="spons__card" title="Sponsoren">
+            <DS.Card fill flush className="panel spons__card" title="Sponsoren">
               <div className="panel__fill scroll spons__scroll">{sponsorList}</div>
             </DS.Card>
           </div>

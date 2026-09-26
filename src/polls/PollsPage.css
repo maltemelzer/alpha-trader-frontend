@@ -1,0 +1,26 @@
+/* Phone: own segments above the list (PollsPage.tsx) replace the list's tabs, which cut off the last one. */
+.polls--phone .bnk-polls__bar .bnk-tabs {
+  display: none;
+}
+
+.polls--phone .bnk-polls__bar:not(:has(.bnk-polls__bulk)) {
+  display: none;
+}
+
+.polls__seg {
+  flex: none;
+  padding-bottom: var(--space-3);
+}
+
+/* Phone: the collective vote („Allen harmlosen Ja / Nein / Alle …“) in one row */
+.polls--phone .bnk-polls__bulk {
+  flex: 1;
+  flex-wrap: wrap;
+  padding-bottom: 0;
+}
+
+/* Segment widths follow their labels, so „Abgestimmt“ fits at 360 px */
+.polls__seg .bnk-seg__opt {
+  flex: 1 0 auto;
+  padding-inline: 6px;
+}

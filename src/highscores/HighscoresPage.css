@@ -53,3 +53,82 @@
     flex: 1 1 100%;
   }
 }
+
+/* ---------- Phone: one control row, the table fills the card ---------- */
+.hs__phonebar {
+  padding: var(--space-3) var(--space-3) var(--space-2);
+}
+
+.hs__phonebar > .bnk-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Two lines in a 44 px button: kind small above the category. */
+.hs__pickText {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.hs__pick .ph-pick__label {
+  font-size: 11px;
+}
+
+/* „Dein Platz 4.211. · Trades 56 · Verlauf“ – opens the history sheet (the wide layout's side card). */
+.hs__me {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-raised);
+  border: 0;
+  border-top: var(--hairline) solid var(--line);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.hs__meLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.hs__meValue {
+  font: 600 16px var(--font-mono);
+}
+
+.hs__meMeta {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hs__meMore {
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.hs__mine--sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.hs__mine--sheet > .hs__chart {
+  height: 300px;
+  position: relative;
+}

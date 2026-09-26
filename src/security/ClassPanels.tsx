@@ -24,6 +24,7 @@ import { assetClass, bondOfRepo } from './assetClass';
 import { buildingCompareChart, trackingChart, weightsTreemap, yieldStrip, type YieldDot } from './classCharts';
 import { afterRebase, bondCoverage, bondYield, buildingSize, dailyYield, indexWeights, rebased, recentPrices, termProgress, yieldDots } from './derive';
 import { useParamState } from '../lib/useParamState';
+import { useIsPhone } from '../lib/useMediaQuery';
 import { parseDe, ratePct, span } from '../lib/format';
 import { Panel } from './Panel';
 
@@ -65,6 +66,7 @@ export function BondPanel({ profile, bare = false }: { profile: ListingProfile; 
   const reserveRate = main.data?.reserveInterestRate;
   const [set, setSet] = useParamState('anleihen', 'handelbar', BOND_SETS);
   const navigate = useNavigate();
+  const isPhone = useIsPhone();
   // Keep the comparison set when jumping from bond to bond.
   const openBond = useCallback(
     (p: { customdata?: unknown }) => {
@@ -133,7 +135,7 @@ export function BondPanel({ profile, bare = false }: { profile: ListingProfile; 
               hint={view?.ask != null ? `Kauf zum Brief ${pct(view.ask, 4)}` : 'kein Verkaufsangebot'}
             />
             <DS.StatTile
-              label="Bis Fälligkeit"
+              label={isPhone ? 'Bis Ende' : 'Bis Fälligkeit'}
               value={view?.total != null ? ratePct(view.total) : '–'}
               hint={`Kupon ${pct(bond.interestRate)}${term ? ` für ${term}` : ''}`}
             />
@@ -148,7 +150,7 @@ export function BondPanel({ profile, bare = false }: { profile: ListingProfile; 
             />
             <DS.StatTile
               label="Deckung"
-              value={coverage == null ? '–' : coverage <= 0 ? 'keine' : coverage >= 10 ? 'über 1.000 %' : pct(coverage * 100, 0)}
+              value={coverage == null ? '–' : coverage <= 0 ? 'keine' : coverage >= 10 ? (isPhone ? '> 1.000 %' : 'über 1.000 %') : pct(coverage * 100, 0)}
               hint={
                 netCash != null
                   ? `Rückzahlung ${DS.format.money(due, '€', 2, true)} · Net Cash ${DS.format.money(netCash, '€', 2, true)}`
@@ -257,12 +259,17 @@ export function EtfTrackingPanel({ profile, bare = false }: { profile: ListingPr
       title={bare ? undefined : 'ETF gegen Index'}
       className="panel--class"
       action={
-        gap != null ? (
-          <span className="class__gap" title="Entwicklung des ETF gegenüber dem Index seit dem gemeinsamen Start">
-            Abweichung {gap >= 0 ? '▲ +' : '▼ −'}
-            {pct(Math.abs(gap))}
-          </span>
-        ) : undefined
+        // Always rendered (non-breaking space while loading), so the head does not grow late.
+        <span className="class__gap" title="Entwicklung des ETF gegenüber dem Index seit dem gemeinsamen Start">
+          {gap != null ? (
+            <>
+              Abweichung {gap >= 0 ? '▲ +' : '▼ −'}
+              {pct(Math.abs(gap))}
+            </>
+          ) : (
+            String.fromCharCode(0xa0)
+          )}
+        </span>
       }
     >
       {etf.isLoading || indexProfile.isLoading ? (

@@ -156,3 +156,47 @@
 .org-index__effects a {
   color: var(--text-primary);
 }
+
+/* ---------- Phone: meta line · „Ansicht ▾ | Aktionen“ · the view fills the rest ---------- */
+.org--phone {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+/* One scroll area: the chosen view (the card itself does not scroll). */
+.org__view {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  padding-top: var(--space-3);
+}
+
+/* Performance lays out its chart to the card's height itself. */
+.org__view--fill {
+  padding-top: 0;
+}
+
+.org__view--fill > .perf {
+  min-height: 360px;
+}
+
+/* Home view: summary on top, the page's actions at the bottom (thumb zone). */
+.org-home {
+  min-height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.org-home__actions {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.perf .ph-bar > .perf__seg {
+  flex: 1 1 auto;
+}
