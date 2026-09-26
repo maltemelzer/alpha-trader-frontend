@@ -1,0 +1,11 @@
+# Never ship credentials into the build context.
+.env
+.env.*
+!.env.example
+node_modules
+dist
+shots
+.git
+.claude
+*.tsbuildinfo
+.DS_Store

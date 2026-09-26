@@ -26,6 +26,7 @@ Inoffizielles Web-Frontend für die Börsensimulation [Alpha-Trader](https://alp
 | `npm run api:get -- /api/…` | Nur lesender API-Aufruf mit dem Konto aus `.env` (Login inklusive, gibt JSON aus, nie den Token). `--base <url>` für nightly/dev |
 | `npm run ds:sync -- <ordner> [--version <v>]` | Design-System nach `vendor/bankiersgruen/` übernehmen (siehe unten) |
 | `npm run audit [-- /pfad … --size 390x844]` | Qualitätsprüfung aller Hauptseiten (Dev-Server muss laufen): Layout-Sprünge beim Laden (`layout-shift`), Kontrast < 4,5:1, Überläufe, Tippflächen < 44 px am Handy, Knöpfe ohne Namen, Konsolenfehler. Nach UI-Änderungen laufen lassen |
+| `docker compose up -d --build` | Produktions-Container (nginx, Port `PORT` bzw. 9010) – `Dockerfile`, `docker/nginx.conf`. Partner-ID kommt als Build-Argument aus `PARTNER_ID` in `.env`, die `.env` selbst bleibt per `.dockerignore` draußen. Für den Raspberry Pi direkt dort bauen oder `docker buildx build --platform linux/arm64 --build-arg VITE_PARTNER_ID=…` |
 | `npm run shot -- /pfad [--size 1440x900] [--anon]` | Screenshot per headless Chrome (Dev-Server muss laufen), eingeloggt mit `.env`. Meldet, ob die Seite scrollt und welches Element über den Rand ragt, plus Konsolenfehler. Bilder in `shots/` (ignoriert). Ohne `--size`: 1440×900, 1280×720, 390×844. `--local at.chatSidebar=1` (auch bei `audit`) setzt vor dem Laden einen localStorage-Eintrag – so mit offener Chat-Leiste |
 
 ## Design-System „Bankiersgrün“
