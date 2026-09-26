@@ -16,6 +16,9 @@
 
 .bank__body {
   grid-template-rows: auto minmax(0, 1fr);
+  /* Without it the implicit column grows to the widest option of the account select
+     (long company names) and the whole page gets wider than the phone. */
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .bank:not(.bank--wide) .bank__body {

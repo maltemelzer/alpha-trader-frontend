@@ -11,17 +11,20 @@ const UNITS: [number, string][] = [
 const de = (n: number, digits: number) =>
   n.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: digits });
 
-/** 1234567 → „1,23 Mio.“ (at most three significant digits); below 1000 unchanged. */
-export function short(n: number): string {
+/**
+ * 1234567 → „1,23 Mio.“ (at most three significant digits); below 1000 unchanged.
+ * `digits` fixes the maximum number of decimals instead (axis ticks that would otherwise read the same).
+ */
+export function short(n: number, digits?: number): string {
   const abs = Math.abs(n);
   const sign = n < 0 ? '−' : '';
   for (const [f, unit] of UNITS) {
     if (abs >= f) {
       const v = abs / f;
-      return `${sign}${de(v, v >= 100 ? 0 : v >= 10 ? 1 : 2)}\u00a0${unit}`;
+      return `${sign}${de(v, digits ?? (v >= 100 ? 0 : v >= 10 ? 1 : 2))}\u00a0${unit}`;
     }
   }
-  return sign + de(abs, 2);
+  return sign + de(abs, digits ?? 2);
 }
 
 /** Euro price in German format, e.g. „1.234,56 €“. */

@@ -135,6 +135,7 @@ export function BankPage() {
       { replace: true },
     );
 
+  // On the phone only the name: the balance is in the stats row above and the narrow select would cut it off.
   const accountSelect =
     accounts.length > 1 ? (
       <DS.Select
@@ -143,7 +144,7 @@ export function BankPage() {
         fullWidth={isPhone}
         className="bank__account"
         value={account?.id}
-        options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${DS.format.money(a.cash, '€', 2, true)}` }))}
+        options={accounts.map((a) => ({ value: a.id, label: isPhone ? a.name : `${a.name} · ${DS.format.money(a.cash, '€', 2, true)}` }))}
         onChange={(e) => pickAccount(e.target.value)}
       />
     ) : null;
