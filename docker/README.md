@@ -15,8 +15,8 @@ Von Hand auslösen: Actions → „Deploy“ → „Run workflow“.
 
 ## Runner auf dem Pi einrichten (einmalig)
 
-Der Runner `pi-5` gehört zum Repo `digital-garden`; Runner eines privaten Kontos gelten nur für ein
-Repo. Deshalb läuft daneben ein zweiter Runner in einem eigenen Ordner.
+Runner eines privaten Kontos gelten nur für ein Repo – neben dem Runner des `digital-garden` läuft
+auf dem Pi ein eigener für dieses Repo (Name `pi-5`, nur die Standard-Labels `self-hosted, Linux, ARM64`).
 
 Settings → Actions → Runners → „New self-hosted runner“ → Linux / ARM64 zeigt Download und Token
 (1 Std. gültig). Auf dem Pi:
@@ -25,7 +25,7 @@ Settings → Actions → Runners → „New self-hosted runner“ → Linux / AR
 mkdir ~/actions-runner-alpha-trader && cd ~/actions-runner-alpha-trader
 # Download- und tar-Befehl von der GitHub-Seite übernehmen, dann:
 ./config.sh --url https://github.com/maltemelzer/alpha-trader-frontend --token <TOKEN> \
-  --name pi-5-alpha-trader --labels self-hosted,linux,ARM64 --unattended
+  --name pi-5 --unattended
 sudo ./svc.sh install && sudo ./svc.sh start
 ```
 
