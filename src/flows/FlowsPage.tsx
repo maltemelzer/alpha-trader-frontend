@@ -49,6 +49,7 @@ const RANGES = [
   { value: '15m', label: '15 Min', minutes: 15 },
   { value: '1h', label: '1 Std', minutes: 60 },
   { value: '3h', label: '3 Std', minutes: 180 },
+  { value: '12h', label: '12 Std', minutes: 720 },
 ];
 
 const ARTS: { value: string; label: string; kind?: AssetKind }[] = [
