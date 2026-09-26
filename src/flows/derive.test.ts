@@ -282,6 +282,7 @@ describe('timeline', () => {
     expect(bucketMs(15 * 60_000)).toBe(60_000);
     expect(bucketMs(60 * 60_000)).toBe(2 * 60_000);
     expect(bucketMs(3 * 3600_000)).toBe(10 * 60_000);
+    expect(bucketMs(12 * 3600_000)).toBe(30 * 60_000);
   });
 
   it('stacks by kind or top securities with a rest', () => {
