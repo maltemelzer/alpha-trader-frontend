@@ -41,13 +41,14 @@ export function WarrantScenarioPanel({ profile, draft, bare = false }: { profile
   const portfolio = usePortfolio();
   const now = useNow();
 
-  const terms = useMemo(() => termsOf(w), [w]);
+  // Price per warrant: the buy limit typed in the ticket, else the ask, else the last trade.
+  const ask = spread.data?.askPrice ?? profile.currentSpread?.askPrice ?? undefined;
+  // A put pays around its issue price – the issuer's ask is the best guess for it.
+  const terms = useMemo(() => termsOf(w, ask), [w, ask]);
   const spot = uProfile.data?.lastPrice?.value;
   const name = w?.underlying?.name ?? 'der Basiswert';
   const end = w ? warrantEnd(w) : undefined;
 
-  // Price per warrant: the buy limit typed in the ticket, else the ask, else the last trade.
-  const ask = spread.data?.askPrice ?? profile.currentSpread?.askPrice ?? undefined;
   const last = profile.lastPrice?.value;
   const basis: PriceBasis = draft?.limit ? 'Limit' : ask ? 'Brief' : 'letzter Kurs';
   const price = draft?.limit || ask || last;
@@ -206,7 +207,7 @@ function Scenario({
         <div className="scn__then" aria-live="polite">
           <span className="scn__label">
             bekommst du{' '}
-            <DS.Term title="Auszahlung (Annahme)" definition={MODEL}>
+            <DS.Term title="Auszahlung" definition={MODEL}>
               je Schein
             </DS.Term>
           </span>

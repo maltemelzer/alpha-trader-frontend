@@ -263,10 +263,17 @@ export function payoffChart(t: Theme, w: number, p: PayoffInput) {
   const ys = pts.map((q) => q.y);
   const max = Math.max(...ys, 0);
   const hasPrice = price != null && price > 0;
-  // The issuer's ask is often ~10× the highest payout: the curve would be a flat line at the bottom.
-  // Then the axis ends above the payout and the price is named at the top edge instead.
+  // A price far above every payout (a limit typed by mistake) would flatten the curve: then the axis
+  // ends above the payout and the price is named at the top edge instead.
   const priceAbove = hasPrice && max > 0 && price > max * 3;
-  const top = (priceAbove ? max * 1.6 : Math.max(max, price ?? 0) * 1.15) || 1;
+  // The payout is the full value of the underlying: over the shown range it moves only a few percent
+  // around the price, so the axis zooms onto payout and price instead of starting at 0.
+  const shownYs = priceAbove || !hasPrice ? ys : [...ys, price];
+  const yHi = Math.max(...shownYs, 0);
+  const yLo = Math.min(...shownYs);
+  const pad = (yHi - yLo) * 0.15 || yHi * 0.1 || 1;
+  const top = priceAbove ? max * 1.6 : yHi + pad;
+  const bottom = priceAbove ? 0 : Math.max(0, yLo - pad);
   const small = top < 0.5;
   const data: Record<string, unknown>[] = [];
   if (hasPrice) {
@@ -356,7 +363,7 @@ export function payoffChart(t: Theme, w: number, p: PayoffInput) {
       margin: { l: 0, r: 8, t: 6 + Math.max(1, rows.length) * 15, b: 0 },
       hovermode: 'closest',
       xaxis: { ...t.layout.xaxis, range, showspikes: false, ...xAxisShort, tickformat: xAxisShort.tickvals ? undefined : ',.2f' },
-      yaxis: { ...t.layout.yaxis, side: 'left', range: [0, top], ticksuffix: ' €', tickformat: small ? ',.4f' : ',.2f', nticks: 5 },
+      yaxis: { ...t.layout.yaxis, side: 'left', range: [bottom, top], ticksuffix: ' €', tickformat: small ? ',.4f' : ',.2f', nticks: 5 },
       shapes,
       annotations,
     },

@@ -22,14 +22,23 @@ import {
 const NB = String.fromCharCode(0xa0);
 const clean = (s: string) => s.split(NB).join(' ');
 
-// Real warrants on Alphakasse SE (25.09.2026): call 71,32 / cap 78,452, put 1,78 / cap 1,602, ratio 0,1.
+// Real warrants (25.09.2026), ratio 0,1: a call on Alphakasse SE, the call Malte bought and had settled
+// (WAS6HHKLOM: 349.370.331 warrants at 0,17 €, paid out 0,16 € each at an underlying of 1,66 €) and a put
+// with its issue price (WAK7EHZKZE: deposit 2.816.445,58 € for 22.658.451 warrants at 1,18 €).
 const call: Terms = { type: 'CALL', strike: 71.32, cap: 78.452, ratio: 0.1 };
-const put: Terms = { type: 'PUT', strike: 1.78, cap: 1.602, ratio: 0.1 };
+const settled: Terms = { type: 'CALL', strike: 1.62, cap: 1.782, ratio: 0.1 };
+const put: Terms = { type: 'PUT', strike: 11.73, cap: 10.557, ratio: 0.1, issuePrice: 1.18 };
 
 describe('termsOf', () => {
-  it('reads strike, cap, ratio and type from the API warrant', () => {
-    expect(termsOf({ type: 'PUT', underlyingValue: 1.78, underlyingCapValue: 1.602, ratio: 0.1 })).toEqual(put);
-    expect(termsOf({ type: 'CALL', underlyingValue: 71.32, ratio: 0.1 })).toEqual({ type: 'CALL', strike: 71.32, cap: undefined, ratio: 0.1 });
+  it('reads strike, cap, ratio and type from the API warrant, the issue price from the ask', () => {
+    expect(termsOf({ type: 'PUT', underlyingValue: 11.73, underlyingCapValue: 10.557, ratio: 0.1 }, 1.18)).toEqual(put);
+    expect(termsOf({ type: 'CALL', underlyingValue: 71.32, ratio: 0.1 })).toEqual({
+      type: 'CALL',
+      strike: 71.32,
+      cap: undefined,
+      ratio: 0.1,
+      issuePrice: undefined,
+    });
   });
   it('needs strike and ratio', () => {
     expect(termsOf({ type: 'CALL', ratio: 0.1 })).toBeUndefined();
@@ -39,96 +48,88 @@ describe('termsOf', () => {
 });
 
 describe('payout', () => {
-  it('call: nothing up to the strike, ratio × distance above it, capped', () => {
-    expect(payout(call, 60)).toBe(0);
-    expect(payout(call, 71.32)).toBe(0);
-    expect(payout(call, 75)).toBeCloseTo(0.368, 10);
-    expect(payout(call, 78.452)).toBeCloseTo(0.7132, 10);
-    expect(payout(call, 200)).toBeCloseTo(0.7132, 10);
+  it('call: the full value ratio × price, capped, rounded down to the cent – as settled', () => {
+    expect(payout(settled, 1.66)).toBe(0.16);
+    expect(payout(settled, 1.5)).toBe(0.15);
+    expect(payout(settled, 2)).toBe(0.17); // 0,1782 at the cap
+    expect(payout(call, 75)).toBe(7.5);
+    expect(payout(call, 200)).toBe(7.84);
   });
-  it('put: nothing from the strike up, ratio × distance below it, capped', () => {
-    expect(payout(put, 2)).toBe(0);
-    expect(payout(put, 1.78)).toBe(0);
-    expect(payout(put, 1.7)).toBeCloseTo(0.008, 10);
-    expect(payout(put, 1.602)).toBeCloseTo(0.0178, 10);
-    expect(payout(put, 0)).toBeCloseTo(0.0178, 10);
+  it('call escrow: deposit + issue price = ratio × cap per warrant', () => {
+    expect(2864836.72 / 349370331 + 0.17).toBeCloseTo(0.1 * 1.782, 8);
   });
-  it('without cap: a call is open upwards, a put pays at most the strike', () => {
+  it('put: 2 × issue price − ratio × price, capped, never below 0', () => {
+    expect(payout(put, 11.73)).toBe(1.18); // 2,36 − 1,173
+    expect(payout(put, 10.557)).toBe(1.3); // at the cap: 2,36 − 1,0557
+    expect(payout(put, 5)).toBe(1.3);
+    expect(payout(put, 23.6)).toBe(0);
+    expect(payout(put, 40)).toBe(0);
+  });
+  it('put escrow: deposit + issue price = 2 × issue price − ratio × cap', () => {
+    expect(2816445.58 / 22658451 + 1.18).toBeCloseTo(2 * 1.18 - 0.1 * 10.557, 6);
+  });
+  it('put without issue price mirrors around ratio × strike', () => {
+    expect(payout({ ...put, issuePrice: undefined }, 11.73)).toBe(1.17);
+  });
+  it('without cap a call is open upwards; no negative prices', () => {
     const c: Terms = { type: 'CALL', strike: 10, ratio: 1 };
-    const p: Terms = { type: 'PUT', strike: 10, ratio: 1 };
-    expect(payout(c, 1000)).toBe(990);
-    expect(payout(p, 0)).toBe(10);
-    expect(payout(p, -5)).toBe(0); // no negative prices
+    expect(payout(c, 1000)).toBe(1000);
+    expect(payout(c, -5)).toBe(0);
     expect(maxPayout(c)).toBe(Infinity);
-    expect(maxPayout(p)).toBe(10);
   });
   it('index warrant with ratio 0,001', () => {
     const idx: Terms = { type: 'CALL', strike: 1000, cap: 1100, ratio: 0.001 };
-    expect(payout(idx, 1050)).toBeCloseTo(0.05, 10);
-    expect(maxPayout(idx)).toBeCloseTo(0.1, 10);
-  });
-  it('a cap on the wrong side pays nothing', () => {
-    expect(payout({ type: 'CALL', strike: 10, cap: 9, ratio: 1 }, 20)).toBe(0);
+    expect(payout(idx, 1050)).toBe(1.05);
+    expect(maxPayout(idx)).toBe(1.1);
   });
 });
 
 describe('maxPayout and breakEven', () => {
-  it('max payout is ratio × corridor', () => {
-    expect(maxPayout(call)).toBeCloseTo(0.7132, 10);
-    expect(maxPayout(put)).toBeCloseTo(0.0178, 10);
+  it('max payout at the cap', () => {
+    expect(maxPayout(call)).toBe(7.84);
+    expect(maxPayout(put)).toBe(1.3);
   });
-  it('break-even: strike ± price ÷ ratio', () => {
-    expect(breakEven(call, 0.3)).toBeCloseTo(74.32, 10);
-    expect(breakEven(put, 0.01)).toBeCloseTo(1.68, 10);
-    expect(breakEven(call, 0)).toBe(71.32);
+  it('break-even: call price ÷ ratio, put (2 × issue price − price) ÷ ratio', () => {
+    expect(breakEven(settled, 0.17)).toBeCloseTo(1.7, 10);
+    expect(breakEven(call, 7.2)).toBeCloseTo(72, 10);
+    expect(breakEven(put, 1.18)).toBeCloseTo(11.8, 10);
   });
-  it('none when even the cap does not pay the price (issuer ask ≈ ratio × strike)', () => {
-    expect(breakEven(call, 7.2)).toBeUndefined();
-    expect(breakEven(put, 0.18)).toBeUndefined();
+  it('none when even the cap does not pay the price', () => {
+    expect(breakEven(call, 8)).toBeUndefined();
+    expect(breakEven(put, 1.4)).toBeUndefined();
     expect(breakEven(call, undefined)).toBeUndefined();
-  });
-  it('exactly the max payout breaks even at the cap', () => {
-    expect(breakEven(call, maxPayout(call))).toBeCloseTo(78.452, 10);
   });
 });
 
 describe('zoneOf', () => {
   it('call and put zones', () => {
-    expect(zoneOf(call, 70)).toBe('worthless');
-    expect(zoneOf(call, 75)).toBe('between');
+    expect(zoneOf(call, 70)).toBe('between');
     expect(zoneOf(call, 80)).toBe('capped');
-    expect(zoneOf(put, 1.9)).toBe('worthless');
-    expect(zoneOf(put, 1.7)).toBe('between');
-    expect(zoneOf(put, 1.5)).toBe('capped');
+    expect(zoneOf(put, 30)).toBe('worthless');
+    expect(zoneOf(put, 11)).toBe('between');
+    expect(zoneOf(put, 10)).toBe('capped');
   });
-  it('explains the zone in words', () => {
-    expect(clean(zoneText(call, 70))).toBe('nicht über dem Referenzkurs – der Schein verfällt wertlos');
+  it('explains the payout in words', () => {
+    expect(clean(zoneText(settled, 1.66))).toBe('0,1 × 1,66 €');
     expect(clean(zoneText(call, 80))).toBe('über dem Cap – mehr zahlt der Schein nicht');
-    expect(clean(zoneText(call, 74.17))).toBe('4 % über dem Referenzkurs');
-    expect(clean(zoneText(put, 1.7))).toBe('4,5 % unter dem Referenzkurs');
+    expect(clean(zoneText(put, 11))).toBe('2,36 € − 0,1 × 11,00 €');
+    expect(clean(zoneText(put, 30))).toBe('ab 23,60 € zahlt der Put nichts mehr');
   });
 });
 
 describe('outcome', () => {
-  it('per warrant, total, cost and profit', () => {
-    const o = outcome({ type: 'CALL', strike: 72, cap: 79.2, ratio: 0.1 }, 80.2, 0.7, 1000);
-    expect(o.perWarrant).toBeCloseTo(0.72, 10);
-    expect(o.total).toBeCloseTo(720, 8);
-    expect(o.cost).toBeCloseTo(700, 8);
-    expect(o.pl).toBeCloseTo(20, 8);
-    expect(o.plPct).toBeCloseTo(2.857, 3);
+  it('the settled trade: 349.370.331 warrants at 0,17 €, 0,16 € each', () => {
+    const o = outcome(settled, 1.66, 0.17, 349370331);
+    expect(o.total).toBeCloseTo(55899252.96, 2);
+    expect(o.cost).toBeCloseTo(59392956.27, 2);
+    expect(o.pl).toBeCloseTo(-3493703.31, 2);
+    expect(o.plPct).toBeCloseTo(-5.88, 2);
   });
-  it('a worthless warrant loses everything', () => {
-    const o = outcome(call, 60, 7.2, 1000);
-    expect(o.total).toBe(0);
-    expect(o.pl).toBeCloseTo(-7200, 8);
-    expect(o.plPct).toBe(-100);
-  });
-  it('at the issuer ask the best case is still −90 %', () => {
-    expect(outcome(call, 90, 7.2, 1).plPct).toBeCloseTo((0.7132 / 7.2 - 1) * 100, 8);
+  it('a call bought at the issue price gains up to the cap', () => {
+    expect(outcome(call, 90, 7.2, 1).plPct).toBeCloseTo((7.84 / 7.2 - 1) * 100, 8);
   });
   it('without price: payout only; no negative counts', () => {
-    expect(outcome(call, 75, undefined, 10)).toEqual({ perWarrant: expect.closeTo(0.368, 10), total: expect.closeTo(3.68, 10) });
+    expect(outcome(call, 75, undefined, 10)).toEqual({ perWarrant: 7.5, total: 75 });
     expect(outcome(call, 75, 0.3, -5).total).toBe(0);
   });
 });
@@ -139,8 +140,8 @@ describe('payoffPoints', () => {
     expect(pts.map((p) => p.x)).toContain(71.32);
     expect(pts.map((p) => p.x)).toContain(78.452);
     expect(pts.every((p, i) => i === 0 || p.x > pts[i - 1].x)).toBe(true);
-    expect(pts[0].y).toBe(0);
-    expect(pts[pts.length - 1].y).toBeCloseTo(0.7132, 10);
+    expect(pts[0].y).toBe(6);
+    expect(pts[pts.length - 1].y).toBe(7.84);
   });
   it('empty for an empty range', () => {
     expect(payoffPoints(call, 5, 5)).toEqual([]);
@@ -156,8 +157,8 @@ describe('chartRange', () => {
   });
   it('ignores missing values', () => {
     const [lo, hi] = chartRange(put, undefined, [undefined, NaN]);
-    expect(lo).toBeLessThan(1.602);
-    expect(hi).toBeGreaterThan(1.78);
+    expect(lo).toBeLessThan(10.557);
+    expect(hi).toBeGreaterThan(11.73);
   });
 });
 
@@ -169,7 +170,7 @@ describe('quickPicks', () => {
     expect(q[3].value).toBe(78.452);
   });
   it('put: cap first (lowest price), then −5 %, unchanged, +10 %', () => {
-    const q = quickPicks(put, 1.78);
+    const q = quickPicks(put, 11.73);
     expect(q.map((x) => clean(x.label))).toEqual(['Cap −10 %', '−5 %', 'unverändert', '+10 %']);
   });
   it('none without a price now', () => {
@@ -202,24 +203,26 @@ describe('dueText', () => {
 describe('betSummary', () => {
   const now = new Date(2026, 8, 25, 22, 30).getTime();
   const end = new Date(2026, 8, 26, 13, 26).getTime();
-  it('call with reachable break-even', () => {
-    const t: Terms = { type: 'CALL', strike: 72, cap: 79.2, ratio: 0.1 };
-    expect(clean(betSummary(t, 'Alphakasse SE', { end, now, price: 0.3 }))).toBe(
-      'Du wettest, dass Alphakasse SE bis morgen 13:26 über 72,00 € steigt. Höchstens 0,72 € je Schein (ab 79,20 €). Gewinn zum Brief von 0,30 € ab 75,00 €.',
+  it('call at the issue price', () => {
+    expect(clean(betSummary(settled, 'Seylor Tender Bank', { end, now, price: 0.17 }))).toBe(
+      'Du wettest, dass Seylor Tender Bank bis morgen 13:26 steigt: Der Schein zahlt 0,1 × den Kurs, höchstens 0,17 € (ab 1,78 €). Gewinn zum Brief von 0,17 € über 1,70 €, höchstens ±0 %.',
+    );
+    expect(clean(betSummary(call, 'Alphakasse SE', { end, now, price: 7.2 }))).toBe(
+      'Du wettest, dass Alphakasse SE bis morgen 13:26 steigt: Der Schein zahlt 0,1 × den Kurs, höchstens 7,84 € (ab 78,45 €). Gewinn zum Brief von 7,20 € über 72,00 €, höchstens +9 %.',
     );
   });
-  it('call bought at the issuer ask: a loss even at the cap', () => {
-    expect(clean(betSummary(call, 'Alphakasse SE', { end, now, price: 7.2 }))).toBe(
-      'Du wettest, dass Alphakasse SE bis morgen 13:26 über 71,32 € steigt. Höchstens 0,71 € je Schein (ab 78,45 €) – zum Brief von 7,20 € selbst dann ein Verlust (−90 %).',
+  it('a price above the maximum is a loss even at the cap', () => {
+    expect(clean(betSummary(call, 'Alphakasse SE', { now, price: 9 }))).toBe(
+      'Du wettest, dass Alphakasse SE steigt: Der Schein zahlt 0,1 × den Kurs, höchstens 7,84 € (ab 78,45 €) – zum Brief von 9,00 € selbst dann ein Verlust (−13 %).',
     );
   });
   it('put with a limit', () => {
-    expect(clean(betSummary(put, 'Alphakasse SE', { now, price: 0.01, basis: 'Limit' }))).toBe(
-      'Du wettest, dass Alphakasse SE unter 1,78 € fällt. Höchstens 0,0178 € je Schein (bis 1,60 €). Gewinn zu deinem Limit von 0,01 € unter 1,68 €.',
+    expect(clean(betSummary(put, 'X', { now, price: 1.1, basis: 'Limit' }))).toBe(
+      'Du wettest, dass X fällt: Der Schein zahlt 2,36 € − 0,1 × den Kurs, höchstens 1,30 € (bis 10,56 €). Gewinn zu deinem Limit von 1,10 € unter 12,60 €, höchstens +18 %.',
     );
   });
   it('without price: only the bet and the maximum', () => {
-    expect(clean(betSummary(call, 'X', { now }))).toBe('Du wettest, dass X über 71,32 € steigt. Höchstens 0,71 € je Schein (ab 78,45 €).');
+    expect(clean(betSummary(call, 'X', { now }))).toBe('Du wettest, dass X steigt: Der Schein zahlt 0,1 × den Kurs, höchstens 7,84 € (ab 78,45 €).');
   });
 });
 
@@ -269,17 +272,17 @@ describe('scenarioLabels', () => {
     { type: 'PUT' as const, underlyingValue: 72, underlyingCapValue: 64.8, ratio: 0.1, listing: listing('WAP') },
     { type: 'CALL' as const, ratio: 0.1, listing: listing('WAX') },
   ];
-  it('payout and P/L at the ask per warrant', () => {
-    const l = scenarioLabels(ws, 76, (a) => (a === 'WAC' ? 0.2 : a === 'WAP' ? 0.3 : undefined));
-    expect(clean(l.WAC.text)).toBe('0,40 € · ▲ +100 %');
+  it('payout and P/L at the ask per warrant (the ask is the put\'s issue price)', () => {
+    const l = scenarioLabels(ws, 76, (a) => (a === 'WAC' ? 7.28 : a === 'WAP' ? 7.28 : undefined));
+    expect(clean(l.WAC.text)).toBe('7,60 € · ▲ +4 %');
     expect(l.WAC.sign).toBe(1);
-    expect(clean(l.WAP.text)).toBe('0,00 € · ▼ −100 %');
+    expect(clean(l.WAP.text)).toBe('6,96 € · ▼ −4 %'); // 14,56 − 7,6
     expect(l.WAP.sign).toBe(-1);
     expect(l.WAX).toBeUndefined();
   });
-  it('without ask only the payout', () => {
+  it('without ask only the payout (put around ratio × strike)', () => {
     const l = scenarioLabels(ws, 70, () => undefined);
-    expect(clean(l.WAP.text)).toBe('0,20 €');
+    expect(clean(l.WAP.text)).toBe('7,40 €');
     expect(l.WAP.sign).toBe(0);
   });
 });

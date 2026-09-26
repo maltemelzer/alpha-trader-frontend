@@ -1,16 +1,408 @@
 .login {
   min-height: 100dvh;
+  height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 1fr);
+  background: var(--bg-page);
+}
+
+.login__side {
+  min-height: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
+  background: var(--bg-card);
+  border-left: var(--border) solid var(--line-strong);
 }
 
 .login__form {
   display: grid;
   place-items: center;
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-6) var(--space-8);
+  overflow: auto;
+  position: relative;
 }
 
 .login__form > * {
   width: 100%;
-  max-width: 420px;
+  max-width: 400px;
+}
+
+/* The hero carries the wordmark on wide screens. */
+@media (min-width: 960px) {
+  .login .bnk-auth__brand {
+    display: none;
+  }
+}
+
+.login__note {
+  margin: 0;
+  padding: var(--space-3) var(--space-6);
+  border-top: var(--hairline) solid var(--line);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ---------- Hero ---------- */
+
+.lh {
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(140px, 1fr) auto auto auto;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--space-8) 0;
+  overflow: hidden;
+}
+
+.lh__intro {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 640px;
+}
+
+.lh__eyebrow {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.lh__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(32px, 3.4vw, 48px);
+  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+
+.lh__accent {
+  display: block;
+  color: var(--brass);
+}
+
+.lh__lead {
+  margin: 0;
+  max-width: 520px;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text-secondary);
+}
+
+.lh__chart {
+  margin: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  background: var(--bg-card);
+  border: var(--border) solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.lh__cap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.lh__label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.lh__quote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.lh__price {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.lh__plot {
+  position: relative;
+  min-height: 0;
+}
+
+.lh__plot svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.lh__grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.lh__c line {
+  stroke-width: 1;
+}
+
+.lh__c--up line {
+  stroke: var(--gain);
+}
+
+.lh__c--up rect {
+  fill: var(--gain);
+}
+
+.lh__c--down line {
+  stroke: var(--loss);
+}
+
+.lh__c--down rect {
+  fill: var(--loss);
+}
+
+.lh__c rect.lh__vol {
+  fill: var(--line-strong);
+}
+
+.lh__last {
+  stroke: var(--brass);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.lh__dot {
+  position: absolute;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: var(--radius-pill);
+  background: var(--brass);
+  transition: top 0.3s ease;
+}
+
+.lh__dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: var(--border) solid var(--brass);
+  border-radius: var(--radius-pill);
+  animation: lh-ping 1.8s ease-out infinite;
+}
+
+@keyframes lh-ping {
+  from {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.lh__classes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.lh__classes li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-3);
+  border: var(--border) solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+
+.lh__classes .bnk-icon {
+  color: var(--brass);
+}
+
+.lh__features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-6);
+}
+
+.lh__features li {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.lh__features li > span:last-child {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+.lh__features b {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.lh__ficon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: var(--border) solid var(--brass);
+  border-radius: var(--radius-pill);
+  color: var(--brass);
+}
+
+/* A slow band of game terms along the bottom edge, like a ticker. */
+.lh__band {
+  margin: 0 calc(-1 * var(--space-8));
+  border-top: var(--border) solid var(--line-strong);
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 36px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.lh__track {
+  display: inline-flex;
+  animation: lh-band 60s linear infinite;
+}
+
+.lh__track > span > span {
+  padding-left: var(--space-4);
+}
+
+.lh__track i {
+  font-style: normal;
+  padding-left: var(--space-4);
+  color: var(--brass);
+}
+
+@keyframes lh-band {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.lh__band.is-still .lh__track {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lh__track,
+  .lh__dot::after {
+    animation: none;
+  }
+
+  .lh__dot {
+    transition: none;
+  }
+}
+
+/* Low screens: fewer lines in the hero. */
+@media (max-height: 800px) and (min-width: 960px) {
+  .lh {
+    gap: var(--space-4);
+    padding-top: var(--space-6);
+  }
+
+  .lh__lead {
+    display: none;
+  }
+
+  .lh__features li > span:last-child > span {
+    display: none;
+  }
+}
+
+/* ---------- Below 960 px: hero on top, compact ---------- */
+
+@media (max-width: 959.98px) {
+  .login {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .lh {
+    grid-template-rows: auto auto 132px auto;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-4) 0;
+  }
+
+  .lh__title {
+    font-size: 24px;
+    line-height: 28px;
+  }
+
+  .lh__eyebrow {
+    display: none;
+  }
+
+  .lh__chart {
+    padding: var(--space-2) var(--space-3) var(--space-3);
+  }
+
+  .lh__band {
+    margin: 0 calc(-1 * var(--space-4));
+    line-height: 28px;
+  }
+
+  .login__side {
+    border-left: 0;
+    border-top: var(--border) solid var(--line-strong);
+  }
+
+  .login__form {
+    place-items: start center;
+    padding: var(--space-4);
+    overflow: visible;
+  }
+
+  .login .bnk-auth {
+    gap: var(--space-3);
+  }
+
+  .login .bnk-auth__brand {
+    display: none;
+  }
+
+  .login .bnk-auth__title {
+    font-size: 22px;
+    line-height: 28px;
+  }
 }
