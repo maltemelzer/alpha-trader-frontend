@@ -27,6 +27,11 @@
   max-width: 400px;
 }
 
+.login__stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
 /* The hero carries the wordmark on wide screens. */
 @media (min-width: 960px) {
   .login .bnk-auth__brand {
