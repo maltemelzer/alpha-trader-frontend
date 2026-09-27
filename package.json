@@ -1,8 +1,17 @@
 {
   "name": "alpha-trader-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Inoffizielles, visualisierungsstarkes Web-Frontend für die Börsensimulation Alpha-Trader",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maltemelzer/alpha-trader-frontend.git"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

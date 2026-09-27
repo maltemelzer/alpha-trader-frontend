@@ -20,6 +20,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - run: npm run lint
       - run: npm test
 
   # Self-hosted runner on the Raspberry Pi (registered for this repo, see docker/README.md).
