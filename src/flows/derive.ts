@@ -79,6 +79,49 @@ export async function collectPages(
   return { trades, from: complete ? from : oldest, complete, requests };
 }
 
+/**
+ * Several logs loaded like one window – e.g. the buyer and the seller side of one or more accounts
+ * (`buyerSecuritiesAccountId` / `sellerSecuritiesAccountId`, 1.000 each, reaching days back for small
+ * accounts). Each stream pages back on its own; the covered span starts where the latest-ending
+ * stream stopped, so nothing is missing inside it.
+ */
+export async function collectStreams(
+  streams: ((startDate: number, endDate: number) => Promise<SecurityOrderLogEntryView[]>)[],
+  from: number,
+  to: number,
+  maxPages: number,
+  onPage?: (loaded: number, oldest: number) => void,
+  concurrency = 4,
+): Promise<{ trades: Trade[]; from: number; complete: boolean; requests: number }> {
+  const seen = new Map<string, Trade>();
+  let start = from;
+  let complete = true;
+  let requests = 0;
+  // A few streams at a time: a person with 16 accounts has 32 logs, the server throttles bursts.
+  let next = 0;
+  const worker = async () => {
+    while (next < streams.length) {
+      const fetchPage = streams[next++];
+      const r = await collectPages(fetchPage, from, to, maxPages);
+      for (const t of r.trades) seen.set(t.id, t);
+      requests += r.requests;
+      if (!r.complete) {
+        complete = false;
+        start = Math.max(start, r.from);
+      }
+      onPage?.(seen.size, start);
+    }
+  };
+  await Promise.all([...Array(Math.min(concurrency, streams.length))].map(worker));
+  const trades = [...seen.values()].filter((t) => t.date >= start).sort((a, b) => b.date - a.date);
+  return { trades, from: start, complete, requests };
+}
+
+/** All accounts of one person from an account search: the private depot and every company they run. */
+export function ownerAccounts(found: { id?: string; name?: string; privateAccount?: boolean; clearingAccountId?: string }[], owner: string): AccountInfo[] {
+  return found.map(parseAccount).filter((a): a is AccountInfo => !!a && a.owner === owner);
+}
+
 /** Known trades plus fresh ones: each id once, newest first, nothing before `from`. */
 export function mergeWindow(fresh: Trade[], known: Trade[], from: number): Trade[] {
   const byId = new Map<string, Trade>();
@@ -148,10 +191,18 @@ export interface AccountInfo {
   owner?: string;
   /** Securities account of an ETF (the server calls it private, named „ef-sec-acc-<id>“). */
   fund?: boolean;
+  /** the bank account that goes with it (`clearingAccountId`) */
+  bank?: string;
 }
 
-export function parseAccount(d: { id?: string; name?: string; privateAccount?: boolean } | undefined): AccountInfo | undefined {
+export function parseAccount(d: { id?: string; name?: string; privateAccount?: boolean; clearingAccountId?: string } | undefined): AccountInfo | undefined {
   if (!d?.id) return undefined;
+  const info = parseName(d);
+  return info && d.clearingAccountId ? { ...info, bank: d.clearingAccountId } : info;
+}
+
+function parseName(d: { id?: string; name?: string; privateAccount?: boolean }): AccountInfo | undefined {
+  if (!d.id) return undefined;
   const raw = d.name ?? '';
   const fund = raw.match(/^ef-sec-acc-([0-9a-f]{4})/);
   if (fund) return { id: d.id, name: `ETF-Fonds ${fund[1]}`, private: false, fund: true };
@@ -711,29 +762,209 @@ export function offMarket(trades: Trade[], factor = 2, minOthers = 3): OffMarket
   return out.sort((a, b) => b.trade.volume - a.trade.volume);
 }
 
-/** Transfers grouped by sender, receiver and security. */
+/** One sender (or, for self-transfers, one account) within a transfer group. */
+export interface TransferPart {
+  id: string;
+  name: string;
+  count: number;
+  shares: number;
+}
+
+/**
+ * Transfers of one security to one receiver, from any number of senders – many small accounts
+ * („Multis“) sending coins to one player make one group, not one row each. Transfers an account
+ * sends to itself (coin payouts, moves inside one depot) form one group per security (`self`),
+ * with the accounts as `parts`.
+ */
 export interface TransferGroup {
-  from: string;
+  /** receiver; empty for the self group */
   to: string;
-  fromName: string;
   toName: string;
   asin: string;
+  self: boolean;
+  /** senders (self: the accounts), most transfers first */
+  parts: TransferPart[];
   count: number;
   shares: number;
   last: number;
 }
 
 export function transferGroups(transfers: Trade[]): TransferGroup[] {
-  const map = new Map<string, TransferGroup>();
+  const map = new Map<string, TransferGroup & { byId: Map<string, TransferPart> }>();
   for (const t of transfers) {
-    const key = `${t.seller}|${t.buyer}|${t.asin}`;
-    const g = map.get(key) ?? { from: t.seller, to: t.buyer, fromName: t.sellerName, toName: t.buyerName, asin: t.asin, count: 0, shares: 0, last: 0 };
+    const self = t.seller === t.buyer;
+    const key = self ? `self|${t.asin}` : `${t.buyer}|${t.asin}`;
+    let g = map.get(key);
+    if (!g) {
+      g = { to: self ? '' : t.buyer, toName: self ? '' : t.buyerName, asin: t.asin, self, parts: [], count: 0, shares: 0, last: 0, byId: new Map() };
+      map.set(key, g);
+    }
+    let p = g.byId.get(t.seller);
+    if (!p) {
+      p = { id: t.seller, name: t.sellerName, count: 0, shares: 0 };
+      g.byId.set(t.seller, p);
+    }
+    p.count++;
+    p.shares += t.shares;
     g.count++;
     g.shares += t.shares;
     g.last = Math.max(g.last, t.date);
-    map.set(key, g);
   }
-  return [...map.values()].sort((a, b) => b.count - a.count || b.shares - a.shares);
+  return [...map.values()]
+    .map(({ byId, ...g }) => ({ ...g, parts: [...byId.values()].sort((a, b) => b.count - a.count || b.shares - a.shares) }))
+    .sort((a, b) => Number(a.self) - Number(b.self) || b.count - a.count || b.shares - a.shares);
+}
+
+/** Transfers one account (or a set of own accounts) received and sent, per counterparty and security. */
+export interface TransferLine {
+  id: string;
+  name: string;
+  asin: string;
+  count: number;
+  shares: number;
+  /** € actually paid (0 € / 0,01 € per share) */
+  paid: number;
+  last: number;
+}
+
+export function transferSides(transfers: Trade[], isSelf: (id: string) => boolean): { received: TransferLine[]; sent: TransferLine[]; own: number } {
+  const received = new Map<string, TransferLine>();
+  const sent = new Map<string, TransferLine>();
+  let own = 0;
+  const add = (map: Map<string, TransferLine>, id: string, name: string, t: Trade) => {
+    const key = `${id}|${t.asin}`;
+    const l = map.get(key) ?? { id, name, asin: t.asin, count: 0, shares: 0, paid: 0, last: 0 };
+    l.count++;
+    l.shares += t.shares;
+    l.paid += t.volume;
+    l.last = Math.max(l.last, t.date);
+    map.set(key, l);
+  };
+  for (const t of transfers) {
+    const inS = isSelf(t.seller);
+    const inB = isSelf(t.buyer);
+    if (inS && inB) own++;
+    else if (inB) add(received, t.seller, t.sellerName, t);
+    else if (inS) add(sent, t.buyer, t.buyerName, t);
+  }
+  const sort = (m: Map<string, TransferLine>) => [...m.values()].sort((a, b) => b.count - a.count || b.shares - a.shares);
+  return { received: sort(received), sent: sort(sent), own };
+}
+
+// ---------- One account: where assets and money come from ----------
+
+export interface OriginNode extends Omit<SankeyNode, 'column'> {
+  column: 'seller' | 'bought' | 'self' | 'sold' | 'buyer';
+}
+
+export interface OriginData {
+  nodes: OriginNode[];
+  links: { source: number; target: number; value: number }[];
+  /** counterparties it bought from / sold to */
+  sellers: number;
+  buyers: number;
+  bought: number;
+  sold: number;
+  /** trades between its own accounts (a person's companies and depot), left out of the flow */
+  internal: number;
+  /** trades left out because `valueOf` knew no value (transfers of a security without a price) */
+  unvalued: number;
+}
+
+/**
+ * Money flow around one account (or all accounts of one person): who sold to it → what it bought →
+ * the account → what it sold → who bought from it. Shares flow left to right, the money the other
+ * way. The `n` largest per column, the rest as „Übrige“.
+ */
+export function originSankey(
+  trades: Trade[],
+  isSelf: (id: string) => boolean,
+  selfLabel: string,
+  names: Record<string, string>,
+  group: Grouping = plain,
+  n = 8,
+  /** € per trade: the trade volume, or for transfers shares × today's price (`undefined` = no price known) */
+  valueOf: (t: Trade) => number | undefined = (t) => t.volume,
+): OriginData {
+  const cols = { seller: new Map<string, number>(), bought: new Map<string, number>(), sold: new Map<string, number>(), buyer: new Map<string, number>() };
+  const info = new Map<string, { name: string; kind: AccountKind }>();
+  const inc = (m: Map<string, number>, k: string, v: number) => m.set(k, (m.get(k) ?? 0) + v);
+  let internal = 0;
+  let unvalued = 0;
+  const legs: { col: 'in' | 'out'; party: string; asin: string; volume: number }[] = [];
+  for (const t of trades) {
+    const inB = isSelf(t.buyer);
+    const inS = isSelf(t.seller);
+    if (inB && inS) {
+      internal++;
+      continue;
+    }
+    if (!inB && !inS) continue;
+    const volume = valueOf(t);
+    if (!volume || !(volume > 0)) {
+      unvalued++;
+      continue;
+    }
+    const other = inB ? group(t.seller, t.sellerName) : group(t.buyer, t.buyerName);
+    info.set(other.id, { name: other.name, kind: other.kind });
+    if (inB) {
+      inc(cols.seller, other.id, volume);
+      inc(cols.bought, t.asin, volume);
+      legs.push({ col: 'in', party: other.id, asin: t.asin, volume });
+    } else {
+      inc(cols.sold, t.asin, volume);
+      inc(cols.buyer, other.id, volume);
+      legs.push({ col: 'out', party: other.id, asin: t.asin, volume });
+    }
+  }
+  const nodes: OriginNode[] = [];
+  const idx: Record<OriginNode['column'], Map<string, number>> = { seller: new Map(), bought: new Map(), self: new Map(), sold: new Map(), buyer: new Map() };
+  const column = (col: 'seller' | 'bought' | 'sold' | 'buyer', restLabel: string) => {
+    const sorted = [...cols[col].entries()].sort((a, b) => b[1] - a[1]);
+    const security = col === 'bought' || col === 'sold';
+    // Below 1 % of the column a node is a hairline without a label – it goes into „Übrige“ (779 multis à 0,1 %)
+    const total = sorted.reduce((s, x) => s + x[1], 0);
+    const keep = sorted.slice(0, n).filter(([, v], i) => i === 0 || v >= total / 100).length;
+    for (const [id, value] of sorted.slice(0, keep)) {
+      idx[col].set(id, nodes.length);
+      const i = info.get(id);
+      nodes.push({ label: security ? (names[id] ?? id) : i?.name || 'Privatdepot', column: col, ref: id, kind: security ? 'security' : (i?.kind ?? 'company'), value });
+    }
+    const rest = sorted.slice(keep);
+    if (rest.length) {
+      const r = nodes.length;
+      nodes.push({ label: `${restLabel} (${rest.length.toLocaleString('de-DE')})`, column: col, kind: 'rest', value: rest.reduce((s, x) => s + x[1], 0) });
+      for (const [id] of rest) idx[col].set(id, r);
+    }
+  };
+  // short: five columns leave little room, the column head says what they are
+  column('seller', 'Übrige');
+  column('bought', 'Übrige');
+  const bought = [...cols.bought.values()].reduce((s, v) => s + v, 0);
+  const sold = [...cols.sold.values()].reduce((s, v) => s + v, 0);
+  const self = nodes.length;
+  if (bought || sold) nodes.push({ label: selfLabel, column: 'self', kind: 'company', value: Math.max(bought, sold) });
+  column('sold', 'Übrige');
+  column('buyer', 'Übrige');
+  const links = new Map<string, { source: number; target: number; value: number }>();
+  const add = (source: number, target: number, value: number) => {
+    const key = `${source}|${target}`;
+    const l = links.get(key) ?? { source, target, value: 0 };
+    l.value += value;
+    links.set(key, l);
+  };
+  for (const l of legs) {
+    if (l.col === 'in') {
+      const b = idx.bought.get(l.asin)!;
+      add(idx.seller.get(l.party)!, b, l.volume);
+      add(b, self, l.volume);
+    } else {
+      const s = idx.sold.get(l.asin)!;
+      add(self, s, l.volume);
+      add(s, idx.buyer.get(l.party)!, l.volume);
+    }
+  }
+  return { nodes, links: [...links.values()], sellers: cols.seller.size, buyers: cols.buyer.size, bought, sold, internal, unvalued };
 }
 
 /** Accounts whose name is worth resolving: the largest by volume and the busiest by trades (bots). */
@@ -757,7 +988,10 @@ export function shownPrivateAccounts(trades: Trade[], transfers: Trade[]): strin
   for (const s of netFlows(accountStats(trades))) ids.push([s.id, s.name]);
   for (const r of roundTrips(trades).slice(0, 8)) ids.push([r.a, r.aName], [r.b, r.bName]);
   for (const o of offMarket(trades).slice(0, 8)) ids.push([o.trade.seller, o.trade.sellerName], [o.trade.buyer, o.trade.buyerName]);
-  for (const g of transferGroups(transfers).slice(0, 10)) ids.push([g.from, g.fromName], [g.to, g.toName]);
+  for (const g of transferGroups(transfers).slice(0, 10)) {
+    if (!g.self) ids.push([g.to, g.toName]);
+    for (const p of g.parts.slice(0, 3)) ids.push([p.id, p.name]);
+  }
   return [...new Set(ids.filter(([id, name]) => id && !name).map(([id]) => id))];
 }
 
@@ -774,4 +1008,35 @@ export function accountHref(id: string, infos: Record<string, AccountInfo | unde
   if (!info || info.fund) return undefined;
   if (info.private) return info.name ? `/spieler/${encodeURIComponent(info.name)}` : undefined;
   return info.asin ? `/unternehmen/${info.asin}` : undefined;
+}
+
+/** What one account (or a person's accounts) bought and sold from others, and with how many counterparties. */
+export function selfTotals(trades: Trade[], isSelf: (id: string) => boolean): { bought: number; sold: number; counterparties: number; securities: number } {
+  let bought = 0;
+  let sold = 0;
+  const others = new Set<string>();
+  const asins = new Set<string>();
+  for (const t of trades) {
+    const inB = isSelf(t.buyer);
+    const inS = isSelf(t.seller);
+    if (inB === inS) continue;
+    if (inB) {
+      bought += t.volume;
+      others.add(t.seller);
+    } else {
+      sold += t.volume;
+      others.add(t.buyer);
+    }
+    asins.add(t.asin);
+  }
+  return { bought, sold, counterparties: others.size, securities: asins.size };
+}
+
+/**
+ * Today's price of a security for valuing transfers: the last trade, else the bid. Bonds are quoted in
+ * % of 100 € face value, so shares × price is € for every kind (like the trade log's `volume`).
+ */
+export function priceNow(spread: { lastPrice?: { value?: number } | null; bidPrice?: number | null } | undefined): number | undefined {
+  const p = spread?.lastPrice?.value || spread?.bidPrice || undefined;
+  return p && p > 0 ? p : undefined;
 }

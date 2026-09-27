@@ -19,6 +19,16 @@
   grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
 }
 
+/* „So funktioniert’s“: one card, text at reading width */
+.cb .cb__grid--regeln {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.cb__read > * {
+  max-width: 820px;
+}
+
 .cb:not(.cb--wide) .cb__chart {
   min-height: 120px;
 }

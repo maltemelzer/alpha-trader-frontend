@@ -26,6 +26,12 @@ import {
   summary,
   timeline,
   transferGroups,
+  transferSides,
+  originSankey,
+  selfTotals,
+  collectStreams,
+  ownerAccounts,
+  priceNow,
   type Trade,
 } from './derive';
 
@@ -319,10 +325,23 @@ describe('unusual activity', () => {
     expect(offMarket(t.slice(0, 2))).toEqual([]);
   });
 
-  it('groups transfers by sender, receiver and security', () => {
-    const g = transferGroups([tr('a', 'b', 0, { price: 0, shares: 5 }), tr('a', 'b', 0, { price: 0, shares: 7, date: 9 }), tr('b', 'a', 0, { price: 0 })]);
-    expect(g[0]).toMatchObject({ from: 'a', to: 'b', count: 2, shares: 12 });
-    expect(g).toHaveLength(2);
+  it('groups transfers by receiver and security, many senders in one group, self-transfers last', () => {
+    const t0 = (s: string, b: string, shares = 1) => tr(s, b, 0, { price: 0.01, shares, asin: 'ACALPHCOIN' });
+    const g = transferGroups([t0('m1', 'malte'), t0('m2', 'malte'), t0('m3', 'malte', 5), t0('m1', 'malte'), t0('x', 'x'), t0('y', 'y'), t0('a', 'b')]);
+    expect(g).toHaveLength(3);
+    expect(g[0]).toMatchObject({ to: 'malte', count: 4, shares: 8, self: false });
+    expect(g[0].parts.map((p) => p.id)).toEqual(['m1', 'm3', 'm2']);
+    expect(g[2]).toMatchObject({ self: true, count: 2 });
+    expect(g[2].parts).toHaveLength(2);
+  });
+
+  it('splits one account’s transfers into received, sent and own', () => {
+    const t0 = (s: string, b: string) => tr(s, b, 0, { price: 0.01 });
+    const r = transferSides([t0('m1', 'me'), t0('m1', 'me'), t0('m2', 'me'), t0('me', 'z'), t0('me', 'me2'), t0('q', 'r')], (id) => id === 'me' || id === 'me2');
+    expect(r.received.map((l) => [l.id, l.count])).toEqual([['m1', 2], ['m2', 1]]);
+    expect(r.received[0].paid).toBe(0);
+    expect(r.sent.map((l) => l.id)).toEqual(['z']);
+    expect(r.own).toBe(1);
   });
 
   it('resolves the largest and the busiest accounts', () => {
@@ -331,5 +350,84 @@ describe('unusual activity', () => {
     expect(r).toHaveLength(2);
     expect(r.some((id) => id === 'a' || id === 'b')).toBe(true);
     expect(r.some((id) => id === 'p1' || id === 'p2')).toBe(true);
+  });
+});
+
+describe('one account', () => {
+  const isMe = (id: string) => id === 'me' || id === 'me2';
+  const trades = [
+    tr('a', 'me', 100, { asin: 'STX0000001' }),
+    tr('b', 'me', 50, { asin: 'STX0000002' }),
+    tr('me', 'c', 80, { asin: 'STX0000001' }),
+    tr('me', 'me2', 30),
+    tr('x', 'y', 999),
+  ];
+
+  it('flows from its sources through it to its buyers', () => {
+    const d = originSankey(trades, isMe, 'Ich', { STX0000001: 'Erste' });
+    expect(d.nodes.map((n) => n.column)).toEqual(['seller', 'seller', 'bought', 'bought', 'self', 'sold', 'buyer']);
+    expect(d).toMatchObject({ bought: 150, sold: 80, sellers: 2, buyers: 1, internal: 1 });
+    const self = d.nodes.findIndex((n) => n.column === 'self');
+    expect(d.links.filter((l) => l.target === self).reduce((s, l) => s + l.value, 0)).toBe(150);
+    expect(d.links.filter((l) => l.source === self).reduce((s, l) => s + l.value, 0)).toBe(80);
+    expect(d.nodes.find((n) => n.ref === 'STX0000001' && n.column === 'bought')!.label).toBe('Erste');
+  });
+
+  it('values transfers at today’s price, leaves out securities without one', () => {
+    const t0 = (s: string, b: string, asin: string, shares: number) => tr(s, b, 0, { price: 0.01, volume: shares * 0.01, shares, asin });
+    const moved = [t0('m1', 'me', 'ACALPHCOIN', 3), t0('m2', 'me', 'ACALPHCOIN', 1), t0('me', 'z', 'WAXXXXXXXX', 5)];
+    const prices: Record<string, number> = { ACALPHCOIN: 25_000 };
+    const d = originSankey(moved, isMe, 'Ich', {}, undefined, 8, (t) => (prices[t.asin] ? t.shares * prices[t.asin] : undefined));
+    expect(d).toMatchObject({ bought: 100_000, sold: 0, sellers: 2, unvalued: 1 });
+  });
+
+  it('prices from the last trade, else the bid', () => {
+    expect(priceNow({ lastPrice: { value: 12 }, bidPrice: 10 })).toBe(12);
+    expect(priceNow({ lastPrice: null, bidPrice: 10 })).toBe(10);
+    expect(priceNow(undefined)).toBeUndefined();
+  });
+
+  it('keeps the n largest per column and a rest', () => {
+    const many = [...Array(5)].map((_, i) => tr(`s${i}`, 'me', 10 + i));
+    const d = originSankey(many, isMe, 'Ich', {}, undefined, 2);
+    expect(d.nodes.filter((n) => n.column === 'seller').map((n) => n.label)).toEqual(['S4', 'S3', 'Übrige (3)']);
+  });
+
+  it('sums what it bought and sold from others', () => {
+    expect(selfTotals(trades, isMe)).toEqual({ bought: 150, sold: 80, counterparties: 3, securities: 2 });
+  });
+
+  it('finds all accounts of a person, not of similar names', () => {
+    const found = [
+      { id: '1', name: 'Malte', privateAccount: true },
+      { id: '2', name: 'Malte_Fan', privateAccount: true },
+      { id: '3', name: 'Argo (STAD9A0F12) | Malte', privateAccount: false, clearingAccountId: 'bank3' },
+      { id: '4', name: 'Mitte (STMJ9RPD4B) | Malte_Fan', privateAccount: false },
+    ];
+    const r = ownerAccounts(found, 'Malte');
+    expect(r.map((a) => a.id)).toEqual(['1', '3']);
+    expect(r[1].bank).toBe('bank3');
+  });
+});
+
+describe('collectStreams', () => {
+  const log = (prefix: string, count: number, newest: number, step = 1): SecurityOrderLogEntryView[] =>
+    [...Array(count).keys()].map((i) => ({ id: `${prefix}${i}`, date: newest - i * step, price: 1, numberOfShares: 1, volume: 1 }));
+
+  it('merges several logs, each id once', async () => {
+    const a = log('a', 3, 100);
+    const b = [...log('b', 2, 99), a[0]];
+    const r = await collectStreams([async () => a, async () => b], 0, 100, 5);
+    expect(r.trades).toHaveLength(5);
+    expect(r.complete).toBe(true);
+    expect(r.from).toBe(0);
+  });
+
+  it('starts the covered span where a cut stream ends', async () => {
+    const busy = log('x', 1000, 10_000, 2);
+    const r = await collectStreams([async () => busy, async () => log('y', 3, 9_000, 3000)], 0, 10_000, 1);
+    expect(r.complete).toBe(false);
+    expect(r.from).toBe(10_000 - 999 * 2);
+    expect(r.trades.every((t) => t.date >= r.from)).toBe(true);
   });
 });

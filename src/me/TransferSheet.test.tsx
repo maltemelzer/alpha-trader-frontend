@@ -22,34 +22,48 @@ vi.mock('../api/queries', () => ({
 const { TransferSheet } = await import('./TransferSheet');
 
 const accounts = [
-  { id: 'bank-private', name: 'Privatkonto', cash: 1_000 },
+  { id: 'bank-private', name: 'Privatkonto', cash: 1_000, private: true },
   { id: 'bank-company', name: 'Meine AG', cash: 50_000 },
 ];
 
 beforeEach(() => mutate.mockReset());
 
 describe('TransferSheet', () => {
-  it('sends from a company account to another player only after confirming', async () => {
+  it('sends from the private account to another player only after confirming', async () => {
     render(<TransferSheet open onClose={vi.fn()} accounts={accounts} onDone={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText('Von'), { target: { value: 'bank-company' } });
+    expect(screen.queryByRole('combobox', { name: 'Von' })).toBeNull();
     fireEvent.change(screen.getByLabelText('An'), { target: { value: 'Este' } });
     fireEvent.click(await screen.findByRole('button', { name: /Alpha Telekom AG/ }));
-    fireEvent.change(screen.getByLabelText('Betrag'), { target: { value: '12.345,67' } });
+    fireEvent.change(screen.getByLabelText('Betrag'), { target: { value: '345,67' } });
     fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
     expect(mutate).not.toHaveBeenCalled();
-    expect(screen.getByText('Meine AG danach')).toBeInTheDocument();
+    expect(screen.getByText('Privatkonto danach')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Jetzt überweisen' }));
-    expect(mutate.mock.calls[0][0]).toEqual({ senderBankAccountId: 'bank-company', receiverBankAccountId: 'bank-telekom', cashAmount: 12345.67 });
+    expect(mutate.mock.calls[0][0]).toEqual({ senderBankAccountId: 'bank-private', receiverBankAccountId: 'bank-telekom', cashAmount: 345.67 });
   });
 
   it('sends between own accounts and fills the maximum', () => {
     render(<TransferSheet open onClose={vi.fn()} accounts={accounts} onDone={vi.fn()} />);
-    fireEvent.click(screen.getByRole('radio', { name: 'Eigenes Konto' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Eigenes Unternehmen' }));
     fireEvent.click(screen.getByRole('button', { name: 'Max.' }));
     expect(screen.getByLabelText('Betrag')).toHaveValue('1.000,00');
     fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
     fireEvent.click(screen.getByRole('button', { name: 'Jetzt überweisen' }));
     expect(mutate.mock.calls[0][0]).toEqual({ senderBankAccountId: 'bank-private', receiverBankAccountId: 'bank-company', cashAmount: 1000 });
+  });
+
+  it('preselects the company shown on /bank as recipient, still sending from the private account', () => {
+    render(<TransferSheet open onClose={vi.fn()} accounts={accounts} defaultTo="bank-company" onDone={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Betrag'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Jetzt überweisen' }));
+    expect(mutate.mock.calls[0][0]).toEqual({ senderBankAccountId: 'bank-private', receiverBankAccountId: 'bank-company', cashAmount: 10 });
+  });
+
+  it('never sends from a company account, even while the private account is still loading', () => {
+    render(<TransferSheet open onClose={vi.fn()} accounts={accounts.slice(1)} onDone={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Betrag'), { target: { value: '10' } });
+    expect(screen.getByRole('button', { name: 'Weiter' })).toBeDisabled();
   });
 
   it('blocks more than the balance and a missing recipient', () => {
@@ -63,7 +77,7 @@ describe('TransferSheet', () => {
 
   it('works with the private account alone (no company): any player as recipient', async () => {
     render(<TransferSheet open onClose={vi.fn()} accounts={accounts.slice(0, 1)} onDone={vi.fn()} />);
-    expect(screen.queryByRole('radio', { name: 'Eigenes Konto' })).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'Eigenes Unternehmen' })).toBeNull();
     fireEvent.change(screen.getByLabelText('An'), { target: { value: 'Este' } });
     fireEvent.click(await screen.findByRole('button', { name: /^Esteban/ }));
     fireEvent.change(screen.getByLabelText('Betrag'), { target: { value: '100' } });

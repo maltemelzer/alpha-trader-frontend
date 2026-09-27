@@ -2781,19 +2781,21 @@ export function useTopBookValues(enabled: boolean) {
  * The balance (GET /api/v2/bankaccounts/{id}) is read in the same step, so the running balance
  * starts from the balance that belongs to these bookings.
  */
+async function loadLedger(bankAccountId: string) {
+  const account = await unwrap<{ id: string; cash: number }>(
+    api.GET('/api/v2/bankaccounts/{bankAccountId}', { params: { path: { bankAccountId } } }),
+  );
+  const page = await getPage<CashTransferLogEntry>(`/api/v2/cashtransferlogs/${bankAccountId}`, {
+    pageable: { page: 0, size: 1000, sort: ['date,desc'] },
+  });
+  return { ...page, cash: account.cash };
+}
+
 export function useCashLedger(bankAccountId: string | undefined) {
   return useQuery({
     queryKey: ['cashlogs', 'ledger', bankAccountId],
     enabled: !!bankAccountId,
-    queryFn: async () => {
-      const account = await unwrap<{ id: string; cash: number }>(
-        api.GET('/api/v2/bankaccounts/{bankAccountId}', { params: { path: { bankAccountId: bankAccountId! } } }),
-      );
-      const page = await getPage<CashTransferLogEntry>(`/api/v2/cashtransferlogs/${bankAccountId}`, {
-        pageable: { page: 0, size: 1000, sort: ['date,desc'] },
-      });
-      return { ...page, cash: account.cash };
-    },
+    queryFn: () => loadLedger(bankAccountId!),
     refetchInterval: SLOW,
   });
 }
@@ -2813,31 +2815,43 @@ export interface TradeWindow {
 /** At most ~200 trades a minute are loaded (the market has ~100–170): 1.000 per request. */
 const windowPages = (minutes: number) => Math.ceil(minutes / 5) + 2;
 
-const tradeLogPage = (startDate: number, endDate: number) =>
+type LogQuery = { startDate?: string; endDate?: string; buyerSecuritiesAccountId?: string; sellerSecuritiesAccountId?: string };
+const logPage = (extra: LogQuery) => (startDate: number, endDate: number) =>
   unwrap<SecurityOrderLogEntryView[]>(
-    api.GET('/api/securityorderlogs', { params: { query: { startDate: String(startDate), endDate: String(endDate) } } }),
+    api.GET('/api/securityorderlogs', { params: { query: { ...extra, startDate: String(startDate), endDate: String(endDate) } } }),
   );
 
+/** Per account and side: up to 10.000 trades – bots trade that much in a day, a normal account in months. */
+const ACCOUNT_PAGES = 10;
+
 /**
- * Every market trade of the last `minutes` (GET /api/securityorderlogs, 1.000 per request, paged back
- * with `endDate`): 1 Std. ≈ 7 requests. Refreshes only add what came after the newest known trade.
+ * Every trade of the last `minutes` (GET /api/securityorderlogs, 1.000 per request, paged back with
+ * `endDate`). Without `accounts`: the whole market, 1 Std. ≈ 7 requests. With `accounts`: only trades of
+ * these securities accounts, from their own buyer and seller logs – complete even over days and
+ * including every transfer. Refreshes only add what came after the newest known trade.
  */
-export function useTradeWindow(minutes: number) {
+export function useTradeWindow(minutes: number, accounts?: string[], enabled = true) {
   const qc = useQueryClient();
+  const key = ['tradewindow', minutes, accounts?.join(',') ?? 'markt'];
   return useQuery({
-    queryKey: ['tradewindow', minutes],
+    queryKey: key,
+    enabled,
     queryFn: async (): Promise<TradeWindow> => {
       const to = Date.now();
       const from = to - minutes * 60_000;
-      const prev = qc.getQueryData<TradeWindow>(['tradewindow', minutes]);
+      const streams = accounts
+        ? accounts.flatMap((id) => [logPage({ buyerSecuritiesAccountId: id }), logPage({ sellerSecuritiesAccountId: id })])
+        : [logPage({})];
+      const pages = accounts ? ACCOUNT_PAGES : windowPages(minutes);
+      const prev = qc.getQueryData<TradeWindow>(key);
       if (prev?.complete && prev.trades.length) {
-        const fresh = await collectPages(tradeLogPage, prev.trades[0].date, to, windowPages(minutes));
+        const fresh = await collectStreams(streams, prev.trades[0].date, to, pages);
         if (fresh.complete) {
           return { trades: mergeWindow(fresh.trades, prev.trades, from), from, to, complete: true, requests: fresh.requests };
         }
       }
-      const res = await collectPages(tradeLogPage, from, to, windowPages(minutes), (loaded, oldest) =>
-        qc.setQueryData(['tradewindow-progress', minutes], { loaded, oldest }),
+      const res = await collectStreams(streams, from, to, pages, (loaded, oldest) =>
+        qc.setQueryData(['tradewindow-progress', ...key.slice(1)], { loaded, oldest }),
       );
       return { trades: res.trades, from: res.from, to, complete: res.complete, requests: res.requests };
     },
@@ -2847,9 +2861,9 @@ export function useTradeWindow(minutes: number) {
 }
 
 /** Trades loaded so far while `useTradeWindow` pages back (for „lädt 3.000 Trades …“). */
-export function useTradeWindowProgress(minutes: number) {
+export function useTradeWindowProgress(minutes: number, accounts?: string[]) {
   return useQuery<{ loaded: number; oldest: number } | null>({
-    queryKey: ['tradewindow-progress', minutes],
+    queryKey: ['tradewindow-progress', minutes, accounts?.join(',') ?? 'markt'],
     queryFn: () => null,
     enabled: false,
   });
@@ -2895,7 +2909,34 @@ export function useAccountDetails(ids: string[]) {
   });
 }
 
-import { collectPages, mergeWindow, type Trade as FlowTrade } from '../flows/derive';
+import { collectStreams, mergeWindow, type Trade as FlowTrade } from '../flows/derive';
+
+/** All securities accounts of one person (private depot + companies they run), by account search. */
+export function useOwnerAccounts(owner: string | undefined) {
+  return useQuery({
+    queryKey: ['securitiesaccountdetails', 'owner', owner],
+    enabled: !!owner,
+    queryFn: () =>
+      unwrap<SecuritiesAccountDetailsView[]>(api.GET('/api/v2/securitiesaccountdetails', { params: { query: { search: owner! } } })),
+    staleTime: SLOW,
+  });
+}
+
+/** Statements of several bank accounts (same cache as `useCashLedger`). */
+export function useCashLedgers(bankAccountIds: string[]) {
+  return useQueries({
+    queries: bankAccountIds.map((id) => ({
+      queryKey: ['cashlogs', 'ledger', id],
+      queryFn: () => loadLedger(id),
+      refetchInterval: SLOW,
+    })),
+    combine: (results) => ({
+      data: results.flatMap((r, i) => (r.data ? [{ id: bankAccountIds[i], ...r.data }] : [])),
+      isLoading: results.some((r) => r.isLoading),
+      isError: results.some((r) => r.isError),
+    }),
+  });
+}
 
 // ---------- Market class overviews ----------
 

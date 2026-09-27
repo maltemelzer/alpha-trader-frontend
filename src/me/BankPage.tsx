@@ -77,8 +77,8 @@ function Short({ value }: { value: number }) {
 /**
  * Bank: the money view of the player's organisation. Per account (private + companies run as CEO)
  * the balance over time with in- and outflows by category, in/out per category, the largest items
- * and a filterable statement with the running balance. Transfers from every own account to own
- * accounts or any player/company in a sheet.
+ * and a filterable statement with the running balance. Transfers from the private account to own
+ * company accounts or any player/company in a sheet.
  */
 export function BankPage() {
   const onLinkClick = useInternalLinks();
@@ -309,7 +309,7 @@ export function BankPage() {
       : `${total.toLocaleString('de-DE')} Buchungen${oldest ? ` seit ${isPhone ? shortDate(oldest) : date(oldest)}` : ''}`;
 
   const transferButton = (
-    <DS.Button variant="primary" size="sm" disabled={!accounts.length} onClick={() => setSending(true)}>
+    <DS.Button variant="primary" size="sm" disabled={!accounts.some((a) => a.private)} onClick={() => setSending(true)}>
       Überweisen
     </DS.Button>
   );
@@ -322,7 +322,7 @@ export function BankPage() {
         if (params.has('ueberweisen')) setParams((prev) => { const n = new URLSearchParams(prev); n.delete('ueberweisen'); return n; }, { replace: true });
       }}
       accounts={accounts}
-      defaultFrom={account?.id}
+      defaultTo={account?.id}
       onDone={setDone}
     />
   );
@@ -439,7 +439,7 @@ export function BankPage() {
           {/* Thumb zone: account and the one primary action sit right above the BottomNav */}
           <div className="bank__dock">
             {accountSelect}
-            <DS.Button variant="primary" fullWidth={!accountSelect} iconStart={<DS.Icon name="ueberweisung" size={16} />} disabled={!accounts.length} onClick={() => setSending(true)}>
+            <DS.Button variant="primary" fullWidth={!accountSelect} iconStart={<DS.Icon name="ueberweisung" size={16} />} disabled={!accounts.some((a) => a.private)} onClick={() => setSending(true)}>
               Überweisen
             </DS.Button>
           </div>
