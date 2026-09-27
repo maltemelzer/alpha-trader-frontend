@@ -1,9 +1,8 @@
 name: CI
 
+# Required status check for merging into main (job name "check").
 on:
   pull_request:
-  push:
-    branches-ignore: [main]
 
 permissions:
   contents: read
