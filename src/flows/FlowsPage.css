@@ -2,17 +2,6 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
-.fl__body--konto {
-  grid-template-rows: auto auto minmax(0, 1fr);
-}
-
-.fl__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  justify-content: flex-end;
-}
-
 .fl__grid {
   min-height: 0;
   display: grid;
@@ -20,25 +9,10 @@
   gap: var(--space-4);
 }
 
-/* Room for the grouping switch to the right of the tab list */
-.fl__tabs {
-  position: relative;
-}
-
-.fl__tabaction {
-  position: absolute;
-  top: 2px;
-  right: var(--space-4);
-}
-
-.fl__tabs .bnk-tabs__list {
-  padding-right: 200px;
-}
-
 .fl__pane {
   height: 100%;
   box-sizing: border-box;
-  padding: var(--space-2) var(--space-4) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   display: flex;
   flex-direction: column;
 }
@@ -177,37 +151,6 @@
   background: var(--line-strong);
 }
 
-/* Filter bar */
-.fl-konto {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--bg-card);
-  font-size: 14px;
-}
-
-.fl-konto__label {
-  color: var(--text-secondary);
-}
-
-.fl-konto__name {
-  font-family: var(--font-serif);
-  font-size: 16px;
-  color: var(--text-primary);
-}
-
-.fl-konto a {
-  color: var(--text-primary);
-}
-
-.fl-konto .bnk-btn {
-  margin-left: auto;
-}
-
 /* Account names as filter buttons */
 .fl-acc {
   appearance: none;
@@ -320,6 +263,107 @@
   white-space: nowrap;
 }
 
+/* Account up close („Herkunft“) */
+.fl__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.fl__stack > .fl__money,
+.fl__stack > .fl__transfers {
+  flex: 1;
+  min-height: 0;
+}
+
+.fl__money,
+.fl__transfers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.fl__money section {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fl__money .fl__chart {
+  flex: 1;
+  min-height: 140px;
+  position: relative;
+}
+
+.fl__transfers {
+  position: relative;
+  overflow-y: auto;
+  align-items: start;
+}
+
+.fl-tl {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 14px;
+}
+
+.fl-tl__line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.fl-tl__bar {
+  height: 4px;
+  margin: 2px 0;
+  background: var(--line);
+}
+
+.fl-tl__bar span {
+  display: block;
+  height: 100%;
+  background: var(--text-secondary);
+}
+
+.fl-more {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.fl-more:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+.fl-senders {
+  margin: var(--space-1) 0 0;
+  padding: 0 0 0 var(--space-3);
+  list-style: none;
+  border-left: 2px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fl-senders li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
 .fl .bnk-statgrp .bnk-stat__hint {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -344,9 +388,6 @@
     grid-template-rows: auto auto minmax(0, 1fr);
     gap: var(--space-2);
   }
-  .fl__body:has(> .fl-konto) {
-    grid-template-rows: auto auto auto minmax(0, 1fr);
-  }
   .fl--phone .bnk-tabs__tab {
     padding: 0 var(--space-2);
     flex: none;
@@ -358,43 +399,26 @@
   .fl__pad {
     padding: var(--space-3);
   }
+  .fl__money,
+  .fl__transfers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fl__money {
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+  .fl-more {
+    min-height: 44px;
+  }
   .fl-acc {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
-  }
-  /* Filter bar in one line: the name gives way */
-  .fl-konto {
-    flex-wrap: nowrap;
-    padding: 0 0 0 var(--space-3);
-    font-size: 13px;
-  }
-  .fl-konto__name {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 15px;
-  }
-  .fl-konto > * {
-    flex: none;
-  }
-  .fl-konto > .fl-konto__name {
-    flex: 0 1 auto;
-  }
-  .fl-konto .bnk-btn {
-    margin-left: auto;
-    min-height: 44px;
   }
   /* Links inside meta lines: 44 px tap height without moving the line */
   .fl-sec {
     display: inline-block;
     padding: 14px 0;
     margin: -14px 0;
-  }
-  .fl-konto a {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
   }
 }

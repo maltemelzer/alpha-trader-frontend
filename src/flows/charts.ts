@@ -108,21 +108,29 @@ export function networkChart(t: Theme, w: number, nodes: NetNode[], edges: NetEd
 }
 
 /** Sellers → securities → buyers in €. Node colours by kind; links in the colour of their source, translucent. */
-export function sankeyChart(t: Theme, w: number, d: SankeyData) {
+/** Nodes of a money flow: the market (seller → security → buyer) or one account (`originSankey`, five columns). */
+type FlowData = { nodes: { label: string; column: string; ref?: string; kind: SankeyData['nodes'][number]['kind']; value: number }[]; links: SankeyData['links'] };
+
+export function sankeyChart(t: Theme, w: number, d: FlowData) {
   const v = t.tokens;
   const narrow = w < NARROW;
-  const color = (k: SankeyData['nodes'][number]['kind']) => v(k === 'security' ? SECURITY_COLOR : ACCOUNT_COLOR[k]);
+  // Label length from the width a column gets (five columns around one account, three for the market)
+  const columns = new Set(d.nodes.map((n) => n.column)).size || 3;
+  const hasBuyers = d.nodes.some((n) => n.column === 'buyer');
+  const clipAt = Math.max(10, Math.min(24, Math.round(w / columns / 9)));
+  const color = (k: FlowData['nodes'][number]['kind']) => v(k === 'security' ? SECURITY_COLOR : ACCOUNT_COLOR[k]);
   // Labels only for nodes with at least 2,5 % of their column – tiny ones would print on top of each other.
   const columnTotal = new Map<string, number>();
   for (const n of d.nodes) columnTotal.set(n.column, (columnTotal.get(n.column) ?? 0) + n.value);
-  const big = (n: SankeyData['nodes'][number]) => n.value >= 0.025 * (columnTotal.get(n.column) ?? 0);
+  const big = (n: FlowData['nodes'][number]) => n.value >= 0.025 * (columnTotal.get(n.column) ?? 0);
   return {
     data: [
       {
         type: 'sankey',
         arrangement: 'fixed',
         node: {
-          label: d.nodes.map((n) => (big(n) ? clip(n.label, narrow ? 12 : 24) : '')),
+          // Five columns on a phone: labels of „what went out“ (right of its node) run into those of „to whom“ (left of theirs)
+          label: d.nodes.map((n) => (big(n) && !(narrow && n.column === 'sold' && hasBuyers) ? clip(n.label, clipAt) : '')),
           color: d.nodes.map((n) => color(n.kind)),
           line: { color: v('bg-card'), width: 1 },
           pad: narrow ? 8 : 12,

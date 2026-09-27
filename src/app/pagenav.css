@@ -1,0 +1,164 @@
+/* Page navigation (pagenav.tsx): views left, filter bar right, one rule under both; chips below. */
+
+.bnk-ph.has-tabs .bnk-ph__tabs {
+  margin-top: var(--space-3);
+}
+
+.pnav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.pnav__row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  min-width: 0;
+  border-bottom: var(--border) solid var(--line-strong);
+}
+
+/* the rule runs under the whole row, not only under the tabs */
+.pnav__row > .pnav__tabs {
+  flex: 0 1 auto;
+  margin-bottom: calc(-1 * var(--border));
+}
+
+.pnav__row .pnav__tabs .bnk-tabs__list {
+  border-bottom-color: transparent;
+}
+
+.pnav__bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-1);
+  margin-left: auto;
+}
+
+.pnav__ctl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pnav__lbl {
+  font: 600 11px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.pnav__bar .bnk-btn {
+  gap: var(--space-2);
+}
+
+/* Active filters that are not in the bar itself: removable chips */
+.pnav__chips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pnav__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 28px;
+  padding-left: var(--space-3);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--bg-raised);
+  font: 500 13px/1 var(--font-sans);
+  color: var(--text-primary);
+  max-width: 100%;
+}
+
+.pnav__chip-key {
+  color: var(--text-secondary);
+}
+
+.pnav__chip-val {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.pnav__chip-val a {
+  color: var(--text-primary);
+}
+
+.pnav__chip-x {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.pnav__chip-x:hover {
+  color: var(--text-primary);
+}
+
+.pnav__clear {
+  margin: 0;
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 500 13px/28px var(--font-sans);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.pnav__chip-x:focus-visible,
+.pnav__clear:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: 1px;
+}
+
+.pnav__sheetchip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 15px;
+}
+
+/* Phone: one control row – the tabs take the room, the filter button keeps its 44 px */
+.pnav.pnav--phone {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pnav--phone > .pnav__tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (pointer: coarse) {
+  .pnav__chip-x {
+    width: 44px;
+    height: 44px;
+    margin: -8px -8px -8px 0;
+  }
+}

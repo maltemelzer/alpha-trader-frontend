@@ -355,6 +355,7 @@ export interface TransferAccount {
   id: string;
   name: string;
   cash: number;
+  private?: boolean;
 }
 
 export interface TransferCheck {
