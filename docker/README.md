@@ -11,12 +11,12 @@ Von Hand auslösen: Actions → „Deploy“ → „Run workflow“.
 ## Einstellungen im Repo
 
 - Variable `PARTNER_ID` (Settings → Secrets and variables → Actions → Variables) – öffentlich, landet im Bundle.
-- Optional Variable `PORT` (Standard 9010; 8080–8082 und 9004–9009 belegt der digital-garden).
+- Optional Variable `PORT` (Standard 9010).
 
 ## Runner auf dem Pi einrichten (einmalig)
 
-Runner eines privaten Kontos gelten nur für ein Repo – neben dem Runner des `digital-garden` läuft
-auf dem Pi ein eigener für dieses Repo (Name `pi-5`, nur die Standard-Labels `self-hosted, Linux, ARM64`).
+Runner eines privaten Kontos gelten nur für ein Repo – deshalb läuft
+auf dem Pi ein eigener Runner für dieses Repo (Name `pi-5`, nur die Standard-Labels `self-hosted, Linux, ARM64`).
 
 Settings → Actions → Runners → „New self-hosted runner“ → Linux / ARM64 zeigt Download und Token
 (1 Std. gültig). Auf dem Pi:
@@ -29,4 +29,11 @@ mkdir ~/actions-runner-alpha-trader && cd ~/actions-runner-alpha-trader
 sudo ./svc.sh install && sudo ./svc.sh start
 ```
 
-Der Runner-Nutzer braucht Docker-Rechte (wie beim digital-garden-Runner: Gruppe `docker`).
+Der Runner-Nutzer braucht Docker-Rechte (Gruppe `docker`).
+
+## Sicherheit (öffentliches Repo)
+
+Der Deploy-Job läuft nur bei Push auf `main` und per Hand, nie für Pull Requests. Damit fremder Code
+nicht auf dem Pi landet: Settings → Actions → General → „Require approval for all external contributors“
+(bzw. „… for all outside collaborators“) einstellen und Workflow-Änderungen in PRs genau ansehen.
+Die CI für Pull Requests (`.github/workflows/ci.yml`) läuft ausschließlich auf GitHub-Runnern.
