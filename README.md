@@ -162,15 +162,17 @@ entstanden ist. Vor größeren Änderungen lohnt sich ein Blick hinein.
 
 ## Betrieb
 
-Der Produktions-Build ist statisches HTML/JS. Mit Docker (nginx, Port `PORT` bzw. 9010):
+Der Produktions-Build ist statisches HTML/JS in einem nginx-Container. Bei jedem Push auf `main` baut
+GitHub Actions das Image für amd64 und arm64 und veröffentlicht es als
+`ghcr.io/maltemelzer/alpha-trader-frontend:latest`. Selbst bauen (Port `PORT` bzw. 9010):
 
 ```sh
 docker compose up -d --build
 ```
 
 Die Partner-ID kommt als Build-Argument aus `.env`; die `.env` selbst landet nicht im Image.
-Für andere Plattformen (z. B. Raspberry Pi): `docker buildx build --platform linux/arm64 --build-arg VITE_PARTNER_ID=… .`
-Die automatische Auslieferung des Maintainers ist in [`docker/README.md`](docker/README.md) beschrieben.
+Wie der Maintainer das Image auf einen Raspberry Pi bringt (der Pi holt es selbst ab), steht in
+[`docker/README.md`](docker/README.md).
 
 ## Lizenz
 

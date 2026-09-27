@@ -1,14 +1,17 @@
-# Compose reads PARTNER_ID from .env for interpolation only; .env itself stays out of the image.
+# Production container (nginx). On the Pi: `docker compose pull && docker compose up -d`
+# (docker/update.sh, via cron) uses the image built by GitHub Actions.
+# Locally: `docker compose up -d --build` builds it from source; PARTNER_ID comes from .env
+# for interpolation only, .env itself stays out of the image.
 name: alpha-trader-frontend
 
 services:
   frontend:
+    image: ghcr.io/maltemelzer/alpha-trader-frontend:latest
     build:
       context: .
       args:
         VITE_PARTNER_ID: ${VITE_PARTNER_ID:-${PARTNER_ID:-}}
         VITE_API_BASE: ${VITE_API_BASE:-https://stable.alpha-trader.com}
-    image: alpha-trader-frontend
     ports:
       - "${PORT:-9010}:80"
     restart: unless-stopped
