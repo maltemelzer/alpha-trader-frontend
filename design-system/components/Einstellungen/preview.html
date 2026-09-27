@@ -1,0 +1,42 @@
+<!-- @dsCard group="Seiten" height=1320 width=1100 subtitle="Einstellungen in Abschnitten: Konto, Darstellung, Benachrichtigungen, Gold, Gefahrenzone" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Einstellungen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-6) var(--space-6) var(--space-8); max-width: 960px; }
+  @media (max-width: 720px) { .wrap { padding: var(--space-4); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  function Row(label, desc, control, o) { return h(DS.SettingsRow, Object.assign({ label: label, description: desc }, o || {}), control); }
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.PageHeader, { title: 'Einstellungen', size: 'md', eyebrow: 'CptnIglo' }),
+    h(DS.SettingsSection, { title: 'Konto', description: 'Name und E-Mail für Anmeldung und Benachrichtigungen.' },
+      Row('Spielername', 'Für alle sichtbar. Änderbar alle 30 Tage.', h(DS.Button, { size: 'sm' }, 'Ändern')),
+      Row('E-Mail', 'malte…@googlemail.com · bestätigt', h(DS.Button, { size: 'sm' }, 'Ändern')),
+      Row('Newsletter', 'Neuigkeiten zum Spiel, etwa einmal im Monat.', h(DS.Switch, { label: 'Newsletter', defaultChecked: true }))),
+    h(DS.SettingsSection, { title: 'Darstellung', description: 'Gilt nur in diesem Browser.' },
+      Row('Große Zahlen abkürzen', '„2,52 Mrd. €“ statt der vollen Zahl. Der volle Wert steht im Tooltip.', h(DS.Switch, { label: 'Große Zahlen abkürzen', defaultChecked: true })),
+      Row('Farbenblind-Modus', 'Gewinn in Blau, Verlust in Orange.', h(DS.Switch, { label: 'Farbenblind-Modus' })),
+      Row('Sprache', null, h(DS.Select, { label: 'Sprache', size: 'sm', fullWidth: false, defaultValue: 'de', options: [{ value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }] }))),
+    h(DS.SettingsSection, { title: 'Benachrichtigungen', description: 'Worüber Sie im Spiel informiert werden.' },
+      Row('Ereignisse', null, h('div', { style: { display: 'grid', gap: '4px' } },
+        h(DS.Checkbox, { label: 'Ausgeführte Orders', defaultChecked: true }), h(DS.Checkbox, { label: 'Neue Abstimmungen', defaultChecked: true }), h(DS.Checkbox, { label: 'Antworten und Erwähnungen' })), { stacked: true })),
+    h(DS.SettingsSection, { title: 'Gold', description: 'Bezahlter Komfort, kein Vorteil im Spielergebnis.' },
+      Row(h('span', null, 'Goldzugang ', h('span', { className: 'bnk-gold' }, 'Gold')), 'Aktiv bis 31.12.2026 · zeitgesteuerte Orders, eigene ASINs', h(DS.Button, { size: 'sm', variant: 'ghost' }, 'Verlängern'))),
+    h(DS.SettingsSection, { title: 'Gefahrenzone', danger: true, description: 'Nicht umkehrbar.' },
+      Row('Spielerkonto löschen', 'Portfolio, Unternehmen und Beiträge werden entfernt.', h(DS.Button, { size: 'sm', variant: 'danger' }, 'Konto löschen')))));
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import type { SecurityOrderView } from '../../vendor/bankiersgruen';
+import type { SecurityOrderView } from '../../design-system/components';
 import type { operations } from '../api/schema';
 import type { SecurityOrderWithVolumeView } from '../api/types';
 

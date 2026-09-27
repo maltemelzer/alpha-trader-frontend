@@ -1,0 +1,38 @@
+<!-- @dsCard group="Dialoge" height=640 width=1200 subtitle="Order-Maske auf dem Handy von unten · am Desktop von rechts" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Sheet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { display: grid; grid-template-columns: 375px minmax(0, 1fr); gap: var(--space-6); padding: var(--space-4) var(--space-6); }
+  .frame { position: relative; height: 600px; overflow: hidden; border: var(--hairline) solid var(--line-strong); border-radius: var(--radius-md); background: var(--bg-page); }
+  .behind { padding: var(--space-4); color: var(--text-secondary); font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  function form() {
+    return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
+      h(DS.SegmentedControl, { label: 'Richtung', options: [{ value: 'BUY', label: 'Kaufen' }, { value: 'SELL', label: 'Verkaufen' }], defaultValue: 'BUY' }),
+      h(DS.Input, { label: 'Anteile', defaultValue: '50', inputMode: 'numeric' }),
+      h(DS.Input, { label: 'Limit', defaultValue: '48,72', suffix: '€' }),
+      h(DS.Checkbox, { label: 'Nur Order prüfen' }));
+  }
+  function foot() { return [h(DS.Button, { key: 1, variant: 'secondary', size: 'lg' }, 'Abbrechen'), h(DS.Button, { key: 2, variant: 'primary', size: 'lg' }, 'Order prüfen')]; }
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h('div', null, h('div', { className: 'lbl' }, 'Handy'), h('div', { className: 'frame' }, h('div', { className: 'behind' }, 'Hanse Reederei AG · 48,72 €'),
+      h(DS.Sheet, { open: true, inline: true, side: 'bottom', title: 'Kaufen: Hanse Reederei', onClose: function () {}, footer: foot() }, form()))),
+    h('div', null, h('div', { className: 'lbl' }, 'Desktop'), h('div', { className: 'frame' }, h('div', { className: 'behind' }, 'Wertpapierseite'),
+      h(DS.Sheet, { open: true, inline: true, side: 'right', title: 'Order-Maske', onClose: function () {}, footer: foot() }, form())))));
+</script>
+</body>
+</html>

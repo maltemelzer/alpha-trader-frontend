@@ -1,0 +1,108 @@
+<!-- @dsCard group="Diagramme" height=440 subtitle="Plotly · Gestapelte Balken je Monat, erwartet schraffiert" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Dividenden</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@3.7.0/plotly.min.js"></script>
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-card);color:var(--text-primary);font-family:var(--font-sans)}
+  .wrap{padding:var(--space-4)}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:var(--space-2) var(--space-4);padding-bottom:var(--space-3);border-bottom:var(--hairline) solid var(--line);margin-bottom:var(--space-3)}
+  .nm{font-family:var(--font-serif);font-size:16px;line-height:22px;font-weight:600}
+  .tk{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;color:var(--text-secondary);text-transform:uppercase}
+  .px{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;justify-content:flex-end}
+  .fig{font-family:var(--font-mono);font-size:28px;line-height:32px;font-weight:500;white-space:nowrap}
+  @media (max-width:480px){.fig{font-size:24px;line-height:28px}.head{flex-direction:column;align-items:flex-start}.px{justify-content:flex-start}}
+  .sub{font-family:var(--font-mono);font-size:13px;line-height:18px;color:var(--text-secondary)}
+  .tag{font-family:var(--font-mono);font-size:15px;line-height:20px;font-weight:500;padding:3px var(--space-2);border-radius:var(--radius-sm);white-space:nowrap}
+  .tag.up{color:var(--gain);background:var(--gain-tint)}
+  .tag.down{color:var(--loss);background:var(--loss-tint)}
+  .tag.flat{color:var(--unchanged);background:var(--bg-raised)}
+  .foot{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);align-items:center;margin-top:var(--space-3);padding-top:var(--space-2);border-top:var(--hairline) solid var(--line);font-size:12px;line-height:16px;color:var(--text-secondary)}
+  .key{display:inline-flex;align-items:center;gap:6px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:var(--radius-sm)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="head"><div><div class="nm">Gewinnausschüttungen 2026</div><div class="tk">Erhalten je Monat, nach Unternehmen</div></div>
+<div class="px"><span class="sub" id="exp"></span><span class="fig" id="got"></span></div></div>
+<div id="c" style="height:300px"></div>
+</div>
+<script>
+/* Bankiersgrün – Plotly-Theme. Liest die Design-Tokens (CSS-Variablen aus tokens.css),
+   damit Darkmode und Farbenblind-Modus automatisch stimmen. */
+function bankiersgruenPlotly() {
+  var cs = getComputedStyle(document.documentElement);
+  var v = function (n) { return cs.getPropertyValue('--' + n).trim(); };
+  var sans = v('font-sans'), serif = v('font-serif'), mono = v('font-mono');
+  var axis = {
+    showgrid: false, zeroline: false, showline: true, linecolor: v('line-strong'), linewidth: 1,
+    ticks: '', automargin: true, fixedrange: true,
+    tickfont: { family: mono, size: 11, color: v('text-secondary') }
+  };
+  return {
+    tokens: v,
+    layout: {
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { family: sans, size: 12, color: v('text-secondary') },
+      title: { font: { family: serif, size: 18, color: v('text-primary') }, x: 0, xanchor: 'left' },
+      colorway: [1, 2, 3, 4, 5].map(function (i) { return v('chart-' + i); }),
+      separators: ',.',
+      margin: { l: 0, r: 0, t: 8, b: 0 },
+      xaxis: Object.assign({}, axis, {
+        showspikes: true, spikemode: 'across', spikesnap: 'cursor', spikedash: 'solid',
+        spikecolor: v('line-strong'), spikethickness: 1
+      }),
+      yaxis: Object.assign({}, axis, { side: 'right', showline: false, showgrid: true, gridcolor: v('line'), gridwidth: 1 }),
+      hovermode: 'x unified',
+      hoverlabel: { bgcolor: v('bg-raised'), bordercolor: v('line-strong'),
+                    font: { family: mono, size: 12, color: v('text-primary') } },
+      legend: { orientation: 'h', x: 0, y: -0.12, bgcolor: 'rgba(0,0,0,0)',
+                font: { family: sans, size: 12, color: v('text-secondary') } },
+      dragmode: false
+    },
+    config: { displayModeBar: false, responsive: true, scrollZoom: false }
+  };
+}
+/* Bei Theme-Wechsel (z. B. Farbenblind-Modus) neu zeichnen */
+function bankiersgruenWatch(render) {
+  new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
+function rng(s){return function(){s=(s*16807)%2147483647;return (s-1)/2147483646;};}
+var fmt=function(n,d){return Math.abs(n).toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});};
+function sgn(n,d,u){return (n>0?'+':n<0?'−':'± ')+fmt(n,d)+(u||'');}
+function chg(p){return (p>0?'▲ ':p<0?'▼ ':'')+sgn(p,2,' %');}
+function tag(id,p){var e=document.getElementById(id);e.textContent=chg(p);e.className='tag '+(p>0?'up':p<0?'down':'flat');}
+function mix(a,b,t){a=a.replace('#','');b=b.replace('#','');var o='#';for(var i=0;i<3;i++){var x=parseInt(a.substr(i*2,2),16),y=parseInt(b.substr(i*2,2),16);o+=('0'+Math.round(x+(y-x)*t).toString(16)).slice(-2);}return o;}
+function rgba(h,a){h=h.replace('#','');return 'rgba('+parseInt(h.substr(0,2),16)+','+parseInt(h.substr(2,2),16)+','+parseInt(h.substr(4,2),16)+','+a+')';}
+
+var M=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'],NOW=8;
+var S=[['Hanse Reederei AG',{4:420.00}],['Nordkap Bank',{3:312.40}],['Elbwerk Energie SE',{5:186.30,11:186.30}],['Rheinstahl Werke',{2:96.00,8:96.00}],
+ ['Kontor Holding',{1:42.20,4:42.20,7:42.20,10:42.20}],['Sonstige',{0:12.50,2:8.20,6:18.40,9:26.10,11:14.60}]];
+var got=0,exp=0,tot=M.map(function(){return 0;});
+S.forEach(function(s){for(var k in s[1]){k=+k;tot[k]+=s[1][k];if(k<=NOW)got+=s[1][k];else exp+=s[1][k];}});
+document.getElementById('got').textContent=fmt(got,2)+' €';document.getElementById('exp').textContent='erhalten · dazu '+fmt(exp,2)+' € erwartet';
+function render(){
+  var t=bankiersgruenPlotly(),v=t.tokens;
+  var layout=Object.assign({},t.layout,{barmode:'stack',bargap:0.34,hovermode:'x unified',margin:{l:0,r:0,t:18,b:0},
+    legend:Object.assign({},t.layout.legend,{y:-0.14,traceorder:'normal'}),
+    xaxis:Object.assign({},t.layout.xaxis,{showspikes:false}),
+    yaxis:Object.assign({},t.layout.yaxis,{tickformat:',d',ticksuffix:' €'}),
+    shapes:[{type:'line',x0:NOW+0.5,x1:NOW+0.5,yref:'paper',y0:0,y1:1.04,line:{color:v('text-muted'),width:1,dash:'dot'}}],
+    annotations:tot.map(function(x,i){return x?{x:M[i],y:x,yanchor:'bottom',yshift:2,showarrow:false,text:fmt(x,0),font:{family:v('font-mono'),size:11,color:v('text-secondary')}}:null;}).filter(Boolean)
+      .concat([{x:NOW+0.55,yref:'paper',y:1.04,xanchor:'left',showarrow:false,text:'erwartet',font:{family:v('font-sans'),size:11,color:v('text-secondary')}}])});
+  Plotly.react('c',S.map(function(s,i){var c=i<5?v('chart-'+(i+1)):v('line-strong');
+    var y=M.map(function(_,k){return s[1][k]||null;});
+    return {type:'bar',name:s[0],x:M,y:y,marker:{color:c,line:{color:v('bg-card'),width:1.5},
+      pattern:{shape:M.map(function(_,k){return k>NOW?'/':'';}),fillmode:'replace',bgcolor:v('bg-card'),fgcolor:c,size:6,solidity:0.45}},
+      hovertemplate:s[0]+'  %{y:,.2f} €<extra></extra>'};}),layout,t.config);
+}
+render();bankiersgruenWatch(render);
+</script>
+</body>
+</html>

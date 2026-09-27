@@ -1,6 +1,6 @@
 // Miner upgrade planning: each level costs 50 % more than the one before and mines 25 % more coins,
 // so every further level takes 1,5 / 1,25 = 1,2× as long to pay for itself.
-import type { MinerView } from '../../vendor/bankiersgruen';
+import type { MinerView } from '../../design-system/components';
 
 export const COST_GROWTH = 1.5;
 export const RATE_GROWTH = 1.25;

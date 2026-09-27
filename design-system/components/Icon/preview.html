@@ -1,0 +1,34 @@
+<!-- @dsCard group="Layout" height=520 width=1100 subtitle="Eigener Icon-Satz: 20er-Raster, Linie 1,5 · Navigation, Wertpapiere, Aktionen, Hinweise" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Icon</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-4) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+  .grid { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 1px; background: var(--line); border: var(--hairline) solid var(--line); }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: var(--space-3) var(--space-1); background: var(--bg-card); color: var(--text-primary); }
+  .cell span { font-size: 11px; line-height: 14px; color: var(--text-secondary); text-align: center; }
+  .sizes { display: flex; align-items: center; gap: var(--space-4); color: var(--text-secondary); font-size: 13px; }
+  .sizes .bnk-icon { color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var names = Object.keys(DS.ICONS);
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h('div', { className: 'grid' }, names.map(function (n) { return h('div', { key: n, className: 'cell' }, h(DS.Icon, { name: n }), h('span', null, DS.ICON_LABELS[n])); })),
+    h('div', { className: 'sizes' }, h('span', { className: 'lbl', style: { margin: 0 } }, 'Größen'), h(DS.Icon, { name: 'markt', size: 16 }), '16', h(DS.Icon, { name: 'markt', size: 20 }), '20', h(DS.Icon, { name: 'markt', size: 24 }), '24',
+      h('span', { style: { marginLeft: '16px' } }, 'In Knöpfen:'), h(DS.Button, { size: 'sm', variant: 'ghost', iconStart: h(DS.Icon, { name: 'aktualisieren', size: 16 }) }, 'Aktualisieren'),
+      h(DS.Button, { size: 'sm', iconStart: h(DS.Icon, { name: 'ueberweisung', size: 16 }) }, 'Überweisen'))));
+</script>
+</body>
+</html>

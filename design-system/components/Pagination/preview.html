@@ -1,0 +1,28 @@
+<!-- @dsCard group="Forum" height=260 subtitle="Wenige Seiten · viele Seiten · erste und letzte Seite" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Pagination</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-card); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-4) var(--space-6); display: grid; gap: var(--space-4); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  function Row(props) { var s = React.useState(props.page); return h('div', null, h('div', { className: 'lbl' }, props.label), h(DS.Pagination, { page: s[0], pages: props.pages, onChange: s[1], total: props.total })); }
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(Row, { label: '3 Seiten', page: 2, pages: 3 }),
+    h(Row, { label: '48 Seiten, Mitte', page: 17, pages: 48, total: '1.284 Themen' }),
+    h(Row, { label: 'Erste Seite', page: 1, pages: 48 })));
+</script>
+</body>
+</html>

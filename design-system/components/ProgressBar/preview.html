@@ -1,0 +1,27 @@
+<!-- @dsCard group="Spiel" height=180 subtitle="Rang-Fortschritt (Messing) · neutral · Größen" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>ProgressBar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { padding: var(--space-4) var(--space-6); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6) var(--space-8); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.ProgressBar, { label: 'Erfolg: Level 6 Online', value: 70.31, max: 100, valueText: '70,31 %', hint: 'Belohnung: 10 AlphaCoins' }),
+    h(DS.ProgressBar, { label: 'Erfolg: 100 Trades in einer Woche', value: 57, max: 100, size: 'lg', unit: 'Trades' }),
+    h(DS.ProgressBar, { label: 'Portfolio investiert', value: 57.2, max: 100, valueText: '57,2 %', variant: 'neutral', hint: 'Bargeld 993.113,48 €' }),
+    h(DS.ProgressBar, { label: 'Miner-Speicher', value: 23.6, max: 23.6, valueText: '23,6 / 23,6 Coins', variant: 'neutral', size: 'sm', hint: 'Voll – Coins ins Portfolio übertragen' })
+  ));
+</script>
+</body>
+</html>

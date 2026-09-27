@@ -1,0 +1,29 @@
+<!-- @dsCard group="Formulare" height=300 width=980 subtitle="Beschreibung mit Zeichenzähler · Kommentar · Fehler" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Textarea</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .wrap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); padding: var(--space-4) var(--space-6); align-items: start; }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); padding: var(--space-4); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  function Demo() {
+    var t = React.useState('Wir investieren langfristig in Banken und Anleihen mit guter Deckung.');
+    return h('div', { className: 'wrap' },
+      h('div', { className: 'box' }, h(DS.Textarea, { label: 'Beschreibung', maxLength: 80, value: t[0], onChange: function (e) { t[1](e.target.value); }, hint: 'Wird auf der Allianzseite angezeigt.' })),
+      h('div', { className: 'box' }, h(DS.Textarea, { label: 'Kommentar', rows: 3, placeholder: 'Deine Antwort …', optional: true })),
+      h('div', { className: 'box' }, h(DS.Textarea, { label: 'Begründung', rows: 3, defaultValue: '', error: 'Bitte eine Begründung eingeben.' })));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

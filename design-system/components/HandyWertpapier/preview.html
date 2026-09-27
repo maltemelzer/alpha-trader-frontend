@@ -1,0 +1,49 @@
+<!-- @dsCard group="Handy" height=1500 width=390 subtitle="Wertpapierseite auf dem Handy: Kopfzeile, Kurs, Chart, Orderbuch, Handelsleiste · Order-Maske im Sheet" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>HandyWertpapier</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  body { background: var(--bg-page); padding-bottom: 88px; }
+  .pad { padding: var(--space-2) var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var listing = { securityIdentifier: 'STALSTERKS', name: 'Alsterkasse SE', type: 'STOCK', startDate: new Date(2026, 8, 5, 20, 43).getTime() };
+  var spread = { bidPrice: 55.74, bidSize: 8750037, askPrice: 55.79, askSize: 21, spreadAbs: 0.05, spreadPercent: 0.0896, lastPrice: { value: 55.74, date: Date.now() - 12 * 60e3 } };
+  var orderbook = { sellEntries: [[56.20, 82], [55.96, 21], [55.94, 226937], [55.91, 44], [55.88, 62], [55.79, 21]].map(function (a) { return { priceLimit: a[0], size: a[1] }; }),
+    buyEntries: [{ priceLimit: 55.74, size: 8750037 }, { priceLimit: 55.21, size: 3 }, { priceLimit: 55.18, size: 89061 }, { priceLimit: 22.71, size: 5360764 }] };
+  var sp = [];for (var i = 0, p = 52; i < 40; i++) { p = p * (1 + (Math.sin(i * 1.7) * 0.012) + 0.002); sp.push(Math.round(p * 100) / 100); }
+  function Page() {
+    var sheet = React.useState(null);
+    return h('div', null,
+      h(DS.MobileTopBar, { onBack: function () {}, eyebrow: 'STALSTERKS · Aktie', title: 'Alsterkasse SE', actions: [{ icon: 'merken', label: 'Merken' }, { icon: 'glocke', label: 'Kursalarm' }] }),
+      h('div', { className: 'pad' },
+        h(DS.SecurityHeader, { listing: listing, spread: spread, change: -0.0538, changeAmount: -0.03, changeSuffix: 'heute',
+          facts: [{ label: 'Marktkap.', value: 209505763069094.88 }, { label: 'Buchwert / Aktie', value: 18.37, compact: false }, { label: 'CEO', value: 'Frieda Kontor' }],
+          tabs: h(DS.Tabs, { size: 'sm', 'aria-label': 'Wertpapier', defaultValue: 'ov', items: [{ value: 'ov', label: 'Übersicht' }, { value: 'ob', label: 'Orderbuch' }, { value: 'tr', label: 'Trades' }, { value: 'news', label: 'Zeitung', count: 12 }] }) }),
+        h(DS.Card, { title: 'Kursverlauf', action: h(DS.SegmentedControl, { 'aria-label': 'Zeitraum', size: 'sm', fullWidth: false, defaultValue: 'm', options: [{ value: 'w', label: '1W' }, { value: 'm', label: '1M' }, { value: 'a', label: 'Alles' }] }) },
+          h(DS.Sparkline, { data: sp, width: 310, height: 120 })),
+        h(DS.Card, { title: 'Orderbuch', flush: true }, h(DS.OrderBook, { listing: listing, orderbook: orderbook, lastPrice: 55.74, depth: 5, onSelect: function (x) { sheet[1](x.side); } }))),
+      h(DS.TradeBar, { listing: listing, spread: spread, onTrade: function (t) { sheet[1](t.action); } }),
+      h(DS.Sheet, { open: !!sheet[0], side: 'bottom', title: (sheet[0] === 'SELL' ? 'Verkaufen: ' : 'Kaufen: ') + 'Alsterkasse SE', onClose: function () { sheet[1](null); },
+        footer: [h(DS.Button, { key: 1, size: 'lg', onClick: function () { sheet[1](null); } }, 'Abbrechen'), h(DS.Button, { key: 2, variant: 'primary', size: 'lg' }, 'Order prüfen')] },
+        h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
+          h(DS.SegmentedControl, { label: 'Richtung', value: sheet[0] || 'BUY', onChange: sheet[1], options: [{ value: 'BUY', label: 'Kaufen' }, { value: 'SELL', label: 'Verkaufen' }] }),
+          h(DS.Input, { label: 'Anteile', numeric: true, stepper: true, defaultValue: '50', suffix: 'Stk.', size: 'lg' }),
+          h(DS.Input, { label: 'Limit', numeric: true, defaultValue: sheet[0] === 'SELL' ? '55,74' : '55,79', suffix: '€', size: 'lg' }))));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Page));
+</script>
+</body>
+</html>

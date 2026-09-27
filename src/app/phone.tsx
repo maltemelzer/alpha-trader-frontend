@@ -16,7 +16,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { DS } from '../ds';
-import type { IconName } from '../../vendor/bankiersgruen';
+import type { IconName } from '../../design-system/components';
 import './phone.css';
 
 const countText = (n: number | string) => (typeof n === 'number' ? n.toLocaleString('de-DE') : n);

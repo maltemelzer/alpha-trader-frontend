@@ -1,0 +1,100 @@
+<!-- @dsCard group="Seiten" height=1700 width=1280 subtitle="Startseite des Spielers: Buchwert, Vorschläge, Positionen/Orders/Trades, eigene Unternehmen, Beteiligungen" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Organisation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: 0 var(--space-6) var(--space-8); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); margin-top: var(--space-6); align-items: start; }
+  .full { grid-column: 1 / -1; }
+  .tabpad { padding: 0 var(--space-4); }
+  .gap { display: flex; flex-direction: column; gap: var(--space-4); }
+  @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now(), H = 3600e3, D = 24 * H;
+  function pos(asin, name, type, n, bid, ask, avg, bidSize, askSize, committed, last) {
+    var mark = bid != null ? bid : last;
+    var vol = type === 'BOND' || type === 'REPO' || type === 'SYSTEM_REPO' ? n * 1000 * mark / 100 : n * mark;
+    return { listing: { securityIdentifier: asin, name: name, type: type }, type: type, numberOfShares: n, committedShares: committed || 0,
+      currentBidPrice: bid, currentBidSize: bidSize, currentAskPrice: ask, currentAskSize: askSize, lastPrice: { value: last || bid, date: now - 7 * 60e3 },
+      volume: vol, averageBuyingPrice: avg, lastBuyingPrice: avg, lastPriceUpdate: now - 2 * D };
+  }
+  var portfolio = { securitiesAccountId: 'acc-me', cash: 2521136126.58, committedCash: 486000000, positions: [
+    pos('STHANSEREE', 'Hanse Reederei AG', 'STOCK', 12500000, 48.72, 48.95, 41.10, 380000, 120000, 2000000),
+    pos('STALSTERKS', 'Alsterkasse SE', 'STOCK', 3100000, 212.40, 213.00, 236.85, 45000, 12000),
+    pos('STELBWERKE', 'Elbwerk Energie SE', 'STOCK', 880000, 9.81, 9.90, 9.81, 2400000, 900000),
+    pos('BOHANSE27X', 'Hanse Beteiligungs 4,25 % 2027', 'BOND', 950000, 98.4120, 98.7500, 96.2000, 12000, 8000),
+    pos('ACALPHCOIN', 'AlphaCoins', 'COIN', 54, 20001.00, 20240.00, 0, 18618388, 751333),
+    pos('RPNORDKAP1', 'Nordkap Bank Repo 14 T.', 'REPO', 400000, 100.1250, 100.2000, 99.8000, 5000, 5000)
+  ] };
+  var orders = [
+    { id: 'o1', action: 'BUY', type: 'LIMIT', numberOfShares: 10000000, price: 46.50, volume: 465000000, listing: { name: 'Hanse Reederei AG', securityIdentifier: 'STHANSEREE', type: 'STOCK' }, creationDate: now - 5 * H, goodTillDate: now + 2 * D, hourlyChange: 0.25, nextHourlyChangeDate: now + 22 * 60e3 },
+    { id: 'o2', action: 'SELL', type: 'LIMIT', numberOfShares: 2000000, price: 52.00, volume: 104000000, listing: { name: 'Hanse Reederei AG', securityIdentifier: 'STHANSEREE', type: 'STOCK' }, creationDate: now - 26 * H },
+    { id: 'o3', action: 'BUY', type: 'LIMIT', numberOfShares: 20000, price: 97.9000, volume: 19580000, listing: { name: 'Hanse Beteiligungs 4,25 % 2027', securityIdentifier: 'BOHANSE27X', type: 'BOND' }, creationDate: now - 3 * H, goodAfterDate: now + 4 * H, goodTillDate: now + 7 * D },
+    { id: 'o4', action: 'SELL', type: 'LIMIT', numberOfShares: 150000, price: 11.20, volume: 1680000, listing: { name: 'Elbwerk Energie SE', securityIdentifier: 'STELBWERKE', type: 'STOCK' }, creationDate: now - 50 * H, counterParty: 'x', counterPartyName: 'Frieda Kontor', privateCounterParty: true }
+  ];
+  var trades = [
+    { id: 't1', date: now - 40 * 60e3, securityIdentifier: 'STHANSEREE', numberOfShares: 500000, price: 48.80, volume: 24400000, buyerSecuritiesAccount: 'x1', buyerSecuritiesAccountName: 'Kursfeder', sellerSecuritiesAccount: 'acc-me', sellerSecuritiesAccountName: 'CptnIglo', sellerAverageBuyingPrice: 41.10 },
+    { id: 't2', date: now - 3 * H, securityIdentifier: 'STALSTERKS', numberOfShares: 100000, price: 214.10, volume: 21410000, buyerSecuritiesAccount: 'acc-me', buyerSecuritiesAccountName: 'CptnIglo', sellerSecuritiesAccount: 'x2', sellerSecuritiesAccountName: 'Nordkap Bank' },
+    { id: 't3', date: now - 20 * H, securityIdentifier: 'STNORDBANK', numberOfShares: 250000, price: 17.35, volume: 4337500, buyerSecuritiesAccount: 'x3', buyerSecuritiesAccountName: 'Zinsjäger', sellerSecuritiesAccount: 'acc-me', sellerSecuritiesAccountName: 'CptnIglo', sellerAverageBuyingPrice: 19.80 },
+    { id: 't4', date: now - 2 * D, securityIdentifier: 'BOHANSE27X', numberOfShares: 950000, price: 96.2000, volume: 913900000, buyerSecuritiesAccount: 'acc-me', buyerSecuritiesAccountName: 'CptnIglo', sellerSecuritiesAccount: 'c1', sellerSecuritiesAccountName: 'Hanse Beteiligungs AG' }
+  ];
+  var names = { STHANSEREE: 'Hanse Reederei AG', STALSTERKS: 'Alsterkasse SE', STNORDBANK: 'Nordbank Holding', BOHANSE27X: 'Hanse Beteiligungs 4,25 % 2027' };
+  var tradeSummary = { totalTrades: 1284, winningTrades: 731, losingTrades: 498, breakEvenTrades: 55, winRate: 0.5693, totalProfit: 18412000000, totalLoss: -9960000000, netProfitLoss: 8452000000 };
+  var suggestions = [
+    { type: 'PROFIT_REALIZATION', text: { filledString: 'Sie können 90,2 Mio. € Gewinn realisieren, wenn Sie 12,5 Mio. Stück Hanse Reederei AG verkaufen.' } },
+    { type: 'VOTING_POSSIBLE', text: { filledString: 'Bei Alsterkasse SE läuft eine Abstimmung über eine Kapitalerhöhung. Sie haben 3,1 Mio. Stimmen.' } },
+    { type: 'USER_ACHIEVEMENT', text: { filledString: 'Erfolg „Erste Milliarde“ ist freigeschaltet und kann abgeholt werden.' } },
+    { type: 'SPARE_COMPANY', text: { filledString: 'Sie leiten kein Unternehmen. Sie sollten eine Spare-AG holen.' } }
+  ];
+  var companies = [
+    { name: 'Hanse Beteiligungs AG', securityIdentifier: 'STHANSEBET', cash: 2521136126.58, cashFlow: 18200000, bookValue: 48210000000, netCash: 1840000000, centralBankReserves: 0,
+      yesterdayCash: 2502936126.58, yesterdayCashFlow: -4100000, yesterdayBookValue: 47650000000, yesterdayNetCash: 1822000000, yesterdayCentralBankReserves: 0 },
+    { name: 'Nordkap Bank AG', securityIdentifier: 'STNORDKAPB', cash: 812000000, cashFlow: -2400000, bookValue: 9120000000, netCash: -3100000000, centralBankReserves: 1500000000,
+      yesterdayCash: 814400000, yesterdayCashFlow: 1200000, yesterdayBookValue: 9180000000, yesterdayNetCash: -3050000000, yesterdayCentralBankReserves: 1500000000 }
+  ];
+  var holdings = [
+    { listing: { name: 'Hanse Beteiligungs AG', securityIdentifier: 'STHANSEBET', type: 'STOCK' }, shareInPercent: 72.4 },
+    { listing: { name: 'Nordkap Bank AG', securityIdentifier: 'STNORDKAPB', type: 'STOCK' }, shareInPercent: 51.2 },
+    { listing: { name: 'Hanse Reederei AG', securityIdentifier: 'STHANSEREE', type: 'STOCK' }, shareInPercent: 18.6 }
+  ];
+  var takeovers = [
+    { listing: { name: 'Alsterkasse SE', securityIdentifier: 'STALSTERKS', type: 'STOCK' }, shareInPercent: 44.1 },
+    { listing: { name: 'Elbwerk Energie SE', securityIdentifier: 'STELBWERKE', type: 'STOCK' }, shareInPercent: 31.7 }
+  ];
+  function href() { return '#'; }
+  function Page() {
+    var ord = React.useState(orders);
+    var tabs = [
+      { value: 'pos', label: 'Positionen', count: portfolio.positions.length, content: h(DS.PositionTable, { positions: portfolio.positions, hrefFor: href, onTrade: function () {} }) },
+      { value: 'ord', label: 'Offene Orders', count: ord[0].length, content: h(DS.OrderList, { orders: ord[0], hrefFor: href, onOpen: function () {}, onDelete: function (o) { ord[1](ord[0].filter(function (x) { return x.id !== o.id; })); } }) },
+      { value: 'tr', label: 'Trades', content: h('div', { className: 'gap' }, h('div', { style: { padding: '16px 16px 0' } }, h(DS.TradeStats, { summary: tradeSummary, periodLabel: 'gesamt' })),
+          h(DS.TradeLog, { entries: trades, securitiesAccountId: 'acc-me', names: names, hrefFor: href })) }
+    ];
+    return h('div', { className: 'wrap' },
+      h(DS.PageHeader, { title: 'Meine Organisation', eyebrow: 'CptnIglo', meta: [h('span', { key: 1 }, 'Platz 149 von 16.829'), h('span', { key: 2 }, '2 Unternehmen als CEO')],
+        actions: [h(DS.Button, { key: 1, variant: 'secondary' }, 'Überweisung'), h(DS.Button, { key: 2, variant: 'primary' }, 'Order aufgeben')] }),
+      h('div', { className: 'grid' },
+        h(DS.Card, { title: 'Privatportfolio', action: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Aktualisieren') }, h(DS.PortfolioSummary, { portfolio: portfolio, label: 'Buchwert', as: 'p' })),
+        h(DS.Card, { title: 'Vorschläge', action: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Aktualisieren') }, h(DS.SuggestionList, { suggestions: suggestions, onAction: function () {} })),
+        h(DS.Card, { className: 'full', flush: true }, h('div', { className: 'tabpad' }, h(DS.Tabs, { items: tabs, defaultValue: 'pos', size: 'sm', 'aria-label': 'Portfolio' }))),
+        h(DS.Card, { className: 'full', title: 'Unternehmensentwicklung', flush: true, action: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Unternehmen gründen') }, h(DS.CompanyDevelopment, { companies: companies, hrefFor: href })),
+        h(DS.Card, { title: 'Beteiligungen', footer: 'Anteil am Unternehmen über alle Portfolios. Strich = Mehrheit (50 %).' }, h(DS.ShareList, { items: holdings, hrefFor: href })),
+        h(DS.Card, { title: 'Übernahmemöglichkeiten', footer: 'Unternehmen, bei denen Ihnen wenige Anteile zur Mehrheit fehlen.' }, h(DS.ShareList, { items: takeovers, hrefFor: href }))));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Page));
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!-- @dsCard group="Layout" height=470 subtitle="default · flush · reward · klickbar" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Card</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); padding: var(--space-4); align-items: start; }
+  .col { display: grid; gap: var(--space-4); }
+  .fig-lg { font-family: var(--font-mono); font-size: 28px; line-height: 32px; font-weight: 500; }
+  .fig { font-family: var(--font-mono); font-size: 14px; line-height: 20px; }
+  .kpi { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+  .meta { display: flex; gap: var(--space-6); margin-top: var(--space-3); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+  .muted { color: var(--text-secondary); font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, Card = DS.Card, Button = DS.Button, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h('div', { className: 'grid' },
+      h('div', { className: 'col' },
+        h(Card, { eyebrow: 'Übersicht', title: 'Ihr Depot', titleAs: 'h2',
+                  action: h(Button, { variant: 'ghost', size: 'sm' }, 'Details'),
+                  footer: 'Stand 17:35 Uhr' },
+          h('div', { className: 'kpi' },
+            h('span', { className: 'fig-lg' }, '124.380,50 €'),
+            h(DS.PriceChange, { value: 1.84, variant: 'tag', size: 'lg', suffix: 'heute' })),
+          h('div', { className: 'meta' },
+            h('div', null, h('div', { className: 'lbl' }, 'Bargeld'), h('div', { className: 'fig' }, '8.412,00 €')),
+            h('div', null, h('div', { className: 'lbl' }, 'Positionen'), h('div', { className: 'fig' }, '12')))),
+        h(Card, { variant: 'reward', eyebrow: 'Erfolg freigeschaltet', title: 'Erste Dividende' },
+          h('div', { className: 'muted' }, 'Sie haben Ihre erste Ausschüttung erhalten: 42,18 € von der Hanse Reederei AG.'))
+      ),
+      h('div', { className: 'col' },
+        h(Card, { title: 'Watchlist', flush: true, action: h(Button, { variant: 'ghost', size: 'sm', iconStart: '+' }, 'Hinzufügen') },
+          h('ul', { className: 'bnk-list' },
+            h(DS.StockRow, { name: 'Hanse Reederei AG', ticker: 'HRD', price: 48.72, change: 2.34 }),
+            h(DS.StockRow, { name: 'Nordbank Holding', ticker: 'NBH', price: 116.85, change: -0.62 }),
+            h(DS.StockRow, { name: 'Rheinstahl Werke', ticker: 'RSW', price: 23.1, change: 0.41 }))),
+        h(Card, { href: '#', eyebrow: 'Marktbericht · 17:30', title: 'DAX schließt fester, Reedereien gefragt',
+                  onClick: function (e) { e.preventDefault(); } },
+          h('div', { className: 'muted' }, 'Klickbare Karte: Hover hellt die Fläche auf, der Fokus-Ring ist Messing.'))
+      )
+    ));
+</script>
+</body>
+</html>

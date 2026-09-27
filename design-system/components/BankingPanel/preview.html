@@ -1,0 +1,50 @@
+<!-- @dsCard group="Unternehmen" height=1500 width=1100 subtitle="Bankgeschäfte: ohne Lizenz (Fortschritt zu 5 Mio. €) · mit Lizenz: Reserven, Zins, Coin-Boost, Zinstender · schmal (Container Query)" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>BankingPanel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-4) var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+  .row { display: grid; grid-template-columns: 540px 360px; gap: var(--space-6); align-items: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now(), H = 3600e3, D = 24 * H;
+  var sheets = [
+    { date: now - 18 * D, periodStart: now - 27 * D, cash: 2521136126.58, stocksValue: 1284000000, bondsValue: 935000000, buildingsValue: 0, otherAssetsValue: 1080054, centralBankReserves: 1500000000, warrantCollateralValue: null,
+      totalAssets: 6241216180.58, issuedBondsValue: 950000000, repurchaseObligations: 401000000, issuedWarrantsValue: null, equity: 4890216180.58, totalLiabilities: 1351000000, periodResult: 186400000 },
+    { date: now - 27 * D, periodStart: now - 36 * D, cash: 2310000000, stocksValue: 1190000000, bondsValue: 880000000, buildingsValue: 0, otherAssetsValue: 900000, centralBankReserves: 1500000000,
+      totalAssets: 5880900000, issuedBondsValue: 900000000, repurchaseObligations: 277000000, equity: 4703900000, totalLiabilities: 1177000000, periodResult: -42100000 }
+  ];
+  var reserves = { cashHolding: 1500000000, maxCentralBankLoans: 15000000000, interestRateBoost: 0.12, earnedBoostBonus: 4120000, coinsForNextBoost: 3, boostCoinPrice: 20001, maxBoostMultiplier: 25 };
+  var accounts = [ { id: 'a1', name: 'Privat (CptnIglo)', cash: 993113.48 }, { id: 'a2', name: 'Hanse Beteiligungs AG', cash: 2521136126.58 }, { id: 'a3', name: 'Nordkap Bank AG', cash: 812000000 } ];
+  var log = [
+    { id: 'l1', date: now - 25 * 60e3, amount: 250000000, senderBankAccount: 'cb', receiverBankAccount: 'a2', message: { filledString: 'Zinsen auf Zentralbankreserven' } },
+    { id: 'l2', date: now - 3 * H, amount: 150, senderBankAccount: 'a2', receiverBankAccount: 'u1', message: { filledString: 'Gehalt CEO CptnIglo' } },
+    { id: 'l3', date: now - 20 * H, amount: 48000000, senderBankAccount: 'a2', receiverBankAccount: 'x', message: { filledString: 'Gewinnausschüttung an Aktionäre' } },
+    { id: 'l4', date: now - 26 * H, amount: 950000000, senderBankAccount: 'x2', receiverBankAccount: 'a2', message: { filledString: 'Anleihe BOHANSE27X begeben' } },
+    { id: 'l5', date: now - 2 * D, amount: 5000000, senderBankAccount: 'a1', receiverBankAccount: 'a2', message: { filledString: 'Überweisung von CptnIglo' } }
+  ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.Card, { title: 'Bankgeschäfte', eyebrow: 'Elbwerk Energie SE · ohne Lizenz' }, h(DS.BankingPanel, { caps: { bank: false, bankReady: false }, cash: 3120000, onRequestLicense: function () {} })),
+    h(DS.Card, { title: 'Bankgeschäfte', eyebrow: 'Nordkap Bank AG' }, bankFull()),
+    h('div', { className: 'row' },
+      h(DS.Card, { title: 'Schmal: 540 px', eyebrow: 'zwei Kennzahlen je Zeile' }, bankFull()),
+      h(DS.Card, { title: 'Handy: 360 px', eyebrow: 'kleinere Beschriftung' }, bankFull()))));
+  function bankFull() { return h(DS.BankingPanel, { caps: { bank: true }, license: { startDate: now - 40 * D }, reserves: reserves, reserveInterestRate: 2.0, cash: 812000000,
+      lastPayment: { paymentDate: now - 5 * H, paidInterest: 872000 }, nextPayment: now + 19 * H,
+      tender: { bondListing: { name: 'Interest Tender 0.0000% 02/10/2026', securityIdentifier: 'ITI3GXRN8Z' }, endDate: now + 22 * H }, tenderHref: function () { return '#'; },
+      onIncreaseReserves: function () {}, onBoost: function () {} }); }
+</script>
+</body>
+</html>

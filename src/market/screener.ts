@@ -2,7 +2,7 @@
 // Pure functions only – the page loads the sources, this file merges, filters and sorts them.
 import type { MarketRow } from '../api/queries';
 import type { ListingWithTradingVolumeView } from '../api/types';
-import type { BondView, HighscoreEntry } from '../../vendor/bankiersgruen';
+import type { BondView, HighscoreEntry } from '../../design-system/components';
 import { buildingSize, dailyYield } from '../security/derive';
 import { short } from '../lib/format';
 import { displayName } from './derive';

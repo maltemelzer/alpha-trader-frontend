@@ -1,0 +1,50 @@
+<!-- @dsCard group="Seiten" height=1080 width=1240 subtitle="Laufende Kapitalerhöhungen, Herabsetzungen, Ausschüttungen und Fusionen mit Restzeit" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Kapitalmassnahmen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: 0 var(--space-6) var(--space-8); display: grid; gap: var(--space-6); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = {};
+  var now = Date.now(), H = 3600e3, D = 24 * H;
+  function cd(ms) { return h(DS.Countdown, { to: ms, short: true }); }
+  var inc = [
+    { id: 1, co: { name: 'Digital Savings Bank', ticker: 'STSHO1VDSB' }, start: '2.10.2026, 14:09', end: now + 8 * D, type: 'Mit Bezugsrechten', vol: 100001680007.04 },
+    { id: 2, co: { name: 'Vogel Vermögensverwaltung AG', ticker: 'STB107EB1B' }, start: '30.9.2026, 15:03', end: now + 6 * D, type: 'Mit Bezugsrechten', vol: 7464960000000 },
+    { id: 3, co: { name: 'Alsterkasse SE', ticker: 'STALSTERKS' }, start: '22.9.2026, 10:11', end: now + 3 * H, type: 'Mit Bezugsrechten', vol: 1879312549956 }
+  ];
+  var red = [{ id: 1, co: { name: 'Stockbrot Bank', ticker: 'STOCKBROTE' }, end: now + 16 * D, n: 10599, px: 14400, vol: 152625600 }];
+  var div = [
+    { id: 1, co: { name: 'Bronq Finance Group', ticker: 'STTW5GIJBZ' }, start: now + 14 * D, vol: 1e13 },
+    { id: 2, co: { name: 'Point42 SE', ticker: 'STP0C4C247' }, start: now + 10 * D, vol: 5e12 },
+    { id: 3, co: { name: 'Hub & Stay Group', ticker: 'ST0HUBSTAY' }, start: now + 3 * D, vol: 4e12 }
+  ];
+  var mer = [{ id: 1, co: { name: 'Kontor Holding', ticker: 'STKONTORHO' }, acq: 'Hanse Beteiligungs AG', start: now + 2 * D, vol: 3.2e11 }];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.PageHeader, { eyebrow: 'Markt', title: 'Kapitalmaßnahmen', size: 'md', description: 'Laufende und angekündigte Maßnahmen aller Unternehmen. Jede wurde von den Aktionären per Abstimmung beschlossen.' }),
+    h(DS.Card, { title: 'Kapitalerhöhungen', flush: true }, h(DS.DataTable, { caption: 'Kapitalerhöhungen', rowKey: 'id', rows: inc, density: 'sm', getRowHref: function () { return '#'; }, columns: [
+      { key: 'co', label: 'Unternehmen', type: 'stock' }, { key: 'type', label: 'Art' }, { key: 'start', label: 'Beginn' },
+      { key: 'vol', label: 'Mindestvolumen', type: 'currency' }, { key: 'end', label: 'Zeichnung endet', align: 'right', render: function (r) { return cd(r.end); }, sortValue: function (r) { return r.end; } } ] })),
+    h(DS.Card, { title: 'Kapitalherabsetzungen', flush: true }, h(DS.DataTable, { caption: 'Kapitalherabsetzungen', rowKey: 'id', rows: red, density: 'sm', columns: [
+      { key: 'co', label: 'Unternehmen', type: 'stock' }, { key: 'n', label: 'Anteile', type: 'number' }, { key: 'px', label: 'Preis', type: 'currency', compact: false },
+      { key: 'vol', label: 'Höchstvolumen', type: 'currency' }, { key: 'end', label: 'Endet', align: 'right', render: function (r) { return cd(r.end); } } ] })),
+    h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' } },
+      h(DS.Card, { title: 'Gewinnausschüttungen', flush: true }, h(DS.DataTable, { caption: 'Gewinnausschüttungen', rowKey: 'id', rows: div, density: 'sm', columns: [
+        { key: 'co', label: 'Unternehmen', type: 'stock' }, { key: 'vol', label: 'Höchstvolumen', type: 'currency' }, { key: 'start', label: 'Beginnt in', align: 'right', render: function (r) { return cd(r.start); } } ] })),
+      h(DS.Card, { title: 'Fusionen', flush: true }, h(DS.DataTable, { caption: 'Fusionen', rowKey: 'id', rows: mer, density: 'sm', columns: [
+        { key: 'co', label: 'Wird übernommen', type: 'stock' }, { key: 'acq', label: 'Von' }, { key: 'vol', label: 'Abfindung', type: 'currency' }, { key: 'start', label: 'Beginnt in', align: 'right', render: function (r) { return cd(r.start); } } ] })))));
+</script>
+</body>
+</html>

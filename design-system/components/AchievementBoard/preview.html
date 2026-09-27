@@ -1,0 +1,40 @@
+<!-- @dsCard group="Spiel" height=720 width=1100 subtitle="Erfolge: Fortschritt, abholbare zuerst mit Sammel-Abholen, erreichte, offene mit Prozent" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>AchievementBoard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-6); }
+  @media (max-width: 480px) { .wrap { padding: var(--space-3); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now(), D = 864e5;
+  var ach = [
+    { id: 'a1', type: 'TOP_TEN_PERCENT_USER_HIGHSCORE', description: 'Platz in den oberen 10 % eines Nutzer-Highscores', coinReward: 3, achievedDate: now - 2 * D, claimed: false },
+    { id: 'a2', type: 'BANKER', description: 'Ein Unternehmen mit Banklizenz führen', coinReward: 5, achievedDate: now - 40 * D, claimed: false },
+    { id: 'a3', type: 'FIRST_ORDER_PLACED', description: 'Die erste Order aufgeben', coinReward: 1, achievedDate: now - 900 * D, claimed: true },
+    { id: 'a4', type: 'CONFIRM_EMAIL', description: 'E-Mail-Adresse bestätigen', coinReward: 1, achievedDate: now - 900 * D, claimed: true },
+    { id: 'a5', type: 'FIRST_THOUSAND_TRADES', description: '1.000 ausgeführte Trades', coinReward: 10, progressInPercent: 87 },
+    { id: 'a6', type: 'LEVEL6_ONLINE', description: 'Online-Minuten sammeln', coinReward: 10, progressInPercent: 70.31 },
+    { id: 'a7', type: 'BEST_IN_USER_HIGHSCORE', description: 'Platz 1 in einem Nutzer-Highscore', coinReward: 25, progressInPercent: 0 }];
+  function Demo() { var s = React.useState(ach);
+    return h('div', { className: 'wrap' }, h(DS.Tabs, { size: 'sm', 'aria-label': 'Erfolge', defaultValue: 'u', items: [
+      { value: 'u', label: 'Spieler', count: 2, content: h('div', { style: { paddingTop: '16px' } }, h(DS.AchievementBoard, { achievements: s[0], label: 'Spieler-Erfolge',
+        onClaim: function (a) { s[1](s[0].map(function (x) { return x.id === a.id ? Object.assign({}, x, { claimed: true }) : x; })); },
+        onClaimAll: function () { s[1](s[0].map(function (x) { return x.achievedDate ? Object.assign({}, x, { claimed: true }) : x; })); } })) },
+      { value: 'c', label: 'Unternehmen' }, { value: 'a', label: 'Allianz' }] })); }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

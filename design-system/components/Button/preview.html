@@ -1,0 +1,46 @@
+<!-- @dsCard group="Aktionen" height=300 subtitle="primary · secondary · ghost · danger" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Button</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-card); color: var(--text-primary); font-family: var(--font-sans); }
+  .wrap { padding: var(--space-4); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: var(--hairline) solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .lbl { width: 120px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<div id="root" class="wrap"></div>
+<script>
+  var B = window.Bankiersgruen.Button, h = React.createElement;
+  function Row(label, kids) { return h('div', { className: 'row' }, h('span', { className: 'lbl' }, label), kids); }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+    Row('Varianten', [
+      h(B, { key: 1, variant: 'primary' }, 'Kaufen'),
+      h(B, { key: 2 }, 'Verkaufen'),
+      h(B, { key: 3, variant: 'ghost', iconStart: '+' }, 'Zur Watchlist'),
+      h(B, { key: 4, variant: 'danger' }, 'Order stornieren')
+    ]),
+    Row('Größen', [
+      h(B, { key: 1, size: 'sm' }, 'Klein'),
+      h(B, { key: 2 }, 'Standard'),
+      h(B, { key: 3, size: 'lg' }, 'Groß')
+    ]),
+    Row('Lädt', [
+      h(B, { key: 1, variant: 'primary', loading: true }, 'Order wird gesendet'),
+      h(B, { key: 2, loading: true }, 'Lädt')
+    ]),
+    Row('Deaktiviert', [
+      h(B, { key: 1, variant: 'primary', disabled: true }, 'Kaufen'),
+      h(B, { key: 2, disabled: true }, 'Verkaufen'),
+      h(B, { key: 3, variant: 'danger', disabled: true }, 'Order stornieren')
+    ])
+  ));
+</script>
+</body>
+</html>

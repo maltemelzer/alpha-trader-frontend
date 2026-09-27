@@ -1,0 +1,28 @@
+<!-- @dsCard group="Wertpapier" height=400 width=1100 subtitle="Optionsscheine auf einen Basiswert: Zeichnungsfrist, Call/Put, Referenzkurs, Cap, Bezugsverhältnis" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>WarrantList</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-4) var(--space-6); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now(), H = 3600e3;
+  function w(id, t, dt, ref, cap, ratio, issuer, asin) { return { id: id, type: t, subscriptionPeriodDate: now + dt, underlyingValue: ref, underlyingCapValue: cap, ratio: ratio, company: { name: issuer, securityIdentifier: asin } }; }
+  var ws = [w('w1', 'CALL', 6.4 * H, 124899077.71, 137388985.481, '1:1000', 'weirdbuffett38 Inc.', 'STS2CEB7E0'), w('w2', 'CALL', 9.8 * H, 125211459.61, 137732605.571, '1:1000', 'florihom29 Inc.', 'STSFA9C3D7'),
+    w('w3', 'PUT', 12.5 * H, 125211459.61, 112690313.649, '1:1000', 'steveschwarzmann41 Inc.', 'STS9BCB80E'), w('w4', 'CALL', 21.6 * H, 125584546.34, 138143000.974, '1:1000', 'petelynch12 Inc.', 'STS40771B6')];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' }, h('div', { className: 'box' }, h(DS.WarrantList, { warrants: ws, comparison: { callLeverage: 12.4, putLeverage: 9.8, value: 125473072.8 }, issuerHref: function () { return '#'; } }))));
+</script>
+</body>
+</html>

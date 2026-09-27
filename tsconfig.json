@@ -15,5 +15,5 @@
     "noEmit": true,
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src", "vendor/bankiersgruen/index.d.ts"]
+  "include": ["src", "design-system/components/index.d.ts"]
 }

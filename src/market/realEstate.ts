@@ -1,6 +1,6 @@
 // Real estate market: buildings grouped by size, price per m², offers.
 import type { MarketRow } from '../api/queries';
-import type { RealEstateOffer } from '../../vendor/bankiersgruen';
+import type { RealEstateOffer } from '../../design-system/components';
 import { buildingSize } from '../security/derive';
 
 /** Sizes the game builds (m²); ~11.000 buildings each. Other sizes found in the data are added. */

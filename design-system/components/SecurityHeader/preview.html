@@ -1,0 +1,49 @@
+<!-- @dsCard group="Wertpapier" height=900 width=1200 subtitle="Kopf der Wertpapierseite: Aktie mit Reitern · Anleihe · kompakt" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>SecurityHeader</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: 0 var(--space-6) var(--space-6); }
+  .sep { height: var(--space-8); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = {};
+  var listing = { securityIdentifier: 'STALSTERKS', name: 'Alsterkasse SE', type: 'STOCK', startDate: new Date(2026, 8, 5, 20, 43).getTime() };
+  var spread = { bidPrice: 55.74, bidSize: 8750037, askPrice: 55.79, askSize: 21, spreadAbs: 0.05, spreadPercent: 0.0896, lastPrice: { value: 55.74, date: new Date(2026, 8, 24, 6, 47, 30).getTime() } };
+  var company = { id: 'c9', name: 'Alsterkasse SE', securityIdentifier: 'STALSTERKS', ceo: { username: 'Frieda Kontor' }, marketMakerPolicy: 'OPEN', achievementCount: 7, achievementTotal: 9 };
+  var askData = [[73.99, 4e9], [63.46, 155686], [62.56, 21], [62.46, 31], [61.66, 9], [57.94, 85736], [56.83, 12], [56.64, 38], [56.62, 8], [56.61, 31], [56.60, 121, 0, 1], [56.50, 8], [56.49, 8], [56.46, 8], [56.41, 31], [56.38, 8], [56.34, 17], [56.32, 39], [56.29, 30], [56.25, 102], [56.20, 82], [55.96, 21], [55.94, 226937], [55.91, 44], [55.88, 62], [55.83, 9], [55.80, 17], [55.79, 21]];
+  var orderbook = { sellEntries: askData.map(function (a) { return { priceLimit: a[0], size: a[1], own: !!a[3] }; }), buyEntries: [{ priceLimit: 55.74, size: 8750037 }, { priceLimit: 55.21, size: 3 }, { priceLimit: 55.18, size: 89061 }, { priceLimit: 22.71, size: 5360764 }] };
+  var facts = [
+    { label: 'Marktkap.', value: 209505763069094.88 },
+    { label: 'Anteile', value: 3758625099912, currency: '' },
+    { label: 'Buchwert / Aktie', value: 18.37, compact: false },
+    { label: 'CEO', value: 'Frieda Kontor', sub: '2,52 Mrd. € am Tag' },
+    { label: 'Market Maker', value: 'offen' }
+  ];
+  var tabs = h(DS.Tabs, { 'aria-label': 'Wertpapier', defaultValue: 'ov', items: [{ value: 'ov', label: 'Übersicht' }, { value: 'ob', label: 'Orderbuch' }, { value: 'sh', label: 'Anteilseigner' }, { value: 'tr', label: 'Trades' }, { value: 'km', label: 'Kapitalmaßnahmen', count: 1 }, { value: 'news', label: 'Zeitung', count: 12 }] });
+  var bond = { securityIdentifier: 'BOALSTER26', name: 'Alsterkasse 2,05 % 30/09/2026', type: 'BOND', startDate: new Date(2026, 8, 1).getTime(), endDate: new Date(2026, 8, 30, 15, 37).getTime() };
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.SecurityHeader, { listing: listing, spread: spread, company: company, change: -0.0538, changeAmount: -0.03, changeSuffix: 'heute', facts: facts,
+      onBuy: function () {}, onSell: function () {}, actions: h(DS.Button, { variant: 'ghost', size: 'sm', iconStart: '+' }, 'Beobachten'), tabs: tabs }),
+    h('div', { className: 'sep' }),
+    h(DS.SecurityHeader, { listing: bond, spread: { bidPrice: 99.928, bidSize: 400, askPrice: 100, askSize: 1000, spreadAbs: 0.072, spreadPercent: 0.072, lastPrice: { value: 99.95, date: new Date(2026, 8, 24, 6, 20).getTime() } },
+      change: 0.02, changeSuffix: 'heute', onBuy: function () {}, onSell: function () {},
+      facts: [{ label: 'Zins', value: '2,0500 %' }, { label: 'Nennwert', value: 1000 }, { label: 'Volumen', value: 1e11 }, { label: 'Emittent', value: 'Alsterkasse SE', sub: 'STALSTERKS' }] }),
+    h('div', { className: 'sep' }),
+    h('div', { className: 'lbl' }, 'compact · Ein-Bildschirm-Seite'),
+    h(DS.SecurityHeader, { compact: true, listing: listing, spread: spread, company: company, change: -0.0538, changeAmount: -0.03, changeSuffix: '24 h', facts: facts.slice(0, 4),
+      onBuy: function () {}, onSell: function () {} })));
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!-- @dsCard group="Diagramme" height=420 subtitle="Plotly · Leitzins, Reservezins, Systemanleihe und Ø Anleihezins als Stufenlinien" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Zinsverlauf</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@3.7.0/plotly.min.js"></script>
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-card);color:var(--text-primary);font-family:var(--font-sans)}
+  .wrap{padding:var(--space-4)}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:var(--space-2) var(--space-4);padding-bottom:var(--space-3);border-bottom:var(--hairline) solid var(--line);margin-bottom:var(--space-3)}
+  .nm{font-family:var(--font-serif);font-size:16px;line-height:22px;font-weight:600}
+  .tk{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;color:var(--text-secondary);text-transform:uppercase}
+  .px{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;justify-content:flex-end}
+  .fig{font-family:var(--font-mono);font-size:28px;line-height:32px;font-weight:500;white-space:nowrap}
+  @media (max-width:480px){.fig{font-size:24px;line-height:28px}.head{flex-direction:column;align-items:flex-start}.px{justify-content:flex-start}}
+  .sub{font-family:var(--font-mono);font-size:13px;line-height:18px;color:var(--text-secondary)}
+  .tag{font-family:var(--font-mono);font-size:15px;line-height:20px;font-weight:500;padding:3px var(--space-2);border-radius:var(--radius-sm);white-space:nowrap}
+  .tag.up{color:var(--gain);background:var(--gain-tint)}
+  .tag.down{color:var(--loss);background:var(--loss-tint)}
+  .tag.flat{color:var(--unchanged);background:var(--bg-raised)}
+  .foot{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);align-items:center;margin-top:var(--space-3);padding-top:var(--space-2);border-top:var(--hairline) solid var(--line);font-size:12px;line-height:16px;color:var(--text-secondary)}
+  .key{display:inline-flex;align-items:center;gap:6px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:var(--radius-sm)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="head"><div><div class="nm">Zinsen</div><div class="tk">Letzte 60 Tage · Tageswerte</div></div>
+<div class="px"><span class="sub">Leitzins</span><span class="fig" id="lz"></span></div></div>
+<div id="c" style="height:280px"></div>
+<div class="foot" id="foot"></div>
+</div>
+<script>
+/* Bankiersgrün – Plotly-Theme. Liest die Design-Tokens (CSS-Variablen aus tokens.css),
+   damit Darkmode und Farbenblind-Modus automatisch stimmen. */
+function bankiersgruenPlotly() {
+  var cs = getComputedStyle(document.documentElement);
+  var v = function (n) { return cs.getPropertyValue('--' + n).trim(); };
+  var sans = v('font-sans'), serif = v('font-serif'), mono = v('font-mono');
+  var axis = {
+    showgrid: false, zeroline: false, showline: true, linecolor: v('line-strong'), linewidth: 1,
+    ticks: '', automargin: true, fixedrange: true,
+    tickfont: { family: mono, size: 11, color: v('text-secondary') }
+  };
+  return {
+    tokens: v,
+    layout: {
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { family: sans, size: 12, color: v('text-secondary') },
+      title: { font: { family: serif, size: 18, color: v('text-primary') }, x: 0, xanchor: 'left' },
+      colorway: [1, 2, 3, 4, 5].map(function (i) { return v('chart-' + i); }),
+      separators: ',.',
+      margin: { l: 0, r: 0, t: 8, b: 0 },
+      xaxis: Object.assign({}, axis, {
+        showspikes: true, spikemode: 'across', spikesnap: 'cursor', spikedash: 'solid',
+        spikecolor: v('line-strong'), spikethickness: 1
+      }),
+      yaxis: Object.assign({}, axis, { side: 'right', showline: false, showgrid: true, gridcolor: v('line'), gridwidth: 1 }),
+      hovermode: 'x unified',
+      hoverlabel: { bgcolor: v('bg-raised'), bordercolor: v('line-strong'),
+                    font: { family: mono, size: 12, color: v('text-primary') } },
+      legend: { orientation: 'h', x: 0, y: -0.12, bgcolor: 'rgba(0,0,0,0)',
+                font: { family: sans, size: 12, color: v('text-secondary') } },
+      dragmode: false
+    },
+    config: { displayModeBar: false, responsive: true, scrollZoom: false }
+  };
+}
+/* Bei Theme-Wechsel (z. B. Farbenblind-Modus) neu zeichnen */
+function bankiersgruenWatch(render) {
+  new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
+function rng(s){return function(){s=(s*16807)%2147483647;return (s-1)/2147483646;};}
+var fmt=function(n,d){return Math.abs(n).toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});};
+/* API: GET /api/v2/interestratehistory?limit → [{ date, mainInterestRate, reserveInterestRate, systemBondInterestRate, averageBondInterestRate }] */
+var r=rng(7),x=[],hist=[],m=2.0,d0=new Date(2026,6,26);
+for(var i=0;i<60;i++){ if(i&&r()<0.12) m=Math.round((m+(r()-0.45)*0.5)*4)/4; var avg=m+0.02+(r()-0.5)*0.18;
+  hist.push({date:d0.getTime()+i*864e5,mainInterestRate:m,reserveInterestRate:Math.max(0,m-0.5),systemBondInterestRate:m+0.2,averageBondInterestRate:Math.round(avg*1e4)/1e4}); }
+var S=[{k:'mainInterestRate',name:'Leitzins',c:'chart-1',w:2.5,shape:'hv'},{k:'systemBondInterestRate',name:'Systemanleihe',c:'chart-2',w:1.5,shape:'hv'},
+  {k:'reserveInterestRate',name:'Reservezins',c:'chart-3',w:1.5,shape:'hv'},{k:'averageBondInterestRate',name:'Ø Anleihezins',c:'chart-4',w:1.5,shape:'linear',dash:'dot'}];
+x=hist.map(function(h){return new Date(h.date);});
+var last=hist[hist.length-1];
+document.getElementById('lz').textContent=fmt(last.mainInterestRate,2)+' %';
+document.getElementById('foot').innerHTML=S.map(function(s){return '<span class="key"><span class="sw" style="background:var(--'+s.c+')"></span>'+s.name+' <b style="font-family:var(--font-mono);font-weight:500;color:var(--text-primary)">'+fmt(last[s.k],s.k==='averageBondInterestRate'?4:2)+' %</b></span>';}).join('');
+function render(){
+  var t=bankiersgruenPlotly(),v=t.tokens;
+  var layout=Object.assign({},t.layout,{showlegend:false,margin:{l:0,r:0,t:8,b:0},
+    xaxis:Object.assign({},t.layout.xaxis,{tickformat:'%d.%m.'}),
+    yaxis:Object.assign({},t.layout.yaxis,{ticksuffix:' %',tickformat:',.2f',zeroline:true,zerolinecolor:v('line-strong'),zerolinewidth:1,rangemode:'tozero'})});
+  Plotly.react('c',S.map(function(s){return {x:x,y:hist.map(function(h){return h[s.k];}),type:'scatter',mode:'lines',name:s.name,
+    line:{color:v(s.c),width:s.w,shape:s.shape,dash:s.dash||'solid'},xhoverformat:'%d.%m.%Y',hovertemplate:s.name+'  %{y:,.2f} %<extra></extra>'};}),layout,t.config);
+}
+render();bankiersgruenWatch(render);
+</script>
+</body>
+</html>

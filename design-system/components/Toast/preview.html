@@ -1,0 +1,34 @@
+<!-- @dsCard group="Spiel" height=350 subtitle="Order ausgeführt · Erfolg · Fehler" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Toast</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { padding: var(--space-4) var(--space-6); display: flex; justify-content: flex-end; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  function Demo() {
+    var list = React.useState([1, 2, 3]);
+    function close(id) { return function () { list[1](list[0].filter(function (x) { return x !== id; })); }; }
+    var all = {
+      1: h(DS.Toast, { key: 1, title: 'Kauforder ausgeführt', onClose: close(1),
+            action: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Order ansehen') },
+          h('span', { className: 'num' }, '50 × HRD'), ' zu ', h('span', { className: 'num' }, '48,72 €'), ' – Gesamt ', h('span', { className: 'num' }, '2.436,00 €')),
+      2: h(DS.Toast, { key: 2, variant: 'reward', title: 'Erfolg freigeschaltet: Erste Dividende', onClose: close(2) }, 'Sie haben Ihre erste Ausschüttung erhalten.'),
+      3: h(DS.Toast, { key: 3, variant: 'error', title: 'Order abgelehnt', onClose: close(3) }, 'Nicht genug Bargeld. Höchstens ', h('span', { className: 'num' }, '172 Stk.'), ' möglich.')
+    };
+    return h('div', { className: 'wrap' }, h(DS.ToastRegion, { inline: true }, list[0].map(function (id) { return all[id]; })));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!-- @dsCard group="Seiten" height=370 subtitle="Kennzahlenleiste · Hauptkennzahl mit Sparkline · einzeln in Karten" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>StatTile</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .wrap { padding: var(--space-4) var(--space-6); display: grid; gap: var(--space-4); }
+  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  function walk(seed, n, start, drift) {
+    var s = seed, out = [], p = start;
+    for (var i = 0; i < n; i++) { s = (s * 16807) % 2147483647; p = p * (1 + ((s / 2147483647) - 0.5 + drift) * 0.05); out.push(Math.round(p * 100) / 100); }
+    return out;
+  }
+  var depot = walk(7, 40, 118000, 0.04);
+  var k = 124380.5 / depot[39]; depot = depot.map(function (v) { return Math.round(v * k * 100) / 100; });
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.Card, { flush: true },
+      h(DS.StatGroup, { columns: '2fr 1fr 1fr 1fr', 'aria-label': 'Portfolio-Kennzahlen' },
+        h(DS.StatTile, { lead: true, label: 'Buchwert', value: 124380.5, change: 1.84, changeSuffix: 'heute', spark: depot, hint: 'Stand 17:35 Uhr' }),
+        h(DS.StatTile, { label: 'Cashflow heute', value: 2246.10, signed: true }),
+        h(DS.StatTile, { label: 'Buchwert Alphakasse', value: 69058819264881.92, change: -0.05, hint: 'Kurzform ab 1 Mrd. – voller Wert im Tooltip' }),
+        h(DS.StatTile, { label: 'Bargeld', value: 8412, hint: '6,8 % des Buchwerts' }))),
+    h('div', { className: 'three' },
+      h(DS.Card, null, h(DS.StatTile, { label: 'ATSX', value: '125.211.459,62', unit: 'Pkt.', change: -0.42, spark: walk(3, 30, 18500, -0.02) })),
+      h(DS.Card, null, h(DS.StatTile, { label: 'Miner', value: 1.18, unit: 'Coins/h', decimals: 2, hint: 'Upgrade auf 1,48 Coins/h für 29.193,29 €' })),
+      h(DS.Card, null, h(DS.StatTile, { label: 'Offene Orders', value: '2', hint: 'Limit-Kauf STHANSEREE · Limit-Verkauf BOAZBMWFZ0' })))
+  ));
+</script>
+</body>
+</html>
