@@ -11,6 +11,8 @@ export interface BankAccount {
   id: string;
   name: string;
   cash: number;
+  /** The player's private account – the only one the server lets send transfers. */
+  private?: boolean;
 }
 
 /** Private account first, then companies run as CEO (by name). */
@@ -19,7 +21,7 @@ export function bankAccounts(
   companies: { name?: string; bankAccount?: { id?: string; cash?: number } }[],
 ): BankAccount[] {
   return [
-    ...privateAccounts.map((a) => ({ id: a.id, name: 'Privatkonto', cash: a.cash })),
+    ...privateAccounts.map((a) => ({ id: a.id, name: 'Privatkonto', cash: a.cash, private: true })),
     ...companies
       .filter((c) => c.bankAccount?.id)
       .map((c) => ({ id: c.bankAccount!.id!, name: c.name ?? 'Unternehmen', cash: c.bankAccount!.cash ?? 0 }))

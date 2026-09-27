@@ -46,23 +46,16 @@ import {
   type Bid,
 } from './tender';
 import { bookChart, effectChart, tenderHistoryChart } from './tenderCharts';
-import { MiniStats, Option, OptionsButton, useEdgeFade } from '../app/phone';
+import { MiniStats, useEdgeFade } from '../app/phone';
+import { useFilters } from '../app/pagenav';
+import { rangeMs } from '../lib/ranges';
+import { CB_FILTERS } from './filters';
 
 const NBSP = String.fromCharCode(0xa0);
-const DAY = 86_400_000;
 const pct = (n: number | undefined) =>
   n == null ? '–' : `${n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${NBSP}%`;
 const priceText = (n: number) => n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const ASSUME = [
-  { value: 'buch', label: 'Buch jetzt' },
-  { value: 'gestern', label: 'wie zuletzt' },
-];
-const RANGES = [
-  { value: '14T', label: '14T', ms: 14 * DAY },
-  { value: '30T', label: '30T', ms: 30 * DAY },
-  { value: 'alle', label: 'Alle', ms: undefined },
-];
 const PHONE_VIEWS = [
   { value: 'wirkung', label: 'Dein Gebot' },
   { value: 'verlauf', label: 'Verlauf' },
@@ -104,37 +97,17 @@ function useUrlText(key: string, fallback: string) {
   return [text, setText] as const;
 }
 
-/** Which other bids the projection assumes for the running tender (URL ?annahme=). */
-export function AssumeControl() {
-  const [assume, setAssume] = useParamState('annahme', 'buch', ASSUME);
-  return (
-    <DS.SegmentedControl
-      size="sm"
-      fullWidth={false}
-      aria-label="Übrige Gebote im laufenden Tender"
-      options={ASSUME}
-      value={assume}
-      onChange={setAssume}
-    />
-  );
-}
-
 /**
- * Phone: the tender tab with two views – „Dein Gebot“ (simulator, bid in a bar at the bottom) and „Verlauf“
- * (history and the book). The switch and an „Optionen“ button (which other bids the projection assumes, the
- * history range) share the card's head, so the content gets the rest. Wide screens show both parts side by side.
+ * Phone: the tender view as one card with two presentations – „Dein Gebot“ (simulator, bid in a bar at the
+ * bottom) and „Verlauf“ (history and the book), switched in the card's head. The page's filters (Zeitraum,
+ * Übrige Gebote) sit behind the page's filter button. Wide screens show both parts as two cards.
  */
 export function TenderPhone() {
   const [view, setView] = useParamState('tender', 'wirkung', PHONE_VIEWS);
-  const [assume, setAssume] = useParamState('annahme', 'buch', ASSUME);
-  const [range, setRange] = useParamState('verlauf', '30T', RANGES);
-  const [open, setOpen] = useState(false);
-  const changed = (view === 'verlauf' ? range !== '30T' : assume !== 'buch') ? 1 : 0;
   return (
     <DS.Card flush className="panel tdr-phone">
       <div className="tdr-phone__head">
-        <DS.SegmentedControl size="sm" fullWidth={false} aria-label="Zinstender" options={PHONE_VIEWS} value={view} onChange={setView} />
-        <OptionsButton active={changed} onClick={() => setOpen(true)} />
+        <DS.SegmentedControl size="sm" fullWidth aria-label="Zinstender" options={PHONE_VIEWS} value={view} onChange={setView} />
       </div>
       {view === 'verlauf' ? (
         <div className="panel__fill scroll cb__pad">
@@ -143,22 +116,6 @@ export function TenderPhone() {
       ) : (
         <TenderBid phone />
       )}
-      <DS.Sheet open={open} onClose={() => setOpen(false)} title={view === 'verlauf' ? 'Verlauf' : 'Dein Gebot'} side="bottom">
-        <div className="ph-sheet">
-          {view === 'verlauf' ? (
-            <Option title="Zeitraum" note="Welche Tender das Diagramm und die Anteile der Bieter zeigen.">
-              <DS.SegmentedControl aria-label="Zeitraum" options={RANGES} value={range} onChange={setRange} />
-            </Option>
-          ) : (
-            <Option
-              title="Übrige Gebote"
-              note="Womit die Schätzung für den laufenden Tender rechnet: mit den Geboten, die jetzt im Buch stehen, oder so wie beim letzten Tender."
-            >
-              <DS.SegmentedControl aria-label="Übrige Gebote im laufenden Tender" options={ASSUME} value={assume} onChange={setAssume} />
-            </Option>
-          )}
-        </div>
-      </DS.Sheet>
     </DS.Card>
   );
 }
@@ -178,7 +135,7 @@ export function TenderSide({ phone }: { phone?: boolean }) {
   }, [bookBids, own.orders]);
   return (
     <div className={`tdr__side${phone ? ' tdr__side--phone' : ''}`}>
-      <TenderHistory phone={phone} />
+      <TenderHistory />
       <h3 className="cb__h">Im Buch jetzt</h3>
       <div className="tdr__book" style={{ height: Math.max(1, bookRows.length) * 30 + 6 }}>
         {bookRows.length ? (
@@ -208,7 +165,7 @@ export function TenderBid({ phone }: { phone?: boolean }) {
 
   const [priceRaw, setPriceRaw] = useUrlText('gebot', '100,00');
   const [sharesRaw, setSharesRaw] = useUrlText('stueck', '1 Bio.');
-  const [assume] = useParamState('annahme', 'buch', ASSUME);
+  const assume = useFilters(CB_FILTERS).values.annahme;
   const [confirm, setConfirm] = useState(false);
 
   const price = parseDe(priceRaw);
@@ -575,13 +532,13 @@ export function BidDialog({
  * (up = raises the rate, down = lowers it). The bidder chips are legend and filter at once: a chosen
  * bidder stays coloured and a dashed line shows the rate without them.
  */
-export function TenderHistory({ phone }: { phone?: boolean }) {
+export function TenderHistory() {
   const { trades, tenders, allotments } = useTenderData();
   const history = useInterestHistory(1000);
   const { banks } = useMyBanks();
-  const [range, setRange] = useParamState('verlauf', '30T', RANGES);
+  const range = useFilters(CB_FILTERS).values.zeitraum;
   const now = allotments.dataUpdatedAt;
-  const ms = RANGES.find((r) => r.value === range)?.ms;
+  const ms = rangeMs(range);
   const shown = useMemo(() => (ms ? tenders.filter((t) => t.date >= now - ms) : tenders), [tenders, ms, now]);
   const shares = useMemo(() => bidderShares(shown), [shown]);
   const colors = useMemo(() => bidderColors(bidderShares(tenders), banks.map((b) => b.name)), [tenders, banks]);
@@ -634,7 +591,6 @@ export function TenderHistory({ phone }: { phone?: boolean }) {
           </>
         )}
       </p>
-        {!phone && <DS.SegmentedControl size="sm" fullWidth={false} aria-label="Zeitraum" options={RANGES} value={range} onChange={setRange} />}
       </div>
       <div className="tdr__histchart">
         <Plot

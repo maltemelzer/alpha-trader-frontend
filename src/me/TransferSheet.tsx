@@ -42,30 +42,32 @@ function RecipientPicker({ value, onChange, exclude }: { value: Picked[]; onChan
 }
 
 /**
- * Transfer from any own account (private or a company run as CEO) to an own account or to any
- * player or company (PUT /api/v2/banktransfer/{sender}?receiverBankAccountId&cashAmount). Two steps:
- * form, then a confirmation with the balance afterwards – the money can't be called back.
+ * Transfer from the private account to an own company account or to any player or company
+ * (PUT /api/v2/banktransfer/{sender}?receiverBankAccountId&cashAmount). The server only accepts the
+ * private account as sender – company accounts can receive, never send. Two steps: form, then a
+ * confirmation with the balance afterwards – the money can't be called back.
  */
 export function TransferSheet({
   open,
   onClose,
   accounts,
-  defaultFrom,
+  defaultTo,
   onDone,
 }: {
   open: boolean;
   onClose: () => void;
   accounts: TransferAccount[];
-  defaultFrom?: string;
+  /** Preselects an own company account as recipient (e.g. the one shown on /bank). */
+  defaultTo?: string;
   onDone: (text: string) => void;
 }) {
   const transfer = useBankTransfer();
-  const [fromId, setFromId] = useState(defaultFrom);
-  const from = accounts.find((a) => a.id === fromId) ?? accounts[0];
-  const others = accounts.filter((a) => a.id !== from?.id);
-  const [mode, setMode] = useState<'eigen' | 'fremd'>('fremd');
+  const from = accounts.find((a) => a.private);
+  const others = accounts.filter((a) => !a.private);
+  const preset = others.some((a) => a.id === defaultTo) ? defaultTo : undefined;
+  const [mode, setMode] = useState<'eigen' | 'fremd'>(preset ? 'eigen' : 'fremd');
   const own = others.length > 0 && mode === 'eigen';
-  const [ownTo, setOwnTo] = useState<string | undefined>();
+  const [ownTo, setOwnTo] = useState<string | undefined>(preset);
   const [picked, setPicked] = useState<Picked[]>([]);
   const [raw, setRaw] = useState('');
   const [step, setStep] = useState<'form' | 'confirm'>('form');
@@ -128,20 +130,19 @@ export function TransferSheet({
             if (check.ok) setStep('confirm');
           }}
         >
-          <DS.Select
-            label="Von"
-            value={from?.id}
-            onChange={(e) => setFromId(e.target.value)}
-            options={accounts.map((a) => ({ value: a.id, label: `${a.name} · ${DS.format.money(a.cash, '€', 2, true)}` }))}
-            hint={accounts.length > 1 ? 'Dein Privatkonto und die Konten der Unternehmen, die du als CEO führst.' : 'Dein Privatkonto – als CEO kommen die Konten deiner Unternehmen dazu.'}
+          <DS.SummaryList
+            items={[{ label: 'Von', value: from ? `${from.name} · ${DS.format.money(from.cash, '€', 2, true)}` : '–' }]}
           />
+          {others.length > 0 && (
+            <p className="xfer__note">Überweisen geht nur vom Privatkonto – Unternehmenskonten können empfangen, aber nicht senden.</p>
+          )}
           {others.length > 0 && (
             <DS.SegmentedControl
               aria-label="Empfänger"
               size="sm"
               options={[
                 { value: 'fremd', label: 'Spieler / Unternehmen' },
-                { value: 'eigen', label: 'Eigenes Konto' },
+                { value: 'eigen', label: 'Eigenes Unternehmen' },
               ]}
               value={mode}
               onChange={(v) => setMode(v as 'eigen' | 'fremd')}

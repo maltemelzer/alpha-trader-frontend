@@ -15,38 +15,28 @@ import { HelpTerm } from '../app/HelpTerm';
 import { Plot } from '../charts/Plot';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
-import { useParamState } from '../lib/useParamState';
+import { rangeMs } from '../lib/ranges';
+import { filterSummary, filtersFor } from '../lib/pagenav';
+import { PageNav, useFilters, usePageView, type PageView } from '../app/pagenav';
+import { CB_FILTERS } from './filters';
 import { bankSharesChart, dueChart, moneySupplyChart, potsChart, rateHistoryChart } from './charts';
 import { bankShares, dueByDay, potRows, rateOnlyBelowTarget, rateWindow, signedPct, supplySeries, targetGrowthPct } from './derive';
 import { CreditForm } from './CreditForm';
-import { AssumeControl, TenderBid, TenderPhone, TenderSide } from './TenderPanel';
-import { MiniStats, ScrollTabs } from '../app/phone';
+import { TenderBid, TenderPhone, TenderSide } from './TenderPanel';
+import { MiniStats } from '../app/phone';
 import './CentralBankPage.css';
 
-const DAY = 86_400_000;
 const pct = (n: number | undefined, d = 2) =>
   n == null ? '–' : `${n.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d })} %`;
 
-const RANGES = [
-  { value: '7T', label: '7T', ms: 7 * DAY },
-  { value: '30T', label: '30T', ms: 30 * DAY },
-  { value: 'alle', label: 'Alle', ms: undefined },
-];
-
-const SIDE = [
-  { value: 'banken', label: 'Banken' },
-  { value: 'kredite', label: 'Kredite' },
-  { value: 'tender', label: 'Zinstender' },
-  { value: 'geld', label: 'Geldmenge' },
-  { value: 'regeln', label: 'So funktioniert’s' },
-];
-const PHONE = [
-  { value: 'zinsen', label: 'Zinsen' },
-  { value: 'tender', label: 'Tender' },
-  { value: 'banken', label: 'Banken' },
-  { value: 'kredite', label: 'Kredite' },
-  { value: 'geld', label: 'Geld' },
-  { value: 'regeln', label: 'Regeln' },
+/** One set of views for every screen; „Banken“ is the context card of „Zinsen“ on wide screens. */
+const VIEWS: PageView[] = [
+  { value: 'zinsen', label: 'Zinsen', description: 'Leitzins, Einlagezins und Systemanleihe im Verlauf' },
+  { value: 'banken', label: 'Banken', parent: 'zinsen', description: 'Wer die Einlagen hält und wie viel Kredit genutzt wird' },
+  { value: 'tender', label: 'Zinstender', description: 'Was dein Gebot bewirkt, Verlauf und Buch' },
+  { value: 'kredite', label: 'Kredite', description: 'Laufende Systemanleihen und Kredit aufnehmen' },
+  { value: 'geld', label: 'Geldmenge', description: 'Geldmenge gegen Ziel und wo das Geld liegt' },
+  { value: 'regeln', label: 'So funktioniert’s', description: 'Die Regeln in Kürze, mit Quellen' },
 ];
 
 /** Forum posts of the game that explain the rules (Offizielles Forum). */
@@ -56,6 +46,9 @@ const FORUM = '/forum/08e13473-024a-4637-b8d7-b856d07b1b5b';
  * Zentralbank: the rates the game sets (main rate, reserve rate per day, system bond rate) and how
  * they moved, who holds the central bank reserves, the credit the central bank gave through system
  * bonds, the running interest tender – and in short how banking works in the game.
+ *
+ * Navigation: one row of views under the title (each view picks its cards) and the page's filters
+ * (Zeitraum, and for the tender „Übrige Gebote“) at its right end – see `PageNav`.
  */
 export function CentralBankPage() {
   const onLinkClick = useInternalLinks();
@@ -64,17 +57,16 @@ export function CentralBankPage() {
   const main = useMainInterestRate();
   const history = useInterestHistory(1000);
   const payment = useReservesPayment();
-  const [range, setRange] = useParamState('zeitraum', '30T', RANGES);
-  const [view, setView] = useParamState('ansicht', isPhone ? 'zinsen' : 'banken', isPhone ? PHONE : SIDE);
+  const [view, setView, views] = usePageView(VIEWS, 'zinsen');
+  const filters = useFilters(CB_FILTERS);
+  const range = filters.values.zeitraum;
 
   const now = history.dataUpdatedAt;
-  const points = useMemo(
-    () => rateWindow(history.data, RANGES.find((r) => r.value === range)?.ms, now),
-    [history.data, range, now],
-  );
+  const points = useMemo(() => rateWindow(history.data, rangeMs(range), now), [history.data, range, now]);
   const latest = history.data?.length ? rateWindow(history.data, undefined).at(-1) : undefined;
   const reserveRate = main.data?.reserveInterestRate ?? latest?.reserveInterestRate;
   const systemRate = latest?.systemBondInterestRate ?? (main.data ? main.data.value + 1 : undefined);
+  const nav = <PageNav label="Ansicht" views={views} view={view} onView={setView} filters={filters} />;
 
   const stats = (
     <DS.StatGroup columns="repeat(4, minmax(0, 1fr))" aria-label="Zinsen der Zentralbank">
@@ -96,19 +88,8 @@ export function CentralBankPage() {
     </DS.StatGroup>
   );
 
-  // With the tender tab open, the big card becomes the bid simulator; the tab shows the history and the book.
-  const chart = !isPhone && view === 'tender' ? (
-    <DS.Card className="panel" title="Was bewirkt dein Gebot?" action={<AssumeControl />}>
-      <div className="panel__fill scroll cb__tender">
-        <TenderBid />
-      </div>
-    </DS.Card>
-  ) : (
-    <DS.Card
-      className="panel"
-      title="Zinsverlauf"
-      action={<DS.SegmentedControl size="sm" aria-label="Zeitraum" fullWidth={false} options={RANGES} value={range} onChange={setRange} />}
-    >
+  const chart = (
+    <DS.Card className="panel" title={isPhone ? undefined : 'Zinsverlauf'}>
       <div className="panel__fill cb__chart">
         {history.isLoading ? (
           <DS.Skeleton variant="block" />
@@ -121,17 +102,16 @@ export function CentralBankPage() {
     </DS.Card>
   );
 
-  const panels: Record<string, React.ReactNode> = {
-    banken: <Banks />,
-    kredite: <Credit />,
-    tender: isPhone ? <TenderPhone /> : <TenderSide />,
-    geld: <MoneySupply />,
-    regeln: <Rules mainRate={main.data?.value} reserveRate={reserveRate} />,
-  };
+  /** A card whose content scrolls – the building block of every view. */
+  const card = (title: string | undefined, content: React.ReactNode, className = 'cb__pad') => (
+    <DS.Card flush className="panel" title={title}>
+      <div className={`panel__fill scroll ${className}`}>{content}</div>
+    </DS.Card>
+  );
 
   if (isPhone) {
-    // Phone: one control row (the views), the rest is the view. The main rates sit in the meta line; the
-    // „Zinsen“ view shows them as one compact row above the chart, with the last payout in the meta line instead.
+    // Phone: one control row (views + filter button), the rest is the view. The main rates sit in the meta line;
+    // the „Zinsen“ view shows them as one compact row above the chart, with the last payout in the meta line instead.
     const phoneStats = (
       <MiniStats
         label="Zinsen der Zentralbank"
@@ -142,6 +122,7 @@ export function CentralBankPage() {
         ]}
       />
     );
+    const chosen = filterSummary(filtersFor(CB_FILTERS, view), filters.values);
     const meta =
       view === 'zinsen' ? (
         <span className="cb__meta">
@@ -152,17 +133,18 @@ export function CentralBankPage() {
               <DS.Countdown to={payment.data.nextPaymentDate} label="nächste in" short />
             </>
           ) : null}
+          {chosen && ` · ${chosen}`}
         </span>
       ) : (
         <span className="cb__meta">
-          Leitzins {pct(main.data?.value)} · Einlage {pct(reserveRate)} / Tag
+          Leitzins {pct(main.data?.value)} · Einlage {pct(reserveRate)} / Tag{chosen && ` · ${chosen}`}
         </span>
       );
     return (
       <div className="page cb cb--phone" onClick={onLinkClick}>
         <DS.PageHeader size="md" title="Zentralbank" meta={meta} />
         <div className={`page__body cb__body${view === 'zinsen' ? ' cb__body--stats' : ''}`}>
-          <ScrollTabs label="Ansicht" items={PHONE} value={view} onChange={setView} />
+          {nav}
           {view === 'zinsen' ? (
             <>
               {phoneStats}
@@ -172,39 +154,53 @@ export function CentralBankPage() {
             <TenderPhone />
           ) : view === 'kredite' ? (
             <CreditPhone />
+          ) : view === 'banken' ? (
+            card(undefined, <Banks />)
+          ) : view === 'geld' ? (
+            card(undefined, <MoneySupply />)
           ) : (
-            <DS.Card flush className="panel">
-              <div className="panel__fill scroll cb__pad">{panels[view]}</div>
-            </DS.Card>
+            card(undefined, <Rules mainRate={main.data?.value} reserveRate={reserveRate} />)
           )}
         </div>
       </div>
     );
   }
 
+  // Wide and middle: every view is a main card and (except the rules) a context card beside it (below it in the middle).
+  const cards: Record<string, React.ReactNode> = {
+    zinsen: (
+      <>
+        {chart}
+        {card('Banken', <Banks />)}
+      </>
+    ),
+    tender: (
+      <>
+        {card('Was bewirkt dein Gebot?', <TenderBid />, 'cb__tender')}
+        {card('Leitzins und Tender', <TenderSide />)}
+      </>
+    ),
+    kredite: (
+      <>
+        {card('Systemanleihen', <Credit />)}
+        {card('Kredit aufnehmen', <CreditForm heading={false} />)}
+      </>
+    ),
+    geld: (
+      <>
+        {card('Geldmenge und Ziel', <MoneySupply part="supply" />)}
+        {card('Wo das Geld liegt', <MoneySupply part="pots" />)}
+      </>
+    ),
+    regeln: card('So funktioniert’s', <Rules mainRate={main.data?.value} reserveRate={reserveRate} />, 'cb__pad cb__read'),
+  };
+
   return (
-    <div className={`page cb${isWide ? ' cb--wide' : ''}${view === 'tender' ? ' cb--tender' : ''}`} onClick={onLinkClick}>
-      <DS.PageHeader
-        size="md"
-        title="Zentralbank"
-        meta={<span>Leitzins, Einlagen der Banken und Kredite der Zentralbank</span>}
-      />
+    <div className={`page cb${isWide ? ' cb--wide' : ''} cb--${view}`} onClick={onLinkClick}>
+      <DS.PageHeader size="md" title="Zentralbank" meta={<span>Leitzins, Einlagen der Banken und Kredite der Zentralbank</span>} tabs={nav} />
       <div className="page__body cb__body">
         {stats}
-        <div className="cb__grid">
-          {chart}
-          <DS.Card flush className="panel">
-            <div className="panel__tabs">
-              <DS.Tabs
-                size="sm"
-                aria-label="Bankwesen"
-                value={view}
-                onChange={setView}
-                items={SIDE.map((s) => ({ value: s.value, label: s.label, content: <div className="cb__pad">{panels[s.value]}</div> }))}
-              />
-            </div>
-          </DS.Card>
-        </div>
+        <div className={`cb__grid cb__grid--${view}`}>{cards[view]}</div>
       </div>
     </div>
   );
@@ -348,7 +344,6 @@ function Credit({ phone }: { phone?: boolean }) {
         Banken leihen sich Geld bei der Zentralbank, indem sie Systemanleihen ausgeben – bis 10 % ihrer Einlage, zum Leitzins
         + 1 %, Laufzeit etwa 6½ Tage.
       </p>
-      {!phone && <CreditForm />}
     </div>
   );
 }
@@ -358,7 +353,7 @@ function Credit({ phone }: { phone?: boolean }) {
  * sold at each step, and where all money sits now (pots). Only what the numbers show is claimed:
  * the target is the previous supply + 0,1 %, and a rate was applied only below the target.
  */
-function MoneySupply() {
+function MoneySupply({ part }: { part?: 'supply' | 'pots' }) {
   const phone = useIsPhone();
   const supply = useMoneySupply();
   const breakdown = useMoneySupplyBreakdown();
@@ -370,9 +365,12 @@ function MoneySupply() {
   const rate = (n: number) => `${n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
 
   if (supply.isLoading || breakdown.isLoading) return <DS.Loading rows={6} />;
+  // wide screens show the two parts as two cards
+  const showSupply = part !== 'pots';
+  const showPots = part !== 'supply';
   return (
     <div className="cb__stack">
-      {phone ? (
+      {!showSupply ? null : phone ? (
         <MiniStats
           label="Geldmenge"
           columns="minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.8fr)"
@@ -389,31 +387,35 @@ function MoneySupply() {
           <DS.StatTile label="Zins zuletzt" value={last ? rate(last.ratePct) : '–'} hint="beim letzten Schritt" />
         </DS.StatGroup>
       )}
-      <h3 className="cb__h">Geldmenge und Ziel</h3>
-      <div className="cb__supply">
-        {points.length > 1 ? (
-          <Plot aria-label="Geldmenge der Spieler und Zielmenge im Verlauf, darunter verkaufte Anleihen" figure={(t, w) => moneySupplyChart(t, w, points)} />
-        ) : (
-          <DS.EmptyState compact as="h3" title="Kein Verlauf" />
-        )}
-      </div>
-      <p className="cb__note">
-        Geldmenge und Ziel meldet das Spiel so; was genau zur Geldmenge zählt, sagt es nicht.
-        {growth != null && ` Das Ziel ist jeweils die vorige Geldmenge ${signedPct(growth, 1)}.`}
-        {rateOnlyBelowTarget(points) &&
-          ` In diesen ${points.length} Schritten gab es nur einen Zins, wenn die Geldmenge unter dem Ziel lag (bis ${rate(
-            Math.max(0, ...points.map((p) => p.ratePct)),
-          )}), sonst 0 %.`}
-      </p>
-      <h3 className="cb__h">Wo das Geld liegt</h3>
-      {pots.length ? (
+      {showSupply && !part && <h3 className="cb__h">Geldmenge und Ziel</h3>}
+      {showSupply && (
+        <>
+          <div className="cb__supply">
+            {points.length > 1 ? (
+              <Plot aria-label="Geldmenge der Spieler und Zielmenge im Verlauf, darunter verkaufte Anleihen" figure={(t, w) => moneySupplyChart(t, w, points)} />
+            ) : (
+              <DS.EmptyState compact as="h3" title="Kein Verlauf" />
+            )}
+          </div>
+          <p className="cb__note">
+            Geldmenge und Ziel meldet das Spiel so; was genau zur Geldmenge zählt, sagt es nicht.
+            {growth != null && ` Das Ziel ist jeweils die vorige Geldmenge ${signedPct(growth, 1)}.`}
+            {rateOnlyBelowTarget(points) &&
+              ` In diesen ${points.length} Schritten gab es nur einen Zins, wenn die Geldmenge unter dem Ziel lag (bis ${rate(
+                Math.max(0, ...points.map((p) => p.ratePct)),
+              )}), sonst 0 %.`}
+          </p>
+        </>
+      )}
+      {showPots && !part && <h3 className="cb__h">Wo das Geld liegt</h3>}
+      {!showPots ? null : pots.length ? (
         <div className="cb__bars" style={{ height: 30 * pots.length + 8 }}>
           <Plot aria-label="Anteil am gesamten Geld je Topf" figure={(t, w) => potsChart(t, w, pots)} />
         </div>
       ) : (
         <DS.EmptyState compact as="h3" title="Keine Aufteilung" />
       )}
-      {b && (
+      {showPots && b && (
         <p className="cb__note">
           <b>
             <DS.Amount value={b.totalBankCash} compact />

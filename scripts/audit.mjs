@@ -6,6 +6,8 @@
 //   overflow  content wider than its box or reaching past the viewport; page scroll
 //   tap       controls smaller than 44 px on the phone
 //   name      buttons and links without an accessible name
+//   nav       navigation rules (CLAUDE.md „Navigation in drei Ebenen“): at most one tab row per page, no tabs
+//             inside cards – a card switches only its own presentation (segmented control in its head)
 //   console   errors
 //
 //   npm run audit                              # all pages, 1440×900 + 390×844
@@ -98,7 +100,14 @@ function observeShifts() {
 }
 
 function inspect(mobile) {
-  const out = { contrast: [], overflow: [], tap: [], name: [] };
+  const out = { contrast: [], overflow: [], tap: [], name: [], nav: [] };
+  {
+    const visible = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+    const lists = [...document.querySelectorAll('[role="tablist"]')].filter(visible).filter((el) => !el.closest('[role="dialog"]'));
+    const inCards = lists.filter((el) => el.closest('.bnk-card'));
+    if (lists.length > 1) out.nav.push(`${lists.length} tab rows (${lists.map((el) => el.getAttribute('aria-label') || '?').join(', ')})`);
+    for (const el of inCards) out.nav.push(`tabs inside a card: ${el.getAttribute('aria-label') || '?'}`);
+  }
   const parse = (c) => {
     const m = c.match(/rgba?\(([^)]+)\)/);
     if (!m) return null;
@@ -205,7 +214,7 @@ try {
       if (r.pageScrolls) lines.push('  page scrolls');
       const cls = shifts.reduce((s, x) => s + x.value, 0);
       if (shifts.length) lines.push(`  shift CLS ${cls.toFixed(3)}:`, ...shifts.slice(0, 8).map((s) => `    ${s.t}ms ${s.value}  ${s.sources.join(' | ')}`));
-      for (const k of ['contrast', 'overflow', 'tap', 'name']) if (r[k].length) lines.push(`  ${k}:`, ...r[k].slice(0, 12).map((x) => `    ${x}`));
+      for (const k of ['contrast', 'overflow', 'tap', 'name', 'nav']) if (r[k].length) lines.push(`  ${k}:`, ...r[k].slice(0, 12).map((x) => `    ${x}`));
       if (errors.length) lines.push('  console:', ...[...new Set(errors)].slice(0, 5).map((x) => `    ${x}`));
       console.log(`== ${path} ${size}${lines.length ? '' : ' ok'}`);
       if (lines.length) console.log(lines.join('\n'));
