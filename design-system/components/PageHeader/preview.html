@@ -1,0 +1,36 @@
+<!-- @dsCard group="Seiten" height=480 subtitle="Aktienseite mit Kurs, Aktionen und Reitern · Unterseite" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>PageHeader</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .wrap { padding: 0 var(--space-6) var(--space-6); }
+  .big { font-family: var(--font-mono); font-size: 28px; line-height: 32px; font-weight: 500; }
+  .sep { height: 0; border-top: var(--hairline) solid var(--line-strong); margin: var(--space-6) 0 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.PageHeader, {
+      eyebrow: h(React.Fragment, null, h('a', { href: '#' }, 'Markt'), ' · ', h('a', { href: '#' }, 'Aktien')),
+      title: 'Hanse Reederei AG',
+      meta: [h('span', { key: 1 }, 'STHANSEREE'), h('span', { key: 2 }, 'Aktie'), h('span', { key: 3 }, 'CEO Frieda Kontor'), h('span', { key: 4 }, 'Stand 17:35 Uhr')],
+      aside: [h('span', { key: 'p', className: 'big' }, '48,72 €'), h(DS.PriceChange, { key: 'c', value: 2.34, variant: 'tag', size: 'lg', suffix: 'heute' })],
+      actions: [h(DS.Button, { key: 'w', iconStart: '+' }, 'Zur Watchlist'), h(DS.Button, { key: 'k', variant: 'primary' }, 'Kaufen')],
+      tabs: h(DS.Tabs, { 'aria-label': 'Aktie', items: [{ value: 'o', label: 'Übersicht' }, { value: 'c', label: 'Chart' }, { value: 'k', label: 'Kennzahlen' }, { value: 'n', label: 'Nachrichten', count: 4 }] })
+    }),
+    h('div', { className: 'sep' }),
+    h(DS.PageHeader, { size: 'md', eyebrow: 'Depot', title: 'Dividenden',
+      description: 'Laufende Kapitalerhöhungen, Herabsetzungen und Gewinnausschüttungen. Ausschüttungen werden anteilig auf alle Aktionäre verteilt.',
+      actions: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Als CSV exportieren') })
+  ));
+</script>
+</body>
+</html>

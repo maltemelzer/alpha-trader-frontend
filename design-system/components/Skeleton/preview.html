@@ -1,0 +1,29 @@
+<!-- @dsCard group="Zustände" height=420 width=980 subtitle="Platzhalter beim Laden: Tabellenzeilen, Kopf mit Kurs, Diagrammfläche" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Skeleton</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); padding: var(--space-4) var(--space-6); align-items: start; }
+  .box { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var S = DS.Skeleton;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h('div', { className: 'box' }, h('div', { className: 'lbl' }, 'Liste lädt'), h(DS.Loading, { label: 'Depot wird geladen …', rows: 5, columns: 4 })),
+    h('div', { className: 'box' }, h('div', { className: 'lbl' }, 'Wertpapierkopf und Chart'),
+      h(S, { variant: 'text', width: '30%' }), h(S, { variant: 'title' }), h(S, { variant: 'text', lines: 2 }), h(S, { variant: 'block', height: 150 }))));
+</script>
+</body>
+</html>

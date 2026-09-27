@@ -1,0 +1,32 @@
+<!-- @dsCard group="Dialoge" height=370 subtitle="Order-Übersicht mit Summenzeile" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>SummaryList</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { padding: var(--space-4) var(--space-6); max-width: 440px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var orderItems = [
+    { label: 'Aktie', value: 'Hanse Reederei AG (HRD)' },
+    { label: 'Richtung', value: 'Kauf' },
+    { label: 'Stückzahl', value: 50, unit: 'Stk.', decimals: 0 },
+    { label: 'Order-Typ', value: 'Limit 48,50 €' },
+    { label: 'Portfolio', value: 'Mein Portfolio' },
+    { label: 'Kurswert', value: 2425.00 },
+    { label: 'Buchwert Alphakasse', value: 69058819264881.92, muted: true },
+    { label: 'Gesamt', value: 2429.90, total: true }
+  ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' }, h(DS.SummaryList, { items: orderItems })));
+</script>
+</body>
+</html>

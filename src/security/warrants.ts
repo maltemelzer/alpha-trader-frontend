@@ -1,6 +1,6 @@
 // Warrants: pure helpers for the market list and the securities page.
 import type { WarrantApiView } from '../api/queries';
-import type { WarrantView } from '../../vendor/bankiersgruen';
+import type { WarrantView } from '../../design-system/components';
 
 /** End of a warrant: the subscription period date, else the listing's end. */
 export const warrantEnd = (w: WarrantApiView): number | undefined => w.subscriptionPeriodDate ?? w.listing?.endDate ?? undefined;

@@ -85,7 +85,7 @@ des Tabs (bzw. mit „Angemeldet bleiben“ 30 Tage im `localStorage`), es gibt 
 | `npm run api:get -- /api/…` | Lesender API-Aufruf mit dem Konto aus `.env`, gibt JSON aus (Tokens geschwärzt) |
 | `npm run shot -- /pfad [--size 390x844]` | Screenshot per headless Chrome (Dev-Server muss laufen), meldet Seiten-Scroll und Konsolenfehler; Bilder in `shots/` |
 | `npm run audit` | Qualitätsprüfung aller Hauptseiten: Layout-Sprünge, Kontrast, Überläufe, Tippflächen, Navigationsregeln |
-| `npm run ds:sync -- <ordner>` | Design-System nach `vendor/bankiersgruen/` übernehmen (nur Maintainer, siehe unten) |
+| `npm run ds:tokens` | `design-system/tokens.css` aus `tokens.json` neu erzeugen (ein Test prüft, dass sie aktuell ist) |
 
 `shot` und `audit` nutzen `puppeteer-core` mit einem installierten Chrome. Liegt Chrome nicht unter
 `/Applications/Google Chrome.app`, den Pfad per `CHROME_PATH` setzen.
@@ -113,7 +113,7 @@ src/
   security/     Wertpapierseite – das Muster für alle anderen Seiten
   market/ flows/ centralbank/ companies/ organisation/ me/ orders/ chat/ forum/ news/ …
                 je Spielbereich ein Ordner
-vendor/bankiersgruen/   Design-System (Kopie, nicht von Hand ändern)
+design-system/  Design-System „Bankiersgrün“: Bundle, Typen, Tokens, je Komponente README + Vorschau
 scripts/        api-get, shot, audit, sync-design-system
 docker/         nginx-Konfiguration und Deploy-Anleitung
 ```
@@ -129,16 +129,22 @@ Jede Seite folgt demselben Muster (Vorbild `src/security/`):
 
 Die Oberfläche baut auf einem eigenen Design-System auf: dunkles Flaschengrün mit Messing,
 Source Serif 4 / Libre Franklin / IBM Plex Mono, deutsche Zahlenformate (`1,5 Mio. €`, echtes `−`),
-Kursrichtung immer mit ▲/▼. Komponenten, Tokens und Plotly-Templates liegen als Kopie in
-`vendor/bankiersgruen/` (Markenbuch: [`vendor/bankiersgruen/README.md`](vendor/bankiersgruen/README.md),
-Diagrammregeln: [`diagramme.md`](vendor/bankiersgruen/diagramme.md), Typen: `index.d.ts`).
+Kursrichtung immer mit ▲/▼. Es liegt vollständig in [`design-system/`](design-system/):
 
-Eingebunden wird es über `import { DS } from './ds'`. Farben kommen ausschließlich aus Tokens
+| Datei | Inhalt |
+| --- | --- |
+| [`README.md`](design-system/README.md) | Markenbuch: Farben, Typografie, Zahlen, Handy, Regeln, Kontraste |
+| [`guidelines/diagramme.md`](design-system/guidelines/diagramme.md) | Diagrammregeln und welches Diagramm wofür |
+| `tokens.json` → `tokens.css` | Design-Tokens; `tokens.css` wird mit `npm run ds:tokens` erzeugt |
+| `components/bundle.js`, `bundle.css`, `index.d.ts` | alle Komponenten (ein klassisches Skript ohne Build-Schritt, setzt `window.Bankiersgruen`) und ihre Typen |
+| `components/<Name>/README.md`, `preview.html` | Richtlinien und Live-Vorschau je Komponente |
+
+**Galerie:** Bei laufendem `npm run dev` zeigt <http://localhost:5173/design-system/> alle Vorschauen.
+
+In der App wird es über `import { DS } from './ds'` eingebunden. Farben kommen ausschließlich aus Tokens
 (`var(--bg-card)` …), nie als Hex im Code – so funktioniert auch der Farbenblind-Modus (`data-theme="cb"`).
-
-Die Quelle des Design-Systems wird außerhalb dieses Repos gepflegt; `npm run ds:sync` übernimmt neue
-Versionen. Braucht eine Änderung eine neue oder erweiterte Komponente, bau sie zunächst in der App
-und beschreib sie im Pull Request – sie kann dann ins Design-System wandern.
+Neue oder erweiterte Komponenten gehören ins Design-System: Komponente in `bundle.js` (am Ende bei
+`window.Bankiersgruen` eintragen), Typen in `index.d.ts`, dazu `README.md` und `preview.html`.
 
 ## Mitmachen
 

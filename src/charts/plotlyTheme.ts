@@ -1,4 +1,4 @@
-// Bankiersgrün Plotly theme (port of bankiersgruenPlotly() from vendor/bankiersgruen/diagramme.md).
+// Bankiersgrün Plotly theme (port of bankiersgruenPlotly() from design-system/guidelines/diagramme.md).
 // Reads the CSS tokens at draw time, so the colour-blind theme applies automatically.
 
 export function tokens() {

@@ -1,0 +1,53 @@
+<!-- @dsCard group="Forum" height=1420 width=960 subtitle="Thema mit Beiträgen, Zitat, Aktie, Trade, Hilfreich, Seiten und Antwortfeld" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>ForumThread</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-6); max-width: 880px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var frieda = { name: 'Frieda Kontor', rank: 1, alliance: 'Hanseatische Allianz', posts: 1284 };
+  var fuchs = { name: 'Börsenfuchs_77', rank: 2, alliance: 'Nordbund', posts: 3410 };
+  var paul = { name: 'Anleger Paul', posts: 58 };
+  function Demo() {
+    var ed = React.useRef(null);
+    var pg = React.useState(1);
+    function quote(a, t) { return function () { if (ed.current) { ed.current.insertQuote(a, t); ed.current.focus(); } }; }
+    var op = 'Die Hanse Reederei hat heute früh ihre Zahlen vorgelegt: **Umsatz +12 %**, die Dividende bleibt bei 1,80 €. $HRD steht seitdem deutlich im Plus.\n\nMeine Frage an euch: Ist das Plus schon eingepreist, oder steigen wir jetzt noch ein? Ich sehe drei Punkte:\n\n- Frachtraten fallen seit Wochen\n- Die Dividendenrendite liegt noch bei gut 3,7 %\n- Die Konkurrenz meldet erst im November';
+    return h('div', { className: 'wrap' }, h(DS.ForumThread, {
+      eyebrow: h('a', { href: '#' }, 'Forum · Aktien im Gespräch'),
+      title: 'Reedereien nach den Quartalszahlen – noch kaufen?',
+      meta: [h('span', { key: 1 }, '24 Antworten'), h('span', { key: 2 }, '612 Aufrufe'), h('span', { key: 3 }, 'Seit heute, 09:12')],
+      actions: h(DS.Button, { size: 'sm' }, 'Beobachten'),
+      pagination: h(DS.Pagination, { page: pg[0], pages: 3, onChange: pg[1] }),
+      reply: h(DS.ForumEditor, { ref: ed, mode: 'reply', heading: 'Ihre Antwort', tickers: tickers, onSubmit: function () {} })
+    },
+      h(DS.ForumPost, { key: 1, number: 1, op: true, author: frieda, time: 'Heute, 09:12', text: op, tickers: tickers,
+        stocks: [{ name: 'Hanse Reederei AG', ticker: 'HRD', period: '30 Tage', price: 48.72, change: 2.34, spark: [44, 44.6, 45.1, 44.8, 45.9, 46.2, 45.7, 46.8, 47.4, 47.1, 48.2, 48.72], href: '#HRD' }],
+        helpful: { count: 14 }, onQuote: quote('Frieda Kontor', 'Ist das Plus schon eingepreist?'), onReply: function () { ed.current && ed.current.focus(); } }),
+      h(DS.ForumPost, { key: 2, number: 2, author: fuchs, time: 'Heute, 10:31', tickers: tickers,
+        quote: { author: 'Frieda Kontor', number: 1, text: 'Ist das Plus schon eingepreist, oder steigen wir jetzt noch ein?' },
+        text: 'Zum Teil. Ich würde nicht hinterherlaufen, sondern ein Limit knapp unter 48 € legen. Bei $NBH habe ich im Sommer genau so den Rücksetzer mitgenommen.',
+        helpful: { count: 22, defaultActive: true }, onQuote: quote('Börsenfuchs_77', 'Ich würde nicht hinterherlaufen, sondern ein Limit knapp unter 48 € legen.'), onReply: function () {} }),
+      h(DS.ForumPost, { key: 3, number: 3, author: paul, time: 'Heute, 11:05', edited: 'um 11:12', tickers: tickers,
+        text: 'Ich bin *vor* den Zahlen rein – hier mein Trade:',
+        trade: { side: 'buy', status: 'ausgeführt', name: 'Hanse Reederei AG', ticker: 'HRD', qty: 40, price: 46.1, change: 5.68 },
+        helpful: { count: 3 }, onQuote: quote('Anleger Paul', 'Ich bin vor den Zahlen rein.'), onReply: function () {} })
+    ));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

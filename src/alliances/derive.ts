@@ -1,4 +1,4 @@
-import type { AchievementItem } from '../../vendor/bankiersgruen';
+import type { AchievementItem } from '../../design-system/components';
 import type { ApiMessage } from '../lib/messages';
 import { achievementItems } from '../players/derive';
 

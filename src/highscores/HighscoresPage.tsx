@@ -8,7 +8,7 @@ import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
 import { ViewList } from '../app/phone';
 import { positionChart } from './charts';
-import type { HighscoreType } from '../../vendor/bankiersgruen';
+import type { HighscoreType } from '../../design-system/components';
 import './HighscoresPage.css';
 
 const PAGE = 50;

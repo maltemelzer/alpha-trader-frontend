@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { DS } from '../ds';
 import { useDeleteOrder, useOpenOrders } from '../api/queries';
-import type { SecurityOrderView } from '../../vendor/bankiersgruen';
+import type { SecurityOrderView } from '../../design-system/components';
 
 /** Open orders of an account with „Löschen“ behind a confirmation. */
 export function OpenOrders({

@@ -1,0 +1,32 @@
+<!-- @dsCard group="Unternehmen" height=1180 width=1240 subtitle="Als CEO begeben: Anleihe oder Systemanleihe, eigener Index, Fonds (mit Banklizenz), Optionsschein" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Emissionen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-6); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+  @media (max-width: 960px) { .wrap { grid-template-columns: 1fr; padding: var(--space-4); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var cands = [{ name: 'Alsterkasse SE', securityIdentifier: 'STALSTERKS' }, { name: 'Hanse Reederei AG', securityIdentifier: 'STHANSEREE' }, { name: 'Elbwerk Energie SE', securityIdentifier: 'STELBWERKE' },
+    { name: 'Nordbank Holding', securityIdentifier: 'STNORDBANK' }, { name: 'Signalwerk AG', securityIdentifier: 'STSIGNALWK' }, { name: 'Brauerei Stern', securityIdentifier: 'STBRAUSTRN' }];
+  var idx = [{ name: 'ATSX', securityIdentifier: 'IDATSX30MC' }, { name: 'Hanse 10', securityIdentifier: 'IDHANSEALL' }];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.Card, { title: 'Anleihe begeben', eyebrow: 'Nordkap Bank AG' }, h(DS.BondIssueForm, { canIssueSystemBonds: true, mainRate: 2.5, averageRate: 2.0532, submitVariant: 'secondary', onSubmit: function () {} })),
+    h(DS.Card, { title: 'Index anlegen', eyebrow: 'Nordkap Bank AG' }, h(DS.IndexBuilder, { candidates: cands, defaultMembers: ['STALSTERKS', 'STHANSEREE'], gold: true, submitVariant: 'secondary', onSubmit: function () {} })),
+    h(DS.Card, { title: 'Fonds auflegen', eyebrow: 'Nordkap Bank AG' }, h(DS.EtfCreateForm, { indexes: idx, licensed: true, submitVariant: 'secondary', onSubmit: function () {} })),
+    h(DS.Card, { title: 'Optionsschein begeben', eyebrow: 'Hanse Beteiligungs AG' }, h(DS.WarrantIssueForm, { underlyings: idx.concat(cands.slice(0, 2)), defaultUnderlying: 'IDATSX30MC', cash: 2521136126.58, submitVariant: 'secondary', onSubmit: function () {} }))));
+</script>
+</body>
+</html>

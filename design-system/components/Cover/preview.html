@@ -1,0 +1,55 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Bankiersgrün</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&display=swap">
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--bg-page); color:var(--text-primary); font-family:var(--font-sans); overflow:hidden; }
+  .cover { position:relative; height:288px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
+  .art svg { display:block; width:480px; height:288px; }
+  .brass { fill:var(--brass); }
+  .paper { fill:var(--text-primary); }
+  .raised { fill:var(--bg-raised); }
+  .strong { fill:var(--line-strong); }
+  .tint { fill:var(--brass-tint); }
+  .blk { rx:var(--radius-md); }
+  .hair { stroke:var(--line-strong); stroke-width:var(--border); }
+  .rule { stroke:var(--brass); stroke-width:var(--rule); }
+  .words { position:absolute; left:var(--space-6); bottom:var(--space-6); max-width:440px; }
+  .name { margin:0; font-family:var(--font-serif); font-size:64px; line-height:.95; font-weight:600; letter-spacing:-.01em; color:var(--text-primary); }
+  .tag { margin:var(--space-2) 0 0 2px; font-size:14px; line-height:20px; color:var(--text-secondary); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      text-primary 168×216 (die Zeitungsseite) · brass 120×176 aus der Oberkante blutend (Marke, größter Farbblock) · bg-raised 120×80 · line-strong 144×168 rechts angeschnitten · brass-tint 64×56 als Relief – zusammen ≈ ein Drittel von 960×288
+  arrangement eine Zeitungsspalte links, daneben Messing-Platte mit Satelliten; Unterkanten auf einer Linie space-6 über dem Rand, Fugen space-4
+  pattern     wenige Haarlinien, weil die README „Wirtschaftszeitung, feine Linien statt schwerer Karten“ sagt: eine 2px-Messing-Linie (rule) unter der „Schlagzeile“ und vier Haarlinien in line-strong über die Zeitungsseite
+  scales      Seiten in space-2-Vielfachen; Fugen space-4; Zeilenabstand space-6; Ecken radius-md; Linie stroke rule
+-->
+<rect class="paper blk" x="24" y="48" width="168" height="216" rx="4"/>
+<rect class="brass blk" x="208" y="-8" width="120" height="176" rx="4"/>
+<rect class="raised blk" x="208" y="184" width="120" height="80" rx="4"/>
+<rect class="tint blk" x="344" y="24" width="64" height="56" rx="4"/>
+<rect class="strong blk" x="344" y="96" width="144" height="168" rx="4"/>
+<line class="rule" x1="40" y1="88" x2="176" y2="88"/>
+<line class="hair" x1="40" y1="128" x2="176" y2="128"/>
+<line class="hair" x1="40" y1="152" x2="176" y2="152"/>
+<line class="hair" x1="40" y1="176" x2="176" y2="176"/>
+<line class="hair" x1="40" y1="200" x2="136" y2="200"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Bankiersgrün</h1>
+<p class="tag">Schreibtischleder, Messing und der Kurszettel von heute.</p>
+</div>
+</div>
+</body>
+</html>

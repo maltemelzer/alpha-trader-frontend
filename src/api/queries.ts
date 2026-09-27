@@ -52,7 +52,7 @@ import type {
   Suggestion,
   TradeLogEntry,
   TradeSummaryView,
-} from '../../vendor/bankiersgruen';
+} from '../../design-system/components';
 import type { Sponsorship, WriteRequest } from '../companies/derive';
 import type { Sponsor, SponsoringGoal } from '../sponsoring/derive';
 

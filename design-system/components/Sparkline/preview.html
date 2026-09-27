@@ -1,0 +1,57 @@
+<!-- @dsCard group="Kurse" height=520 subtitle="Richtung · Vortagesschluss · in der Watchlist · als Tabellenspalte" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Sparkline</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { padding: var(--space-4) var(--space-6); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); align-items: start; }
+  .full { grid-column: 1 / -1; }
+  .row { display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap; padding-bottom: var(--space-4); border-bottom: var(--hairline) solid var(--line); }
+  .pair { display: inline-flex; align-items: center; gap: var(--space-2); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  function walk(seed, n, start, drift) {
+    var s = seed, out = [], p = start;
+    for (var i = 0; i < n; i++) { s = (s * 16807) % 2147483647; p = p * (1 + ((s / 2147483647) - 0.5 + drift) * 0.05); out.push(Math.round(p * 100) / 100); }
+    return out;
+  }
+  var up = walk(7, 30, 44, 0.08), down = walk(11, 30, 66, -0.08), flat = walk(5, 30, 142, 0);
+  flat[29] = flat[0];
+  var intra = walk(3, 40, 47.6, 0.03);
+  function pct(a) { return (a[a.length - 1] / a[0] - 1) * 100; }
+  var stocks = [
+    { t: 'HRD', n: 'Hanse Reederei AG', d: walk(7, 30, 44, 0.08) },
+    { t: 'NBH', n: 'Nordbank Holding', d: walk(11, 30, 118, -0.05) },
+    { t: 'RSW', n: 'Rheinstahl Werke', d: walk(19, 30, 22.5, 0.02) },
+    { t: 'BBU', n: 'Bayerische Brauunion', d: walk(23, 30, 7.1, 0.1) }
+  ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h('div', { className: 'full' }, h('div', { className: 'lbl' }, 'Richtung im Zeitraum · immer mit Kurszettel daneben'), h('div', { className: 'row' },
+      h('span', { className: 'pair' }, h(DS.Sparkline, { data: up }), h(DS.PriceChange, { value: pct(up) })),
+      h('span', { className: 'pair' }, h(DS.Sparkline, { data: down }), h(DS.PriceChange, { value: pct(down) })),
+      h('span', { className: 'pair' }, h(DS.Sparkline, { data: flat }), h(DS.PriceChange, { value: 0 })),
+      h('span', { className: 'pair' }, h(DS.Sparkline, { data: intra, baseline: 47.6, width: 120, height: 32 }), h('span', { className: 'lbl', style: { margin: 0 } }, 'Heute · gestrichelt: Vortagesschluss')))),
+    h(DS.Card, { title: 'Watchlist', eyebrow: '30 Tage', flush: true },
+      h('ul', { className: 'bnk-list' }, stocks.map(function (s) {
+        return h(DS.StockRow, { key: s.t, name: s.n, ticker: s.t, price: s.d[29], change: pct(s.d), spark: s.d });
+      }))),
+    h(DS.Card, { title: 'Marktübersicht', eyebrow: 'Als Tabellenspalte', flush: true },
+      h(DS.DataTable, { rowKey: 't', density: 'sm', rows: stocks.map(function (s) { return { t: s.t, stock: { name: s.n, ticker: s.t }, spark: s.d, price: s.d[29], chg: pct(s.d) }; }),
+        columns: [
+          { key: 'stock', label: 'Titel', type: 'stock' },
+          { key: 'spark', label: '30 T.', type: 'sparkline', sparkWidth: 64 },
+          { key: 'chg', label: '30 T. %', type: 'change', sortable: true }
+        ] }))
+  ));
+</script>
+</body>
+</html>

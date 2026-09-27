@@ -1,5 +1,5 @@
 // Pure mapping from API chats/messages to the design system's chat props.
-import type { ChatMessage, Conversation } from '../../vendor/bankiersgruen';
+import type { ChatMessage, Conversation } from '../../design-system/components';
 import type { ChatMembershipView, ChatRoomView, ChatView, MessageView } from '../api/types';
 
 const DAY = 86_400_000;

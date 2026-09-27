@@ -1,0 +1,39 @@
+<!-- @dsCard group="Kurse" height=440 width=720 subtitle="Laufende Orders und Trades: neue oben, kurz hervorgehoben, anhaltbar" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>LiveTicker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-4) var(--space-6); }
+  @media (max-width: 480px) { .wrap { padding: var(--space-3); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now();
+  function r(asin, name, type, bid, ask, bs, as) { return { listing: { securityIdentifier: asin, name: name, type: type }, price: { bidPrice: bid, askPrice: ask, bidSize: bs, askSize: as } }; }
+  var results = [r('STALSTERKS', 'Alsterkasse SE', 'STOCK', 55.74, 55.79, 8750037, 21), r('STHANSEREE', 'Hanse Reederei AG', 'STOCK', 48.70, 48.74, 8750, 21),
+    r('BONORDK1QZ', 'Nordkap Bank AG 2,0500 %', 'BOND', 99.88, 100.0, 12000, 8000), r('ACALPHCOIN', 'AlphaCoins', 'COIN', 20001, 20240, 18618388, 751333),
+    r('STELBWERKE', 'Elbwerk Energie SE', 'STOCK', 9.81, 9.90, 2400000, 900000), r('BUKONTOR01', 'Kontorhaus am Sandtor', 'BUILDING', null, 18400000, null, 1),
+    r('ETATSXTRK1', 'ATSX Tracker', 'ETF', 125410.2, 125600, 40, 12)];
+  var ticks = [
+    { id: 't1', action: 'SELL', listing: { name: 'johnnytempleton42 Inc. 2,05 %', securityIdentifier: 'BOJ71XF384', type: 'BOND' }, price: 100.0, numberOfShares: 1000, date: now - 4000 },
+    { id: 't2', action: 'SELL', listing: { name: 'Maxi199428 Inc.', securityIdentifier: 'STSS48VWFC', type: 'STOCK' }, price: 14.97, numberOfShares: 8, date: now - 9000 },
+    { id: 't3', action: 'BUY', listing: { name: 'Hanse Reederei AG', securityIdentifier: 'STHANSEREE', type: 'STOCK' }, price: 48.74, numberOfShares: 500, date: now - 21000 },
+    { id: 't4', action: 'SELL', listing: { name: 'zFloat Vault 007', securityIdentifier: 'STFLTVLT07', type: 'STOCK' }, price: 1.53, numberOfShares: 316, date: now - 44000 },
+    { id: 't5', action: 'BUY', listing: { name: 'Alsterkasse SE', securityIdentifier: 'STALSTERKS', type: 'STOCK' }, price: 55.79, numberOfShares: 21, date: now - 61000 },
+    { id: 't6', listing: { name: 'Nordbank Holding', securityIdentifier: 'STNORDBANK', type: 'STOCK' }, price: 17.35, numberOfShares: 250000, date: now - 90000 }];
+  var stats = { onlineUsers: 161, users: 16829, companies: 9420, listings: 159196, marketCap: 3011052525588754 };
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' }, h(DS.Card, { flush: true }, h(DS.LiveTicker, { title: 'Aktuelle Orders', items: ticks, hrefFor: function () { return '#'; } }))));
+</script>
+</body>
+</html>

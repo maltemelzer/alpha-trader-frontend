@@ -1,0 +1,44 @@
+<!-- @dsCard group="Seiten" height=940 width=1280 subtitle="Profil eines Unternehmens: Kopf, Stammdaten und Bank, Bilanz, Abstimmungen" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Unternehmensprofil</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-6) var(--space-6) var(--space-8); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: var(--space-6); margin-top: var(--space-6); align-items: start; }
+  .col { display: grid; gap: var(--space-6); min-width: 0; }
+  @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now(), D = 864e5;
+  var sheet = { date: now - 18 * D, periodStart: now - 27 * D, cash: 812000000, stocksValue: 2140000000, bondsValue: 6980000000, buildingsValue: 0, otherAssetsValue: 0, centralBankReserves: 1500000000,
+    totalAssets: 11432000000, issuedBondsValue: 1200000000, repurchaseObligations: 1112000000, equity: 9120000000, totalLiabilities: 2312000000, periodResult: 92000000 };
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.ProfileHeader, { kind: 'company', name: 'Nordkap Bank AG', eyebrow: ['STNORDKAPB', 'Aktie'], meta: ['CEO Frieda Kontor', 'notiert seit 3.2.2026', 'Gehalt 350,00 € je Tag'],
+      tags: [{ label: 'Banklizenz' }, { label: 'Market Maker' }, { label: 'ATSX-Mitglied' }],
+      actions: [h(DS.Button, { key: 1, size: 'sm' }, 'Zum Wertpapier'), h(DS.Button, { key: 2, size: 'sm', variant: 'ghost', iconStart: h(DS.Icon, { name: 'merken', size: 16 }) }, 'Merken')],
+      stats: [{ label: 'Kurs', value: '17,35 €', sub: 'Marktkap. 4,34 Mrd. €' }, { label: 'Buchwert', value: 9120000000, rank: 38 }, { label: 'Net Cash', value: -3100000000 }, { label: 'Erfolge', value: '6 / 9' }],
+      tabs: h(DS.Tabs, { size: 'sm', 'aria-label': 'Unternehmen', defaultValue: 'u', items: [{ value: 'u', label: 'Übersicht' }, { value: 'b', label: 'Bilanz' }, { value: 'n', label: 'Pressemitteilungen', count: 12 }, { value: 'a', label: 'Abstimmungen', count: 1 }] }) }),
+    h('div', { className: 'grid' },
+      h('div', { className: 'col' },
+        h(DS.Card, { title: 'Bilanz' }, h(DS.BalanceSheet, { sheet: sheet }))),
+      h('div', { className: 'col' },
+        h(DS.Card, { title: 'Stammdaten' }, h(DS.SummaryList, { items: [
+          { label: 'ASIN', value: 'STNORDKAPB' }, { label: 'Ausgegebene Anteile', value: 250000000, currency: '', decimals: 0, compact: true }, { label: 'Streubesitz', value: '48,8 %' },
+          { label: 'Market-Maker-Politik', value: 'Offen' }, { label: 'Banklizenz seit', value: '15.8.2026' }, { label: 'ZB-Reserven', value: 1500000000, compact: true }, { label: 'Max. ZB-Kredite', value: 15000000000, compact: true } ] })),
+        h(DS.Card, { title: 'Größte Aktionäre' }, h(DS.ShareList, { items: [
+          { listing: { name: 'CptnIglo', securityIdentifier: 'Spieler' }, shareInPercent: 51.2 }, { listing: { name: 'Hanse Beteiligungs AG', securityIdentifier: 'STHANSEBET' }, shareInPercent: 12.4 } ] }))))));
+</script>
+</body>
+</html>

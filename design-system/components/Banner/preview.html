@@ -1,0 +1,26 @@
+<!-- @dsCard group="Dialoge" height=380 subtitle="Kapitalmaßnahme · Wartung · Erfolg · Fehler" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Banner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { padding: var(--space-4) var(--space-6); display: grid; gap: var(--space-3); max-width: 760px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.Banner, { title: 'Kapitalerhöhung läuft', action: h(DS.Button, { size: 'sm' }, 'Bezugsrechte ansehen') }, 'Hanse Beteiligungs AG: Zeichnung bis Sonntag, ', h('span', { className: 'num' }, '14:00'), ' Uhr, mindestens ', h('span', { className: 'num' }, '1,88 Bio. €'), '.'),
+    h(DS.Banner, { title: 'Wartung heute Nacht', onClose: function () {} }, 'Zwischen ', h('span', { className: 'num' }, '02:00'), ' und ', h('span', { className: 'num' }, '02:30'), ' Uhr werden keine Orders ausgeführt.'),
+    h(DS.Banner, { variant: 'reward', title: 'Erfolg erreicht: Top 10 % Nutzer', action: h(DS.Button, { size: 'sm' }, 'Abholen') }, '3 AlphaCoins warten auf Sie.'),
+    h(DS.Banner, { variant: 'error', title: 'Verbindung unterbrochen', action: h(DS.Button, { size: 'sm' }, 'Neu laden') }, 'Die Kurse sind seit ', h('span', { className: 'num' }, '06:31'), ' Uhr nicht aktuell. Neue Orders werden nicht gesendet.')));
+</script>
+</body>
+</html>

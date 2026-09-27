@@ -1,0 +1,56 @@
+<!-- @dsCard group="Spiel" height=760 width=980 subtitle="Nutzer · Unternehmen · Allianzen nach Kategorie, Veränderung zum Vortag, eigene Zeile" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>HighscoreTable</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-4) var(--space-6); }
+  .top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--space-3) var(--space-4); padding: var(--space-3) var(--space-4); border-bottom: var(--hairline) solid var(--line); }
+  .top .bnk-field { min-width: 220px; }
+  .desc { padding: var(--space-2) var(--space-4); font-size: 13px; color: var(--text-secondary); border-bottom: var(--hairline) solid var(--line); }
+  .foot { display: flex; justify-content: flex-end; padding: var(--space-2) var(--space-4); border-top: var(--hairline) solid var(--line); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = {};
+  var T = DS.HIGHSCORE_TYPES;
+  var users = ['Frieda Kontor', 'Börsenfuchs_77', 'Hanseat_M', 'Kursfeder', 'Anleger Paul', 'Stiller Teilhaber', 'Tagesgeld', 'Nordlicht', 'Zinsjäger', 'CptnIglo'];
+  var companies = ['Hanse Beteiligungs AG', 'Nordkap Bank', 'Elbwerk Energie SE', 'Signalwerk AG', 'Kontor Holding', 'Rheinstahl Werke', 'Alsterkredit', 'Brauerei Stern', 'Hafenfonds AG', 'Windhafen AG'];
+  var alliances = ['Hanseatische Allianz', 'Nordbund', 'Kapitalkreis', 'Die Rebellen', 'Index 200', 'Kontorgemeinschaft', 'Elbbund', 'Zinsfront', 'Stille Reserve', 'Freie Makler'];
+  var values = { BOOK_VALUE: [3.04e15, 2.1e15, 8.7e14, 2.4e14, 6.9e13, 1.2e13, 9.8e11, 4.2e10, 7.5e8, 2321581.52], NET_CASH: [1.76e12, 9.1e11, 4e11, 1.2e11, 3e10, 8e9, 1e9, 4.4e8, 2e7, 993113.48],
+    CASH_FLOW: [2.5e11, 1.1e11, 3.2e10, 9e9, 1.4e9, 3e8, -2e7, -4e8, -1.1e9, -3e9], ACHIEVEMENTS: [95, 95, 90, 90, 85, 85, 85, 80, 75, 45], MINER: [255167.79, 204134.23, 130645.9, 130645.9, 104516.72, 104516.72, 90000, 81000, 60000, 1.18],
+    TRADES: [48210, 31044, 18000, 9400, 5100, 2300, 1400, 800, 410, 12], CHAT_MESSAGES: [4010, 2604, 1880, 900, 640, 310, 200, 120, 60, 3], ONLINE_TIME: [98410, 80202, 64000, 51000, 32000, 20100, 18000, 9000, 4000, 1210],
+    RESERVES: [2.5e13, 9e12, 4e12, 1e12, 5e11, 1e11, 5e10, 1e10, 1e9, 0], BUILDING: [12000, 9000, 7500, 5000, 5000, 1200, 150, 150, 0, 0] };
+  var hist = [2, 1, 3, 6, 5, 4, 8, 7, null, 14];
+  function Demo() {
+    var kind = React.useState('user'), type = React.useState('BOOK_VALUE'), pg = React.useState(1);
+    var names = kind[0] === 'user' ? users : kind[0] === 'company' ? companies : alliances;
+    var entries = names.map(function (n, i) {
+      var ent = kind[0] === 'user' ? { user: { id: 'u' + i, username: n, myUser: n === 'CptnIglo', userCapabilities: { achievementCount: 19 - i, achievementTotal: 20 } } }
+        : kind[0] === 'company' ? { company: { id: 'c' + i, name: n, securityIdentifier: 'ST' + n.replace(/[^A-Z]/gi, '').toUpperCase().slice(0, 8).padEnd(8, 'X') } }
+        : { alliance: { id: 'a' + i, name: n } };
+      ent.value = values[type[0]][i]; ent.historyPosition = hist[i]; if (i === 9) ent.rank = 1318;
+      return ent;
+    });
+    if (kind[0] !== 'user') entries[9].company ? (entries[9].company.id = 'own') : entries[9].alliance && (entries[9].alliance.id = 'own');
+    return h('div', { className: 'wrap' }, h('div', { className: 'box' },
+      h('div', { className: 'top' },
+        h(DS.SegmentedControl, { 'aria-label': 'Bestenliste', size: 'sm', fullWidth: false, value: kind[0], onChange: kind[1], options: [{ value: 'user', label: 'Nutzer' }, { value: 'company', label: 'Unternehmen' }, { value: 'alliance', label: 'Allianzen' }] }),
+        h(DS.Select, { label: 'Kategorie', size: 'sm', fullWidth: false, value: type[0], onChange: function (e) { type[1](e.target.value); }, options: Object.keys(T).map(function (k) { return { value: k, label: T[k].label }; }) })),
+      h('div', { className: 'desc' }, T[type[0]].description + ' · Stand 24.9.2026, 06:00 Uhr'),
+      h(DS.HighscoreTable, { kind: kind[0], type: type[0], entries: entries, ownId: kind[0] === 'user' ? undefined : 'own', hrefFor: function () { return '#'; } }),
+      h('div', { className: 'foot' }, h(DS.Pagination, { page: pg[0], pages: 1683, onChange: pg[1], total: '16.828 Nutzer' }))));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

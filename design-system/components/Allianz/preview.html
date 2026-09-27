@@ -1,0 +1,46 @@
+<!-- @dsCard group="Seiten" height=1080 width=1280 subtitle="Allianz: Kopf mit Index und Plätzen, Mitglieder mit Rollen, Pressemitteilungen, Erfolge" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Allianz</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-6) var(--space-6) var(--space-8); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--space-6); margin-top: var(--space-6); align-items: start; }
+  .col { display: grid; gap: var(--space-6); min-width: 0; }
+  @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } .wrap { padding: var(--space-4); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now(), D = 864e5;
+  function m(id, name, role, online, days, me) { return { id: id, member: { username: name, myUser: !!me }, role: role, online: online, dateJoined: now - days * D }; }
+  var members = [m(1, 'Frieda Kontor', 'OWNER', true, 900), m(2, 'CptnIglo', 'PRESS_OFFICER', true, 630, true), m(3, 'Kursfeder', 'DEPUTY', false, 410), m(4, 'Zinsjäger', 'MEMBER', true, 120), m(5, 'Anleger Paul', 'MEMBER', false, 40), m(6, 'Hanseat_M', 'MEMBER', false, 12)];
+  var posts = [
+    { id: 'p1', title: 'Hanseatische Allianz legt Index-Regel neu fest', author: { username: 'Frieda Kontor' }, date: now - 5 * 3600e3, language: 'DE', body: 'Ab Oktober zählen nur noch Werte mit mindestens 10 % Streubesitz. Der Index wird täglich um 12 Uhr verkettet.', reactions: { likes: 12, dislikes: 0, comments: 3 } }
+  ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.ProfileHeader, { kind: 'alliance', name: 'Hanseatische Allianz', eyebrow: ['Deutsch'], meta: ['gegründet 3.1.2024', '24 Mitglieder', '6 online'],
+      tags: [{ label: 'Eigener Index' }],
+      actions: [h(DS.Button, { key: 1, size: 'sm', iconStart: h(DS.Icon, { name: 'chat', size: 16 }) }, 'Allianz-Chat'), h(DS.Button, { key: 2, size: 'sm', variant: 'ghost' }, 'Austreten')],
+      stats: [{ label: 'Buchwert', value: 48210000000000, rank: 3 }, { label: 'Index', value: 'IDHANSEALL', sub: h('span', null, '1.284,6 Pkt. ', h(DS.PriceChange, { value: 0.42, size: 'sm', suffix: 'heute' })) }, { label: 'Mitglieder', value: '24' }, { label: 'Erfolge', value: '2 / 3' }],
+      tabs: h(DS.Tabs, { size: 'sm', 'aria-label': 'Allianz', defaultValue: 'u', items: [{ value: 'u', label: 'Übersicht' }, { value: 'm', label: 'Mitglieder', count: 24 }, { value: 'n', label: 'Presse', count: 8 }, { value: 'f', label: 'Forum' }] }) }),
+    h('div', { className: 'grid' },
+      h('div', { className: 'col' }, h(DS.Card, { title: 'Mitglieder', action: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Alle 24') },
+        h(DS.AllianceMembers, { members: members, hrefFor: function () { return '#'; }, onRoleChange: function () {}, onRemove: function () {} }))),
+      h('div', { className: 'col' },
+        h(DS.Card, { title: 'Über die Allianz' }, h('p', { style: { margin: 0, fontSize: '15px', lineHeight: '22px', color: 'var(--text-secondary)' } }, 'Hanseatische Kaufleute mit langem Atem: Wir halten Reedereien, Banken und Versorger und stimmen bei Kapitalmaßnahmen gemeinsam ab.')),
+        h(DS.Card, { title: 'Erfolge' }, h('div', { style: { display: 'grid', gap: '8px' } },
+          h(DS.Achievement, { title: 'Oberes Zehntel', description: 'Unter den besten 10 % im Allianz-Highscore.', unlocked: true, date: '12.9.2026' }),
+          h(DS.Achievement, { title: 'Beste Allianz', description: 'Platz 1 im Allianz-Highscore.', progress: { value: 0, max: 1, unit: 'Platz 1' } })))))));
+</script>
+</body>
+</html>

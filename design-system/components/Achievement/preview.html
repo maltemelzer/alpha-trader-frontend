@@ -1,0 +1,27 @@
+<!-- @dsCard group="Spiel" height=260 subtitle="freigeschaltet · neu · gesperrt mit Fortschritt" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Achievement</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { padding: var(--space-4) var(--space-6); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.Achievement, { unlocked: true, isNew: true, title: 'Top 10 % Nutzer', description: 'Platz in den oberen 10 % eines Nutzer-Highscores · 3 AlphaCoins', date: '23.09.2026', symbol: 'T' }),
+    h(DS.Achievement, { unlocked: true, title: 'Mein erster Coin', description: 'Einen AlphaCoin ins eigene Portfolio übertragen · 1 AlphaCoin', date: '05.06.2025', symbol: 'C' }),
+    h(DS.Achievement, { title: 'Level 6 Online', description: 'Online-Minuten sammeln · 10 AlphaCoins', progress: { value: 70, max: 100, unit: '%' }, symbol: '6' }),
+    h(DS.Achievement, { title: 'Hundert Trades', description: '100 Trades in einer Woche · 10 AlphaCoins', progress: { value: 57, max: 100, unit: 'Trades' }, symbol: 'H' })
+  ));
+</script>
+</body>
+</html>

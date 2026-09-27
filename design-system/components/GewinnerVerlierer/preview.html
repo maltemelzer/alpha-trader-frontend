@@ -1,0 +1,102 @@
+<!-- @dsCard group="Diagramme" height=440 subtitle="Plotly · Horizontale Balken um die Nulllinie" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Gewinner und Verlierer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@3.7.0/plotly.min.js"></script>
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-card);color:var(--text-primary);font-family:var(--font-sans)}
+  .wrap{padding:var(--space-4)}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:var(--space-2) var(--space-4);padding-bottom:var(--space-3);border-bottom:var(--hairline) solid var(--line);margin-bottom:var(--space-3)}
+  .nm{font-family:var(--font-serif);font-size:16px;line-height:22px;font-weight:600}
+  .tk{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;color:var(--text-secondary);text-transform:uppercase}
+  .px{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;justify-content:flex-end}
+  .fig{font-family:var(--font-mono);font-size:28px;line-height:32px;font-weight:500}
+  .sub{font-family:var(--font-mono);font-size:13px;line-height:18px;color:var(--text-secondary)}
+  .tag{font-family:var(--font-mono);font-size:15px;line-height:20px;font-weight:500;padding:3px var(--space-2);border-radius:var(--radius-sm)}
+  .tag.up{color:var(--gain);background:var(--gain-tint)}
+  .tag.down{color:var(--loss);background:var(--loss-tint)}
+  .tag.flat{color:var(--unchanged);background:var(--bg-raised)}
+  .foot{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);align-items:center;margin-top:var(--space-3);padding-top:var(--space-2);border-top:var(--hairline) solid var(--line);font-size:12px;line-height:16px;color:var(--text-secondary)}
+  .key{display:inline-flex;align-items:center;gap:6px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:var(--radius-sm)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="head"><div><div class="nm">Gewinner &amp; Verlierer</div><div class="tk">Alle Aktien · Heute · 17:35 Uhr</div></div></div>
+<div id="c" style="height:330px"></div>
+</div>
+<script>
+/* Bankiersgrün – Plotly-Theme. Liest die Design-Tokens (CSS-Variablen aus tokens.css),
+   damit Darkmode und Farbenblind-Modus automatisch stimmen. */
+function bankiersgruenPlotly() {
+  var cs = getComputedStyle(document.documentElement);
+  var v = function (n) { return cs.getPropertyValue('--' + n).trim(); };
+  var sans = v('font-sans'), serif = v('font-serif'), mono = v('font-mono');
+  var axis = {
+    showgrid: false, zeroline: false, showline: true, linecolor: v('line-strong'), linewidth: 1,
+    ticks: '', automargin: true, fixedrange: true,
+    tickfont: { family: mono, size: 11, color: v('text-secondary') }
+  };
+  return {
+    tokens: v,
+    layout: {
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { family: sans, size: 12, color: v('text-secondary') },
+      title: { font: { family: serif, size: 18, color: v('text-primary') }, x: 0, xanchor: 'left' },
+      colorway: [1, 2, 3, 4, 5].map(function (i) { return v('chart-' + i); }),
+      separators: ',.',
+      margin: { l: 0, r: 0, t: 8, b: 0 },
+      xaxis: Object.assign({}, axis, {
+        showspikes: true, spikemode: 'across', spikesnap: 'cursor', spikedash: 'solid',
+        spikecolor: v('line-strong'), spikethickness: 1
+      }),
+      yaxis: Object.assign({}, axis, { side: 'right', showline: false, showgrid: true, gridcolor: v('line'), gridwidth: 1 }),
+      hovermode: 'x unified',
+      hoverlabel: { bgcolor: v('bg-raised'), bordercolor: v('line-strong'),
+                    font: { family: mono, size: 12, color: v('text-primary') } },
+      legend: { orientation: 'h', x: 0, y: -0.12, bgcolor: 'rgba(0,0,0,0)',
+                font: { family: sans, size: 12, color: v('text-secondary') } },
+      dragmode: false
+    },
+    config: { displayModeBar: false, responsive: true, scrollZoom: false }
+  };
+}
+/* Bei Theme-Wechsel (z. B. Farbenblind-Modus) neu zeichnen */
+function bankiersgruenWatch(render) {
+  new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
+function rng(s){return function(){s=(s*16807)%2147483647;return (s-1)/2147483646;};}
+var fmt=function(n,d){return Math.abs(n).toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});};
+function sgn(n,d,u){return (n>0?'+':n<0?'−':'± ')+fmt(n,d)+(u||'');}
+function chg(p){return (p>0?'▲ ':p<0?'▼ ':'')+sgn(p,2,' %');}
+function tag(id,p){var e=document.getElementById(id);e.textContent=chg(p);e.className='tag '+(p>0?'up':p<0?'down':'flat');}
+function mix(a,b,t){a=a.replace('#','');b=b.replace('#','');var o='#';for(var i=0;i<3;i++){var x=parseInt(a.substr(i*2,2),16),y=parseInt(b.substr(i*2,2),16);o+=('0'+Math.round(x+(y-x)*t).toString(16)).slice(-2);}return o;}
+function rgba(h,a){h=h.replace('#','');return 'rgba('+parseInt(h.substr(0,2),16)+','+parseInt(h.substr(2,2),16)+','+parseInt(h.substr(4,2),16)+','+a+')';}
+
+var D=[['Signalwerk AG',3.18],['Hanse Reederei AG',2.34],['Brauerei Stern',1.64],['Datennetz AG',1.27],['Kontor Konsum',0.88],
+ ['Nordbank Holding',-0.62],['Mainbau AG',-1.12],['Versa Versicherung',-1.45],['Windhafen AG',-1.93],['Elbwerk Energie',-2.87]];
+function render(){
+  var t=bankiersgruenPlotly(),v=t.tokens,d=D.slice().reverse(),nar=document.getElementById('c').clientWidth<520;
+  var mx=Math.max.apply(null,D.map(function(e){return Math.abs(e[1]);}))*(nar?2.1:1.45);
+  var nm=function(n){return nar&&n.length>12?n.slice(0,11)+'…':n;};
+  var layout=Object.assign({},t.layout,{showlegend:false,hovermode:false,bargap:0.38,margin:{l:0,r:0,t:4,b:4},
+    xaxis:Object.assign({},t.layout.xaxis,{range:[-mx,mx],showticklabels:false,showline:false,showspikes:false,zeroline:true,zerolinecolor:v('line-strong'),zerolinewidth:1}),
+    yaxis:Object.assign({},t.layout.yaxis,{side:'left',showgrid:false,tickfont:{family:v('font-sans'),size:nar?12:13,color:v('text-primary')}}),
+    shapes:[{type:'line',xref:'paper',x0:0,x1:1,yref:'y',y0:4.5,y1:4.5,line:{color:v('line'),width:0.5}}]});
+  Plotly.react('c',[{type:'bar',orientation:'h',y:d.map(function(e){return nm(e[0]);}),x:d.map(function(e){return e[1];}),
+    marker:{color:d.map(function(e){return v(e[1]>=0?'gain':'loss');}),line:{width:0}},
+    text:d.map(function(e){return chg(e[1]);}),textposition:'outside',cliponaxis:false,
+    textfont:{family:v('font-mono'),size:nar?11:12,color:v('text-primary')}}],layout,t.config);
+}
+render();bankiersgruenWatch(render);
+window.addEventListener('resize',function(){clearTimeout(window.__rt);window.__rt=setTimeout(render,150);});
+
+</script>
+</body>
+</html>

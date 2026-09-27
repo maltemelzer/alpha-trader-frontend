@@ -1,0 +1,34 @@
+<!-- @dsCard group="Chat" height=420 subtitle="Spieler suchen, als Chips wählen · Treffer ohne Gewählte" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>UserPicker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-6); padding: var(--space-4) var(--space-6); align-items: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var players = [
+    { id: '1', username: 'Frieda Kontor', meta: 'online' }, { id: '2', username: 'Friedhelm_B' },
+    { id: '3', username: 'Börsenfuchs_77' }, { id: '4', username: 'Anleger Paul', meta: 'online' }, { id: '5', username: 'Fritz Makler' }
+  ];
+  function Demo(p) {
+    var v = React.useState(p.value || []);
+    var q = React.useState(p.start || '');
+    var s = q[0].toLowerCase();
+    var hits = s.length >= 2 ? players.filter(function (u) { return u.username.toLowerCase().indexOf(s) >= 0; }) : [];
+    return h(DS.UserPicker, { label: p.label, value: v[0], onChange: v[1], onSearch: q[1], results: hits, exclude: p.exclude });
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(Demo, { label: 'Neue Unterhaltung mit', value: [players[0]] }),
+    h(Demo, { label: 'In die Gruppe einladen', exclude: ['Anleger Paul'] })));
+</script>
+</body>
+</html>

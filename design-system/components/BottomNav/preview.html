@@ -1,0 +1,32 @@
+<!-- @dsCard group="Handy" height=300 width=390 subtitle="Tab-Leiste unten: 5 Bereiche mit Icon, Zähler, Messing-Linie am aktiven Eintrag" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>BottomNav</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  body { background: var(--bg-page); }
+  .wrap { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); }
+  .wrap p { margin: 0; font-size: 14px; line-height: 20px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var navItems = [{ value: 'markt', label: 'Markt', icon: 'markt' }, { value: 'org', label: 'Organisation', icon: 'organisation' }, { value: 'orders', label: 'Orders', icon: 'orders', badge: 2 },
+    { value: 'community', label: 'Community', icon: 'community', badge: 4 }, { value: 'mehr', label: 'Mehr', icon: 'menue' }];
+  function Demo() { var s = React.useState('org');
+    return h('div', null, h('div', { className: 'wrap' }, h('div', { className: 'lbl' }, 'Handy · unter 720 px'),
+      h('p', null, 'Die Tab-Leiste ersetzt auf dem Handy die Hauptnavigation der Kopfleiste. Sie bleibt am unteren Rand stehen, damit die Bereiche mit dem Daumen erreichbar sind.')),
+      h(DS.BottomNav, { items: navItems, value: s[0], onChange: s[1] })); }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

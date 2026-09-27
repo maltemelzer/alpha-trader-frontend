@@ -1,7 +1,7 @@
 // Account statement analysis for the bank page: every cash transfer log entry gets a sign (seen from
 // one account), a category, a German text and a subject (security, company, account); from that come
 // the running balance, flows per day and category, the waterfall and the largest items.
-import type { CashTransferLogEntry } from '../../vendor/bankiersgruen';
+import type { CashTransferLogEntry } from '../../design-system/components';
 import type { ApiMessage } from '../lib/messages';
 import { parseAmount } from '../companies/derive';
 import { short } from '../lib/format';

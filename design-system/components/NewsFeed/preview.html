@@ -1,0 +1,49 @@
+<!-- @dsCard group="Community" height=820 width=1100 subtitle="Zeitung: Pressemitteilungen der AGs und Leserbeiträge · Zustimmung, Ablehnung, Kommentare" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>NewsFeed</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: var(--space-8); padding: var(--space-6); align-items: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = {};
+  var now = Date.now(), H = 3600e3;
+  var hanse = { id: 'c1', name: 'Hanse Beteiligungs AG', securityIdentifier: 'STHANSEBET' };
+  var lead = { id: 'p1', title: 'Hanse Beteiligungs AG startet Kapitalerhöhung mit Bezugsrechten', locale: 'de', company: hanse, author: { username: 'Frieda Kontor' },
+    content: 'Der Vorstand hat heute eine Kapitalerhöhung beschlossen. Bestehende Aktionäre erhalten Bezugsrechte im Verhältnis 1:4 zu einem Preis von 44,00 € je Aktie. Die Zeichnungsfrist läuft bis Sonntag, 14:00 Uhr. Mit dem Erlös will die Gesellschaft ihre Zentralbankreserven aufstocken und eine Banklizenz beantragen.',
+    listing: { securityIdentifier: 'STHANSEBET', name: 'Hanse Beteiligungs AG' }, hashTags: [{ tag: 'kapitalerhöhung' }, { tag: 'banklizenz' }], numberOfLikes: 42, numberOfDislikes: 3, numberOfComments: 17, dateCreated: now - 2 * H };
+  var items = [
+    { id: 'p2', title: 'Updates on Alpha-Trader.com: Fonds sind jetzt im Client', locale: 'en', author: { username: 'Alphabanker' }, content: 'You can now manage your funds in the client. Under My Funds, the CEO of a licensed bank can launch a fund on any active index …', numberOfLikes: 1, numberOfDislikes: 2604, numberOfComments: 2, dateCreated: now - 26 * H, dateEdited: now - 20 * H, hashTags: [{ tag: 'changelog' }] },
+    { id: 'p3', title: 'Nordkap Bank zahlt Gewinnausschüttung von 4 Bio. €', locale: 'de', company: { name: 'Nordkap Bank', securityIdentifier: 'STNORDKAPB' }, author: { username: 'Börsenfuchs_77' }, content: 'Die Ausschüttung beginnt am 27.9. um 11:57 Uhr und wird anteilig auf alle Aktionäre verteilt.', listing: { securityIdentifier: 'STNORDKAPB', name: 'Nordkap Bank' }, numberOfLikes: 12, numberOfDislikes: 0, numberOfComments: 4, dateCreated: now - 30 * H },
+    { id: 'p4', title: 'Gewinnspiel: AlphaCoins für die drei größten Halter', locale: 'de', author: { username: 'Kursfeder' }, content: 'Wer am Sonntag die meisten Anteile hält, bekommt Coins aus meinem Miner.', numberOfLikes: 0, numberOfDislikes: 0, numberOfComments: 0, dateCreated: now - 50 * H }
+  ];
+  var briefs = [
+    { id: 'b1', title: 'Coin-Boost reformieren – 5.000-€-Cap pro Coin', author: { username: 'Zinsjäger' }, numberOfComments: 3, dateCreated: now - 1 * H },
+    { id: 'b2', title: 'Elbwerk Energie SE sucht einen neuen CEO', company: { name: 'Elbwerk Energie SE' }, dateCreated: now - 3 * H },
+    { id: 'b3', title: 'Leitzins bleibt bei 0,75 %', author: { username: 'Alphabanker' }, numberOfComments: 9, dateCreated: now - 5 * H },
+    { id: 'b4', title: 'Allianz „Nordbund“ legt eigenen Index auf', author: { username: 'Hanseat_M' }, dateCreated: now - 7 * H },
+    { id: 'b5', title: 'Rheinstahl Werke: Namenswechsel beschlossen', company: { name: 'Rheinstahl Werke' }, dateCreated: now - 9 * H }
+  ];
+  function Demo() {
+    var r = React.useState({ p1: 'LIKE' });
+    function react(p, k) { var n = Object.assign({}, r[0]); n[p.id] = k; r[1](n); }
+    return h('div', { className: 'wrap' },
+      h(DS.NewsFeed, { title: 'Zeitung', lead: lead, items: items, reactions: r[0], onReact: react, onComments: function () {}, hrefFor: function () { return '#'; }, tagHref: function () { return '#'; },
+        action: h(DS.Button, { size: 'sm' }, 'Artikel schreiben') }),
+      h(DS.NewsFeed, { title: 'Neueste', variant: 'brief', items: briefs, hrefFor: function () { return '#'; }, footer: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Alle Artikel') }));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

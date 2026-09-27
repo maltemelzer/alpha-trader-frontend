@@ -1,0 +1,115 @@
+<!-- @dsCard group="Diagramme" height=470 subtitle="Plotly · Treemap nach Allianz-Index, Farbe = Tagesveränderung" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Markt-Heatmap</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@3.7.0/plotly.min.js"></script>
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-card);color:var(--text-primary);font-family:var(--font-sans)}
+  .wrap{padding:var(--space-4)}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:var(--space-2) var(--space-4);padding-bottom:var(--space-3);border-bottom:var(--hairline) solid var(--line);margin-bottom:var(--space-3)}
+  .nm{font-family:var(--font-serif);font-size:16px;line-height:22px;font-weight:600}
+  .tk{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;color:var(--text-secondary);text-transform:uppercase}
+  .px{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;justify-content:flex-end}
+  .fig{font-family:var(--font-mono);font-size:28px;line-height:32px;font-weight:500}
+  .sub{font-family:var(--font-mono);font-size:13px;line-height:18px;color:var(--text-secondary)}
+  .tag{font-family:var(--font-mono);font-size:15px;line-height:20px;font-weight:500;padding:3px var(--space-2);border-radius:var(--radius-sm)}
+  .tag.up{color:var(--gain);background:var(--gain-tint)}
+  .tag.down{color:var(--loss);background:var(--loss-tint)}
+  .tag.flat{color:var(--unchanged);background:var(--bg-raised)}
+  .foot{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);align-items:center;margin-top:var(--space-3);padding-top:var(--space-2);border-top:var(--hairline) solid var(--line);font-size:12px;line-height:16px;color:var(--text-secondary)}
+  .key{display:inline-flex;align-items:center;gap:6px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:var(--radius-sm)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="head"><div><div class="nm">Marktübersicht</div><div class="tk">Nach Allianz-Index · Heute · Fläche = Marktkapitalisierung</div></div>
+<div class="px"><span class="sub">ATSX</span><span class="tag" id="chg"></span></div></div>
+<div id="c" style="height:320px"></div>
+<div class="foot" id="scale"></div>
+</div>
+<script>
+/* Bankiersgrün – Plotly-Theme. Liest die Design-Tokens (CSS-Variablen aus tokens.css),
+   damit Darkmode und Farbenblind-Modus automatisch stimmen. */
+function bankiersgruenPlotly() {
+  var cs = getComputedStyle(document.documentElement);
+  var v = function (n) { return cs.getPropertyValue('--' + n).trim(); };
+  var sans = v('font-sans'), serif = v('font-serif'), mono = v('font-mono');
+  var axis = {
+    showgrid: false, zeroline: false, showline: true, linecolor: v('line-strong'), linewidth: 1,
+    ticks: '', automargin: true, fixedrange: true,
+    tickfont: { family: mono, size: 11, color: v('text-secondary') }
+  };
+  return {
+    tokens: v,
+    layout: {
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { family: sans, size: 12, color: v('text-secondary') },
+      title: { font: { family: serif, size: 18, color: v('text-primary') }, x: 0, xanchor: 'left' },
+      colorway: [1, 2, 3, 4, 5].map(function (i) { return v('chart-' + i); }),
+      separators: ',.',
+      margin: { l: 0, r: 0, t: 8, b: 0 },
+      xaxis: Object.assign({}, axis, {
+        showspikes: true, spikemode: 'across', spikesnap: 'cursor', spikedash: 'solid',
+        spikecolor: v('line-strong'), spikethickness: 1
+      }),
+      yaxis: Object.assign({}, axis, { side: 'right', showline: false, showgrid: true, gridcolor: v('line'), gridwidth: 1 }),
+      hovermode: 'x unified',
+      hoverlabel: { bgcolor: v('bg-raised'), bordercolor: v('line-strong'),
+                    font: { family: mono, size: 12, color: v('text-primary') } },
+      legend: { orientation: 'h', x: 0, y: -0.12, bgcolor: 'rgba(0,0,0,0)',
+                font: { family: sans, size: 12, color: v('text-secondary') } },
+      dragmode: false
+    },
+    config: { displayModeBar: false, responsive: true, scrollZoom: false }
+  };
+}
+/* Bei Theme-Wechsel (z. B. Farbenblind-Modus) neu zeichnen */
+function bankiersgruenWatch(render) {
+  new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
+function rng(s){return function(){s=(s*16807)%2147483647;return (s-1)/2147483646;};}
+var fmt=function(n,d){return Math.abs(n).toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});};
+function sgn(n,d,u){return (n>0?'+':n<0?'−':'± ')+fmt(n,d)+(u||'');}
+function chg(p){return (p>0?'▲ ':p<0?'▼ ':'')+sgn(p,2,' %');}
+function tag(id,p){var e=document.getElementById(id);e.textContent=chg(p);e.className='tag '+(p>0?'up':p<0?'down':'flat');}
+function mix(a,b,t){a=a.replace('#','');b=b.replace('#','');var o='#';for(var i=0;i<3;i++){var x=parseInt(a.substr(i*2,2),16),y=parseInt(b.substr(i*2,2),16);o+=('0'+Math.round(x+(y-x)*t).toString(16)).slice(-2);}return o;}
+function rgba(h,a){h=h.replace('#','');return 'rgba('+parseInt(h.substr(0,2),16)+','+parseInt(h.substr(2,2),16)+','+parseInt(h.substr(4,2),16)+','+a+')';}
+
+var D=[
+ ['Hanseatische Allianz','RSW','Rheinstahl Werke',48,0.41],['Hanseatische Allianz','HRD','Hanse Reederei AG',36,2.34],['Hanseatische Allianz','MBW','Mainbau AG',22,-1.12],['Hanseatische Allianz','LFT','Luftwerk',14,0.06],
+ ['Nordbund','SIG','Signalwerk AG',64,3.18],['Nordbund','DTN','Datennetz AG',31,1.27],['Nordbund','PRZ','Präzision Optik',17,-0.84],
+ ['Kapitalkreis','NBH','Nordbank Holding',52,-0.62],['Kapitalkreis','VSA','Versa Versicherung',40,-1.45],['Kapitalkreis','BKH','Bankhaus Kontor',12,0.22],
+ ['Elbbund','ELW','Elbwerk Energie',38,-2.87],['Elbbund','WND','Windhafen AG',19,-1.93],['Elbbund','GAS','Gasnetz Süd',11,0.0],
+ ['Ohne Allianz','KKS','Kontor Konsum',29,0.88],['Ohne Allianz','BRS','Brauerei Stern',15,1.64],['Ohne Allianz','MOD','Modehaus Weiß',9,-0.35]];
+tag('chg',0.47);
+function render(){
+  var t=bankiersgruenPlotly(),v=t.tokens,sectors=[];
+  D.forEach(function(d){if(sectors.indexOf(d[0])<0)sectors.push(d[0]);});
+  function col(p){var k=0.06+Math.min(Math.abs(p)/3,1)*0.36;return p>0?mix(v('gain-tint'),v('gain'),k):p<0?mix(v('loss-tint'),v('loss'),k):v('bg-raised');}
+  var ids=[],labels=[],parents=[],values=[],colors=[],tt=[],cd=[];
+  sectors.forEach(function(s){ids.push(s);labels.push(s.toUpperCase());parents.push('');values.push(0);colors.push(v('bg-card'));tt.push('%{label}');cd.push(['','']);});
+  D.forEach(function(d){ids.push(d[1]);labels.push(d[1]);parents.push(d[0]);values.push(d[3]);colors.push(col(d[4]));
+    tt.push('<b>%{label}</b><br>%{customdata[0]}');cd.push([chg(d[4]),d[2]]);});
+  var layout=Object.assign({},t.layout,{margin:{l:0,r:0,t:0,b:0},hovermode:'closest',uniformtext:{minsize:10,mode:'hide'}});
+  Plotly.react('c',[{type:'treemap',ids:ids,labels:labels,parents:parents,values:values,branchvalues:'remainder',sort:true,
+    marker:{colors:colors,line:{color:v('bg-card'),width:2},pad:{t:22,l:0,r:0,b:0}},
+    pathbar:{visible:false},tiling:{pad:2},
+    texttemplate:tt,textposition:'middle center',
+    textfont:{family:v('font-mono'),size:13,color:v('text-primary')},
+    outsidetextfont:{family:v('font-sans'),size:11,color:v('text-secondary')},insidetextfont:{family:v('font-mono'),size:13,color:v('text-primary')},
+    customdata:cd,hovertemplate:'%{customdata[1]} · %{label}<br>%{customdata[0]}<br>Marktkap. %{value:,.0f} Bio. €<extra></extra>',
+    root:{color:v('bg-card')}}],layout,t.config);
+  var steps=[-3,-2,-1,0,1,2,3];
+  document.getElementById('scale').innerHTML='<span>Tagesveränderung</span>'+steps.map(function(p){
+    return '<span class="key"><span class="sw" style="background:'+col(p)+';outline:1px solid '+v('line')+'"></span>'+(p===0?'0 %':chg(p).replace(',00',''))+(Math.abs(p)===3?' und mehr':'')+'</span>';}).join('');
+}
+render();bankiersgruenWatch(render);
+</script>
+</body>
+</html>

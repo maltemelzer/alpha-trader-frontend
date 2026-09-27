@@ -12,7 +12,7 @@ import {
   useUnclaimedAllianceAchievements,
 } from '../api/queries';
 import type { UsernameView } from '../api/types';
-import type { AllianceMembership } from '../../vendor/bankiersgruen';
+import type { AllianceMembership } from '../../design-system/components';
 import { UserPicker } from '../chat/UserPicker';
 import { AllianceForm } from './AllianceForm';
 import { allianceAchievements, belongsTo } from './derive';

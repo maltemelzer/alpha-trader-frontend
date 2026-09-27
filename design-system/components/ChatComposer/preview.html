@@ -1,0 +1,42 @@
+<!-- @dsCard group="Chat" height=640 subtitle="leer · mit Text und Zähler · gesperrt · Handy-Breite" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>ChatComposer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { display: grid; gap: var(--space-4); padding: var(--space-4) var(--space-6); max-width: 640px; }
+  .phone { width: 358px; height: 150px; border: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var long = 'Kurzer Marktkommentar: Die Reedereien laufen seit Wochen stark, aber die Frachtraten fallen. Ich nehme bei $STHANSEREE Gewinne mit und schichte in Versorger um. Nächste Woche kommen die Zahlen von $STELBWERKE, dann entscheide ich neu. Was meint ihr – übertrieben vorsichtig oder vernünftig? Ich bin gespannt auf eure Einschätzung und freue mich auf Antworten, gerne auch per Direktnachricht, falls ihr das nicht in der Lobby diskutieren wollt.';
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h('div', null, h('div', { className: 'lbl' }, 'Leer'), h(DS.ChatComposer, { actions: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Trade teilen'), onSend: function () {} })),
+    h('div', null, h('div', { className: 'lbl' }, 'Langer Text · Zähler ab 50 Zeichen Rest'), h(DS.ChatComposer, { defaultValue: long, maxLength: 450, onSend: function () {} })),
+    h('div', null, h('div', { className: 'lbl' }, 'Gesperrt'), h(DS.ChatComposer, { disabled: true, placeholder: 'Dieser Chat ist schreibgeschützt.', hint: 'Nur der Besitzer kann hier schreiben.' })),
+    h('div', null, h('div', { className: 'lbl' }, 'Handy (358 px) · Senden in der Zeile'), h('iframe', { className: 'phone', title: 'ChatComposer in Handy-Breite', srcDoc: phoneDoc() }))));
+  /* Media-Query greift nur in einem schmalen Dokument: dieselben Styles in ein 358-px-iframe kopieren */
+  function phoneDoc() {
+    var css = Array.prototype.map.call(document.querySelectorAll('style, link[rel=stylesheet]'), function (n) { return n.outerHTML; }).join('');
+    return '<!doctype html><html lang="de"><head>' + css + '<style>body{margin:0;padding:8px 0;background:var(--bg-page)}</style></head><body><div id="r"></div></body></html>';
+  }
+  setTimeout(function () {
+    var f = document.querySelector('iframe.phone'); if (!f) return;
+    function go() {
+      var w = f.contentWindow, d = f.contentDocument; if (!w || !d || !d.getElementById('r')) return setTimeout(go, 50);
+      ReactDOM.createRoot(d.getElementById('r')).render(h('div', null,
+        h(DS.ChatComposer, { defaultValue: 'Nehme bei $STHANSEREE Gewinne mit.', actions: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Trade teilen'), onSend: function () {} })));
+    }
+    go();
+  }, 0);
+</script>
+</body>
+</html>

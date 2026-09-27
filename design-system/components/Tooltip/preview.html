@@ -1,0 +1,31 @@
+<!-- @dsCard group="Hilfe" height=360 width=980 subtitle="Begriffe erklären mit Term · Tooltip an Symbolen · bei Hover und Fokus" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Tooltip</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); padding: var(--space-4) var(--space-6); align-items: start; }
+  .box { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+  p { margin: 0; font-size: 15px; line-height: 24px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap', style: { paddingTop: '120px' } },
+    h('div', { className: 'box' }, h('div', { className: 'lbl' }, 'Begriff im Fließtext'),
+      h('p', null, 'Die ', h(DS.Term, { term: 'SUBSCRIPTION_RIGHT', defaultOpen: true }), ' laufen noch 28 Stunden. Ihr ', h(DS.Term, { term: 'NET_CASH' }), ' reicht für ', h('span', { className: 'num' }, '4.100'), ' neue Aktien.')),
+    h('div', { className: 'box' }, h('div', { className: 'lbl' }, 'An Tabellenköpfen und Symbolen'),
+      h('p', null, h(DS.Term, { term: 'BID' }), ' · ', h(DS.Term, { term: 'ASK' }), ' · ', h(DS.Term, { term: 'SPREAD' }), ' · ', h(DS.Term, { term: 'REPO' }), ' · ', h(DS.Term, { term: 'MINER' })),
+      h('div', null, h(DS.Tooltip, { content: 'Stündliche Änderung des Limits in Prozent. Nur mit Goldzugang.' }, h('button', { className: 'bnk-btn bnk-btn--ghost bnk-btn--sm', type: 'button', 'aria-label': 'Hilfe zur stündlichen Änderung' }, '?'))))));
+</script>
+</body>
+</html>
