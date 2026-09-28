@@ -6,10 +6,12 @@ import {
   applyScreen,
   changeLookup,
   chips,
+  coverageLookup,
   defaultColumns,
   filterCount,
   histogram,
   inRange,
+  issuerIds,
   formatRange,
   fromBonds,
   fromMarketRow,
@@ -148,6 +150,39 @@ describe('rows from sources', () => {
     expect(a.change).toBe(4);
     expect(b.change).toBe(0);
   });
+  it('gives every bond of an issuer the coverage of all its running bonds', () => {
+    const bond = (asin: string, issuerId?: string) =>
+      ({
+        id: asin,
+        listing: { securityIdentifier: asin, name: asin, type: asin.startsWith('SB') ? 'SYSTEM_BOND' : 'BOND' },
+        issuer: issuerId ? { name: 'Flora Corp.', id: issuerId } : undefined,
+        interestRate: 0,
+        faceValue: 100,
+        volume: 100,
+        maturityDate: NOW + DAY,
+      }) as BondView;
+    const bonds = fromBonds([bond('BO1', 'c1'), bond('BO2', 'c1'), bond('BO3', 'c2'), bond('SB1')], NOW);
+    expect(issuerIds(bonds)).toEqual(['c1', 'c2']);
+    const cov = coverageLookup(
+      {
+        // two running bonds of 100 € each (one matured already): 300 € net cash = 150 %
+        c1: {
+          id: 'c1',
+          companyCapabilities: { netCash: 300 },
+          issuedBonds: [
+            { volume: 100, interestRate: 0, maturityDate: NOW + DAY },
+            { volume: 100, interestRate: 0, maturityDate: NOW + DAY },
+            { volume: 5_000, interestRate: 0, maturityDate: NOW - 1 },
+          ],
+        },
+        c2: { id: 'c2', companyCapabilities: {}, issuedBonds: [{ volume: 100, maturityDate: NOW + DAY }] },
+      },
+      NOW,
+    );
+    const rows = mergeRows([bonds], { coverage: cov });
+    expect(rows.map((r) => r.coverage)).toEqual([150, 150, null, null]);
+    expect(coverageLookup(undefined, NOW)).toBeNull();
+  });
   it('a complete turnover list says nothing about bonds, indexes and ETFs (it never lists them)', () => {
     const rows = mergeRows([[row('EF1', 'ETF'), row('ID1', 'INDEX'), row('BD1', 'BUILDING')]], { volume: lookup([['ST1', 100]], true) });
     expect(rows.map((r) => r.volume)).toEqual([null, null, 0]);
@@ -198,6 +233,7 @@ describe('applyScreen / sortRows', () => {
   it('unknown values fail a range, bond ranges leave shares alone', () => {
     expect(ids('art=alle&ums=1..')).toEqual(['ST1']);
     expect(ids('art=STOCK,BOND&lz=..2')).toEqual(['ST1', 'ST2']);
+    expect(ids('art=STOCK,BOND&deck=100..')).toEqual(['ST1', 'ST2']);
     expect(ids('art=STOCK,BOND&lz=2..4')).toEqual(['ST1', 'ST2', 'BO1']);
     expect(ids('art=BOND&em=flora')).toEqual(['BO1']);
     expect(ids('art=BOND&em=other')).toEqual([]);

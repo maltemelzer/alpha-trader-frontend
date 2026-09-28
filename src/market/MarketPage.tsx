@@ -7,6 +7,7 @@ import {
   useBond,
   useBondList,
   useIndexes,
+  useIssuerProfiles,
   useMarketTrades,
   useMinimalStats,
   useMostTraded,
@@ -27,10 +28,12 @@ import {
   bookLookup,
   changeLookup,
   chips,
+  coverageLookup,
   defaultSort,
   fromBonds,
   fromMarketRow,
   groupOf,
+  issuerIds,
   marketMap,
   matchesText,
   mergeRows,
@@ -110,6 +113,13 @@ export function MarketPage() {
   const cols = visibleColumns(screen);
   const needBook = !!screen.ranges.bw || cols.includes('bw') || screen.sort?.key === 'bw';
   const book = useTopBookValues(needBook);
+  // Coverage: one company profile per bond issuer, only while the column, filter or sort asks for it.
+  const needCoverage = wantsBonds && (!!screen.ranges.deck || cols.includes('deck') || screen.sort?.key === 'deck');
+  const issuers = useMemo(() => {
+    const bondList = [...(asinBond.data ? [asinBond.data] : []), ...(bonds.data ?? [])];
+    return issuerIds(fromBonds(bondList, now));
+  }, [asinBond.data, bonds.data, now]);
+  const profiles = useIssuerProfiles(issuers, needCoverage);
 
   const universe: ScreenRow[] = useMemo(() => {
     const bondList = [...(asinBond.data ? [asinBond.data] : []), ...(bonds.data ?? [])];
@@ -129,8 +139,9 @@ export function MarketPage() {
       trades: tradesLookup(frequent.data?.content, frequent.data?.totalElements),
       change: changeLookup(changes.data?.winners, changes.data?.losers),
       book: bookLookup(book.data?.content),
+      coverage: needCoverage ? coverageLookup(profiles.data, now) : null,
     });
-  }, [searching, q, found.data, volumes.data, frequent.data, bonds.data, asinBond.data, indexes.data, changes.data, book.data, now]);
+  }, [searching, q, found.data, volumes.data, frequent.data, bonds.data, asinBond.data, indexes.data, changes.data, book.data, needCoverage, profiles.data, now]);
 
   const sort = screen.sort ?? defaultSort(types);
   const base = useMemo(() => applyScreen(universe, { ...screen, ranges: {}, quote: '', issuer: '', sizes: [] }, now), [universe, screen, now]);
@@ -156,8 +167,10 @@ export function MarketPage() {
     }
     if (loadingBonds) parts.push('Anleihen laden …');
     if (needBook) parts.push('Buchwert nur für die 1.000 größten Unternehmen');
+    if (needCoverage && profiles.pending)
+      parts.push(`Deckung lädt (${(profiles.total - profiles.pending).toLocaleString('de-DE')} von ${profiles.total.toLocaleString('de-DE')} Emittenten)`);
     return parts.join(' · ');
-  }, [searching, found.data, universe.length, wantsBonds, loadingBonds, needBook]);
+  }, [searching, found.data, universe.length, wantsBonds, loadingBonds, needBook, needCoverage, profiles.pending, profiles.total]);
 
   // Own views in the results area: warrants per underlying; buildings as an overview unless filtered.
   const estate = types.length === 1 && types[0] === 'BUILDING' && !searching;

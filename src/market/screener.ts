@@ -3,7 +3,7 @@
 import type { MarketRow } from '../api/queries';
 import type { ListingWithTradingVolumeView } from '../api/types';
 import type { BondView, HighscoreEntry } from '../../design-system/components';
-import { buildingSize, dailyYield } from '../security/derive';
+import { buildingSize, dailyYield, issuerCoverage, type DueBond } from '../security/derive';
 import { short } from '../lib/format';
 import { displayName } from './derive';
 
@@ -76,6 +76,10 @@ export interface ScreenRow {
   maturity: number | null;
   issuer: string | null;
   issuerAsin: string | null;
+  /** bonds/repos: the issuer's company id */
+  issuerId: string | null;
+  /** bonds: issuer's net cash ÷ repayment of all its running bonds, in % */
+  coverage: number | null;
   /** buildings: size in m² */
   size: number | null;
   /** buildings: ask (or last price without ask) per m² */
@@ -126,6 +130,8 @@ function base(asin: string, name: string, type: string, s: Spreadish | null | un
     maturity: null,
     issuer: null,
     issuerAsin: null,
+    issuerId: null,
+    coverage: null,
     size,
     perSqm: size && ref != null ? ref / size : null,
   };
@@ -149,6 +155,7 @@ export function fromBonds(bonds: BondView[], now: number, repos = false): Screen
     row.maturity = b.maturityDate;
     row.issuer = b.issuer?.name ?? null;
     row.issuerAsin = b.issuer?.securityIdentifier ?? null;
+    row.issuerId = b.issuer?.id ?? null;
     if (!repos) row.yieldPerDay = dailyYield(row.ask, b.interestRate ?? 0, b.maturityDate - now) ?? null;
     out.push(row);
   }
@@ -207,6 +214,32 @@ export function bookLookup(entries: HighscoreEntry[] | undefined): Lookup | null
   );
 }
 
+/** Bond issuers (company ids) of the rows – system bonds have none. */
+export function issuerIds(rows: ScreenRow[]): string[] {
+  return [...new Set(rows.filter((r) => r.group === 'BOND' && r.issuerId).map((r) => r.issuerId!))];
+}
+
+/** Profile fields the coverage needs. */
+export interface IssuerProfile {
+  id: string;
+  companyCapabilities?: { netCash?: number };
+  issuedBonds?: DueBond[];
+}
+
+/**
+ * Coverage in % by issuer id: net cash ÷ repayment of all its running bonds (`issuerCoverage`, like
+ * the bond page). Issuers without net cash or running bonds are left out (unknown, not 0).
+ */
+export function coverageLookup(profiles: Record<string, IssuerProfile> | undefined, now: number): Lookup | null {
+  if (!profiles) return null;
+  const entries: [string, number][] = [];
+  for (const p of Object.values(profiles)) {
+    const c = issuerCoverage(p.companyCapabilities?.netCash, p.issuedBonds, now).coverage;
+    if (c != null) entries.push([p.id, c * 100]);
+  }
+  return lookup(entries, false);
+}
+
 function pick(l: Lookup | null | undefined, asin: string): number | null {
   if (!l) return null;
   const v = l.map.get(asin);
@@ -220,7 +253,7 @@ const VOLUME_GROUPS: Group[] = ['STOCK', 'BUILDING', 'COIN'];
 /** Merges row lists (first occurrence of an ASIN wins, later lists fill its gaps) and adds the lookups. */
 export function mergeRows(
   lists: (ScreenRow | null)[][],
-  add: { volume?: Lookup | null; trades?: Lookup | null; change?: Lookup | null; book?: Lookup | null },
+  add: { volume?: Lookup | null; trades?: Lookup | null; change?: Lookup | null; book?: Lookup | null; coverage?: Lookup | null },
 ): ScreenRow[] {
   const byAsin = new Map<string, ScreenRow>();
   for (const list of lists) {
@@ -239,6 +272,8 @@ export function mergeRows(
     // Bonds and repos are not in the movers lists; indexes and ETFs are.
     if (r.group !== 'BOND' && r.group !== 'REPO') r.change ??= pick(add.change, r.asin);
     if (r.group === 'STOCK') r.bookValue ??= pick(add.book, r.asin);
+    // By the issuer, not the bond: all of an issuer's bonds share one coverage.
+    if (r.group === 'BOND' && r.issuerId) r.coverage ??= pick(add.coverage, r.issuerId);
   }
   return rows;
 }
@@ -252,9 +287,9 @@ export interface Range {
 
 export type Quote = '' | 'brief' | 'geld' | 'beide';
 
-export type ColKey = 'kurs' | 'ver' | 'geld' | 'brief' | 'spr' | 'ums' | 'tr' | 'bw' | 'zins' | 'rt' | 'lz' | 'em' | 'gr' | 'qm';
+export type ColKey = 'kurs' | 'ver' | 'geld' | 'brief' | 'spr' | 'ums' | 'tr' | 'bw' | 'zins' | 'rt' | 'lz' | 'deck' | 'em' | 'gr' | 'qm';
 
-export type RangeKey = 'kurs' | 'ver' | 'spr' | 'ums' | 'tr' | 'bw' | 'zins' | 'rt' | 'lz' | 'qm';
+export type RangeKey = 'kurs' | 'ver' | 'spr' | 'ums' | 'tr' | 'bw' | 'zins' | 'rt' | 'lz' | 'deck' | 'qm';
 
 export interface Screen {
   /** empty = all types */
@@ -270,9 +305,9 @@ export interface Screen {
 }
 
 /** URL parameters owned by the screener (a preset or „Zurücksetzen“ clears all of them). */
-export const SCREEN_KEYS = ['art', 'q', 'kurs', 'ver', 'spr', 'ums', 'tr', 'bw', 'zins', 'rt', 'lz', 'qm', 'mit', 'em', 'gr', 'sort', 'sp', 'seite'] as const;
+export const SCREEN_KEYS = ['art', 'q', 'kurs', 'ver', 'spr', 'ums', 'tr', 'bw', 'zins', 'rt', 'lz', 'deck', 'qm', 'mit', 'em', 'gr', 'sort', 'sp', 'seite'] as const;
 
-export const RANGE_KEYS: RangeKey[] = ['kurs', 'ver', 'spr', 'ums', 'tr', 'bw', 'zins', 'rt', 'lz', 'qm'];
+export const RANGE_KEYS: RangeKey[] = ['kurs', 'ver', 'spr', 'ums', 'tr', 'bw', 'zins', 'rt', 'lz', 'deck', 'qm'];
 
 const num = (s: string) => {
   if (s.trim() === '') return undefined;
@@ -296,7 +331,7 @@ export function formatRange(r: Range | undefined): string | null {
   return `${r.min != null ? plain(r.min) : ''}..${r.max != null ? plain(r.max) : ''}`;
 }
 
-const COL_KEYS: ColKey[] = ['kurs', 'ver', 'geld', 'brief', 'spr', 'ums', 'tr', 'bw', 'zins', 'rt', 'lz', 'em', 'gr', 'qm'];
+const COL_KEYS: ColKey[] = ['kurs', 'ver', 'geld', 'brief', 'spr', 'ums', 'tr', 'bw', 'zins', 'rt', 'lz', 'deck', 'em', 'gr', 'qm'];
 
 /** Reads the screener from the URL. Without `art` it shows shares (as before), `art=alle` all types. */
 export function readScreen(p: URLSearchParams): Screen {
@@ -391,6 +426,7 @@ export const COLUMNS: ColumnDef[] = [
   { key: 'zins', label: 'Zins bis Fälligkeit', short: 'Zins', unit: '%', for: ['BOND', 'REPO'], value: (r) => r.rate, dir: 'desc' },
   { key: 'rt', label: 'Rendite / Tag', short: 'Rendite/Tag', unit: '%', for: ['BOND'], value: (r) => r.yieldPerDay, dir: 'desc' },
   { key: 'lz', label: 'Restlaufzeit', short: 'Laufzeit', unit: 'T', for: ['BOND', 'REPO'], value: (r) => r.maturity, dir: 'asc' },
+  { key: 'deck', label: 'Deckung', short: 'Deckung', unit: '%', for: ['BOND'], value: (r) => r.coverage, dir: 'desc' },
   { key: 'em', label: 'Emittent', short: 'Emittent', unit: '', for: ['BOND', 'REPO'], value: (r) => r.issuer, dir: 'asc' },
   { key: 'gr', label: 'Größe', short: 'Größe', unit: 'm²', for: ['BUILDING'], value: (r) => r.size, dir: 'desc' },
   { key: 'qm', label: 'Preis je m²', short: 'je m²', unit: '€', for: ['BUILDING'], value: (r) => r.perSqm, dir: 'asc' },
@@ -452,6 +488,8 @@ export function rangeValue(k: RangeKey, r: ScreenRow, now: number): number | nul
       return r.yieldPerDay;
     case 'lz':
       return r.maturity == null ? null : (r.maturity - now) / DAY;
+    case 'deck':
+      return r.coverage;
     case 'qm':
       return r.perSqm;
   }
@@ -463,6 +501,7 @@ const RANGE_FOR: Partial<Record<RangeKey, Group[]>> = {
   zins: ['BOND', 'REPO'],
   rt: ['BOND'],
   lz: ['BOND', 'REPO'],
+  deck: ['BOND'],
   qm: ['BUILDING'],
 };
 
@@ -537,6 +576,7 @@ const LABEL: Record<RangeKey, { name: string; fmt: (n: number) => string; unit: 
   zins: { name: 'Zins', fmt: (n) => de(n, 4), unit: '%' },
   rt: { name: 'Rendite/Tag', fmt: (n) => de(n, 3), unit: '%' },
   lz: { name: 'Laufzeit', fmt: (n) => de(n), unit: 'T' },
+  deck: { name: 'Deckung', fmt: (n) => de(n, 0), unit: '%' },
   qm: { name: 'je m²', fmt: (n) => money(n), unit: '€' },
 };
 
@@ -597,6 +637,12 @@ export const PRESETS: Preset[] = [
     label: 'Anleihen mit Rendite',
     description: 'Kaufbar, noch mindestens eine Stunde',
     params: { art: 'BOND', mit: 'brief', lz: `${plain(1 / 24)}..`, sort: '-rt' },
+  },
+  {
+    id: 'gedeckt',
+    label: 'Gedeckte Anleihen',
+    description: 'Emittent kann alle Anleihen zurückzahlen',
+    params: { art: 'BOND', mit: 'brief', lz: `${plain(1 / 24)}..`, deck: '100..', sort: '-rt' },
   },
   {
     id: 'immo',
@@ -704,6 +750,7 @@ export const HIST: Record<RangeKey, { log?: boolean; lo?: number; hi?: number }>
   zins: { lo: 0 },
   rt: { log: true },
   lz: { lo: 0 },
+  deck: { log: true },
   qm: { log: true },
 };
 

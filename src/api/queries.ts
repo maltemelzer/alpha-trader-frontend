@@ -980,6 +980,8 @@ export interface CompanyProfile {
     bank?: boolean;
     bankReady?: boolean;
   };
+  /** the company's running bonds (not in the spec's type, but in every answer) */
+  issuedBonds?: { listing?: { securityIdentifier: string }; volume?: number; interestRate?: number; maturityDate?: number }[];
 }
 
 export interface CompanyHistoryPoint {
@@ -2997,6 +2999,30 @@ export function useAccountDetails(ids: string[]) {
       for (const r of results) if (r.data?.id) out[r.data.id] = r.data;
       return { data: out, pending: results.filter((r) => r.isPending).length };
     },
+  });
+}
+
+const profilesById = (results: UseQueryResult<CompanyProfile>[]) => {
+  const data: Record<string, CompanyProfile> = {};
+  for (const r of results) if (r.data?.id) data[r.data.id] = r.data;
+  return { data, pending: results.filter((r) => r.isPending).length, total: results.length };
+};
+
+/**
+ * Company profiles of bond issuers by company id (GET /api/companyprofiles/{id}) – net cash and all
+ * running bonds for the market's coverage column. One request per issuer, two at a time, only
+ * while `enabled`.
+ */
+export function useIssuerProfiles(ids: string[], enabled: boolean) {
+  return useQueries({
+    queries: (enabled ? ids : []).map((id) => ({
+      queryKey: ['company', 'profile', id],
+      queryFn: () =>
+        fewAtATime(() => unwrap<CompanyProfile>(api.GET('/api/companyprofiles/{companyId}', { params: { path: { companyId: id } } }))),
+      staleTime: SLOW,
+      retry: false,
+    })),
+    combine: profilesById,
   });
 }
 

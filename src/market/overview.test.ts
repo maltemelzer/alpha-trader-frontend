@@ -44,6 +44,8 @@ const row = (asin: string, o: Partial<ScreenRow> = {}): ScreenRow => ({
   maturity: null,
   issuer: null,
   issuerAsin: null,
+  issuerId: null,
+  coverage: null,
   size: null,
   perSqm: null,
   ...o,
