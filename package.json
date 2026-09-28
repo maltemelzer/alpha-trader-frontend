@@ -22,7 +22,8 @@
     "api:get": "node scripts/api-get.mjs",
     "ds:tokens": "node scripts/design-system.mjs",
     "shot": "node scripts/shot.mjs",
-    "audit": "node scripts/audit.mjs"
+    "audit": "node scripts/audit.mjs",
+    "whatsnew:shots": "node --experimental-strip-types --no-warnings scripts/whatsnew-shots.mjs"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
