@@ -18,7 +18,19 @@ import {
   withAuto,
   type Seen,
 } from './derive';
+import shotSizes from './shots/sizes.json';
 import './WhatsNew.css';
+
+// Pictures from `npm run whatsnew:shots`: only entries whose picture exists get one. The file names
+// are hashed by Vite; the browser loads a picture only when its entry is shown.
+const SHOT_URLS = import.meta.glob<string>('./shots/*.webp', { eager: true, query: '?url', import: 'default' });
+const SHOT_SIZES: Record<string, [number, number] | undefined> = shotSizes;
+
+function shotOf(c: UiChange) {
+  const src = SHOT_URLS[`./shots/${c.id}.webp`];
+  const size = SHOT_SIZES[c.id];
+  return c.shot && src && size ? { src, width: size[0], height: size[1], alt: c.shot.alt, href: c.shot.path } : null;
+}
 
 // The local copy as a tiny store: the dialog in the shell and the switch in the settings share it
 // (same tab via an event, other tabs via `storage`).
@@ -180,28 +192,43 @@ export function WhatsNewDialog({
             </article>
           ))
         ) : shown.ui.length ? (
-          shown.ui.map((c) => (
-            <article key={c.id} className="wn__block">
-              <header className="wn__head">
-                <h3>
-                  {c.title} {mode === 'all' && isNew(c.id) && newTag}
-                </h3>
-                <span className="wn__date">{dayLabel(c.id)}</span>
-              </header>
-              <ul className="wn__items">
-                {c.items.map((it, k) => (
-                  <li key={k}>
-                    <span>{it.text}</span>
-                    {it.href && (
-                      <DS.Button variant="ghost" size="sm" onClick={() => go(it.href!)}>
-                        Ansehen
-                      </DS.Button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))
+          shown.ui.map((c) => {
+            const shot = shotOf(c);
+            return (
+              <article key={c.id} className="wn__block">
+                <header className="wn__head">
+                  <h3>
+                    {c.title} {mode === 'all' && isNew(c.id) && newTag}
+                  </h3>
+                  <span className="wn__date">{dayLabel(c.id)}</span>
+                </header>
+                <ul className="wn__items">
+                  {c.items.map((it, k) => (
+                    <li key={k}>
+                      <span>{it.text}</span>
+                      {it.href && (
+                        <DS.Button variant="ghost" size="sm" onClick={() => go(it.href!)}>
+                          Ansehen
+                        </DS.Button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {shot && (
+                  <a
+                    className="wn__shot"
+                    href={shot.href}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      go(shot.href);
+                    }}
+                  >
+                    <img src={shot.src} width={shot.width} height={shot.height} alt={shot.alt} loading="lazy" decoding="async" />
+                  </a>
+                )}
+              </article>
+              );
+          })
         ) : (
           <DS.EmptyState compact as="h3" title="Keine Neuigkeiten" />
         )}

@@ -2,11 +2,32 @@
  * Changes to this frontend, newest first – shown once in „Neu bei Alpha-Trader“. Add an entry with every
  * PR that changes something a player notices; `id` is the release date (YYYY-MM-DD, several entries
  * a day get -2, -3 …). Links are app paths, so the dialog can open the new view directly.
+ *
+ * `shot` describes a picture of the new view: `npm run whatsnew:shots` (dev server running) takes it
+ * as src/whatsnew/shots/<id>.webp, the dialog shows it under the entry.
  */
+export interface UiShot {
+  /** app path, view in the URL (`/zentralbank?ansicht=einlage`) */
+  path: string;
+  /** what the picture shows – alt text */
+  alt: string;
+  /** part of the page (CSS selector), default `main` = without header and market tape */
+  crop?: string;
+  /** viewport, default 1280x800 */
+  size?: string;
+  /** clicked one after the other before the picture (tabs, sheets) – never anything that submits */
+  click?: string[];
+  /** [selector, text] typed into a field before the picture, e.g. to open suggestions */
+  type?: [string, string];
+  /** ms to wait after loading, default 2500 */
+  wait?: number;
+}
+
 export interface UiChange {
   id: string;
   title: string;
   items: { text: string; href?: string }[];
+  shot?: UiShot;
 }
 
 export const UI_CHANGES: UiChange[] = [
@@ -21,6 +42,11 @@ export const UI_CHANGES: UiChange[] = [
       { text: 'Mit ! statt # hängst du das Wertpapier als kleine Karte an – Kurs, Veränderung, Verlauf der letzten 30 Tage, Geld und Brief. Ein Klick öffnet das Wertpapier.' },
       { text: 'Alte Nachrichten mit $ bleiben verlinkt.' },
     ],
+    shot: {
+      path: '/nachrichten',
+      alt: 'Chat mit geöffneter Vorschlagsliste nach „#Alpha“',
+      type: ['.bnk-chatwin__foot textarea', '#Alphak'],
+    },
   },
   {
     id: '2026-09-28-5',
@@ -32,6 +58,11 @@ export const UI_CHANGES: UiChange[] = [
       },
       { text: 'Neue Vorlage „Gedeckte Anleihen“. Auch die Kachel „Deckung“ auf der Anleihe rechnet jetzt mit allen Anleihen des Emittenten, nicht nur mit dieser einen.' },
     ],
+    shot: {
+      path: '/markt?art=BOND&mit=brief&lz=0.04166667..&deck=100..&sort=-rt&sp=kurs,rt,lz,deck',
+      alt: 'Markt: Anleihen mit Spalte Deckung, gefiltert auf mindestens 100 %',
+      wait: 8000,
+    },
   },
   {
     id: '2026-09-28-4',
@@ -44,6 +75,7 @@ export const UI_CHANGES: UiChange[] = [
       { text: 'Schnellwahl 10 % · 25 % · 50 % · Alles, und vor dem Absenden eine Bestätigung – eine Einlage lässt sich nicht zurückholen.' },
       { text: 'Ohne Bank zeigt die Ansicht, wie weit deine Unternehmen von der Banklizenz (5 Mio. € Bargeld) entfernt sind.' },
     ],
+    shot: { path: '/zentralbank?ansicht=einlage', alt: 'Zentralbank, Ansicht Einlage: Betrag, Schnellwahl und Balken Bargeld → Einlage' },
   },
   {
     id: '2026-09-28-3',
@@ -67,6 +99,7 @@ export const UI_CHANGES: UiChange[] = [
       { text: 'Beiträge aus dem Spiel zeigen ihre Formatierung jetzt auch hier: Überschriften, Links, Listen und Bilder.', href: '/zeitung' },
       { text: 'Eigene Artikel kannst du bearbeiten („Bearbeiten“ oben im Artikel).' },
     ],
+    shot: { path: '/zeitung?schreiben=1', alt: 'Editor für einen Zeitungsartikel mit Formatierungsleiste', crop: '.bnk-sheet__panel', wait: 5000 },
   },
   {
     id: '2026-09-28',
@@ -86,6 +119,7 @@ export const UI_CHANGES: UiChange[] = [
         href: '/zentralbank?ansicht=tender',
       },
     ],
+    shot: { path: '/orders?ansicht=otc&umbuchen=1', alt: 'Umbuchen zwischen eigenen Depots', crop: '.bnk-sheet__panel', wait: 5000 },
   },
   {
     id: '2026-09-27',
@@ -97,6 +131,7 @@ export const UI_CHANGES: UiChange[] = [
       },
       { text: 'Zentralbank und Geldflüsse: eine Reiterleiste für Ansichten, Filter rechts daneben – am Handy im Filter-Sheet.', href: '/zentralbank' },
     ],
+    shot: { path: '/stroeme', alt: 'Geldflüsse: Sankey Verkäufer → Wertpapiere → Käufer', wait: 6000 },
   },
   {
     id: '2026-09-26',
@@ -108,5 +143,6 @@ export const UI_CHANGES: UiChange[] = [
       },
       { text: 'Das Börsenband läuft ruhiger und zeigt Namen statt ASINs.' },
     ],
+    shot: { path: '/markt?art=WARRANT', alt: 'Markt: Optionsscheine' },
   },
 ];

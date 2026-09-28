@@ -4,5 +4,5 @@ node_modules/
 dist/
 .DS_Store
 *.tsbuildinfo
-shots/
+/shots/
 .claude/worktrees/
