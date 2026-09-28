@@ -1,0 +1,43 @@
+{
+  "v": 3,
+  "assetGroups": {
+    "Charts": {
+      "name": "Charts",
+      "tile": "m",
+      "order": [],
+      "files": {}
+    }
+  },
+  "blobs": {},
+  "createdOnFiles": {
+    "at": "2026-09-23T13:52:29Z",
+    "v": 1
+  },
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "groups": [
+    "Charts"
+  ],
+  "lastChange": {
+    "by": "Malte",
+    "at": "2026-09-26T08:00:00Z",
+    "via": "Claude Code (alpha-trader-frontend)",
+    "note": "Version 57: PortfolioSummary – Tooltip am Aufteilungsbalken (Hover/Fokus/Antippen) mit allen Anteilen, Segment unter dem Zeiger hervorgehoben, größere Trefferfläche."
+  },
+  "layout": "files",
+  "libraries": [
+    {
+      "name": "react",
+      "version": "18"
+    },
+    {
+      "name": "react-dom",
+      "version": "18"
+    }
+  ],
+  "namespace": "Bankiersgruen",
+  "sections": {},
+  "title": "Bankiersgrün"
+}

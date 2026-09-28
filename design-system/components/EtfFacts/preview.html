@@ -1,0 +1,29 @@
+<!-- @dsCard group="Wertpapier" height=560 width=1000 subtitle="Fonds: Index, Gebühr, Tracking-Differenz · Anteile zeichnen oder zurückgeben" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>EtfFacts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-4) var(--space-6); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+  @media (max-width: 720px) { .wrap { grid-template-columns: 1fr; padding: var(--space-4); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now(), D = 864e5;
+  var etf = { name: 'ATSX Tracker', baseIndexName: 'ATSX', baseIndexAsin: 'IDATSX30MC', owner: { username: 'Nordkap Bank AG' }, managementFeePercent: 0.35, nextFeeChangeAt: now + 12 * D, trackingDifferencePercent: -0.08, trackingDifferenceMonth: 'August 2026' };
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.Card, { title: 'Fondsdaten', eyebrow: 'ETATSXTRK1 · Fonds' }, h(DS.EtfFacts, { etf: etf, indexHref: function () { return '#'; } })),
+    h(DS.Card, { title: 'Anteile' }, h(DS.EtfUnitsForm, { navPerUnit: 125473.07, ownedUnits: 40, managementFeePercent: 0.35, submitVariant: 'secondary', onSubmit: function () {} }))));
+</script>
+</body>
+</html>

@@ -1,8 +1,8 @@
 # Static build of the SPA, served by nginx. Multi-arch: the build stage runs on the
 # host platform (output is plain HTML/JS), the nginx image exists for arm64/armv7 (Raspberry Pi).
 #
-#   docker compose up -d --build                                   # on the Pi
-#   docker buildx build --platform linux/arm64 --build-arg VITE_PARTNER_ID=… -t alpha-trader-frontend .
+# GitHub Actions builds linux/amd64 + linux/arm64 and pushes ghcr.io/maltemelzer/alpha-trader-frontend.
+#   docker compose up -d --build                                   # build locally
 
 FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 WORKDIR /app

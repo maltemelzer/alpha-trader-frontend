@@ -1,0 +1,34 @@
+<!-- @dsCard group="Spiel" height=370 subtitle="Medaille mit Highscore-Platz · mit Kategorie · Größen · im Einsatz" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>RankBadge</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { padding: var(--space-4) var(--space-6); display: grid; gap: var(--space-4); }
+  .row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding-bottom: var(--space-4); border-bottom: var(--hairline) solid var(--line); }
+  .player { display: flex; align-items: center; gap: var(--space-3); }
+  .player .nm { font-family: var(--font-serif); font-size: 20px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h('div', null, h('div', { className: 'lbl' }, 'Varianten'), h('div', { className: 'row' },
+      h(DS.RankBadge, { rank: 3 }), h(DS.RankBadge, { symbol: 'B', label: 'Banker' }), h(DS.RankBadge, { label: 'Buchwert', rank: 3 }))),
+    h('div', null, h('div', { className: 'lbl' }, 'Größen'), h('div', { className: 'row' },
+      h(DS.RankBadge, { size: 'sm', rank: 12 }), h(DS.RankBadge, { rank: 12 }), h(DS.RankBadge, { size: 'lg', label: 'Miner', rank: 1 }))),
+    h('div', null, h('div', { className: 'lbl' }, 'Größen · dreistellig'), h('div', { className: 'row' },
+      h(DS.RankBadge, { size: 'sm', rank: 128 }), h(DS.RankBadge, { rank: 128 }), h(DS.RankBadge, { size: 'lg', rank: 128, label: 'Trades' }))),
+    h('div', null, h('div', { className: 'lbl' }, 'Im Profilkopf'), h('div', { className: 'player' },
+      h('span', { className: 'nm' }, 'CptnIglo'), h(DS.RankBadge, { label: 'Buchwert', rank: 3 })))
+  ));
+</script>
+</body>
+</html>

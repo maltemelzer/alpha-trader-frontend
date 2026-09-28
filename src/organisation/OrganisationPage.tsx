@@ -20,7 +20,7 @@ import { MyIndexes } from './MyIndexes';
 import { ViewPicker } from '../app/phone';
 import { QuickTransfer } from '../me/TransferSheet';
 import { translate } from '../lib/messages';
-import type { PortfolioView } from '../../vendor/bankiersgruen';
+import type { PortfolioView } from '../../design-system/components';
 import './OrganisationPage.css';
 
 const empty = (title: string, text?: string) => (

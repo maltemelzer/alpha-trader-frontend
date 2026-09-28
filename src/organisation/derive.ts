@@ -1,6 +1,6 @@
 import type { HistorizedListingDataView, PortfolioView } from '../api/types';
 import { afterRebase } from '../security/derive';
-import type { Suggestion } from '../../vendor/bankiersgruen';
+import type { Suggestion } from '../../design-system/components';
 
 /**
  * Book value: cash plus the volume of all positions – as PortfolioSummary shows it.

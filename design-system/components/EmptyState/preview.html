@@ -1,0 +1,29 @@
+<!-- @dsCard group="Zustände" height=360 width=980 subtitle="Leeres Depot mit einer Aktion · keine Treffer, kompakt" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>EmptyState</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); padding: var(--space-4) var(--space-6); align-items: start; }
+  .box { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h('div', { className: 'box' }, h(DS.EmptyState, { title: 'Noch keine Wertpapiere', action: h(DS.Button, { variant: 'secondary' }, 'Wertpapiere suchen') },
+      'Ihr Depot ist leer. Kaufen Sie Aktien, Anleihen oder Coins, dann erscheinen sie hier.')),
+    h('div', { className: 'box' }, h(DS.EmptyState, { compact: true, title: 'Keine offenen Orders' }, 'Limit-Orders, die noch nicht ausgeführt wurden, stehen hier.'),
+      h(DS.EmptyState, { compact: true, symbol: false, title: 'Keine Treffer für „Hansa“' }, 'Suchen Sie nach Name oder ASIN, z. B. STHANSEBET.'))));
+</script>
+</body>
+</html>

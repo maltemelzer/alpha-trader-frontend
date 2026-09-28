@@ -1,0 +1,34 @@
+<!-- @dsCard group="Chat" height=470 subtitle="Direkt · Gruppen · Öffentlich (Lobbys)" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>ConversationList</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { padding: var(--space-4) var(--space-6); }
+  .box { width: 320px; background: var(--bg-card); border-radius: var(--radius-md); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' }, h('div', { className: 'box' },
+    h(DS.ConversationList, { onSelect: function () {}, groups: [
+      { label: 'Direkt', items: [
+        { name: 'Frieda Kontor', preview: 'Hast du die Zahlen gesehen?', time: '17:12', unread: 2, online: true },
+        { name: 'Börsenfuchs_77', preview: 'Du: Danke für den Tipp!', time: 'Mo.' }
+      ] },
+      { label: 'Gruppen', items: [
+        { kind: 'group', name: 'Hanseatische Allianz', initials: 'HA', preview: 'Du: $STNORDKAPB schwächelt …', time: '17:41', active: true },
+        { kind: 'group', name: 'Freunde', initials: '#', preview: 'Paul: Wer ist Montag dabei?', time: 'So.', unread: 5 }
+      ] },
+      { label: 'Öffentlich', items: [ { kind: 'public', name: 'Lobby (de)', preview: 'abimbola has joined', time: '06:12' }, { kind: 'public', name: 'Lobby (en)', preview: 'howdy', time: 'Mo.' } ] }
+    ] }))));
+</script>
+</body>
+</html>

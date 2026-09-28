@@ -1,0 +1,54 @@
+<!-- @dsCard group="Formulare" height=640 subtitle="Order-Maske · Zustände · −/+ auf Touch 44 px" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Input</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); padding: var(--space-4); align-items: start; }
+  .stack { display: grid; gap: var(--space-4); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .sum { display: flex; justify-content: space-between; align-items: baseline; padding-top: var(--space-3); border-top: var(--hairline) solid var(--line); }
+  .sum .l { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+  .sum .v { font-family: var(--font-mono); font-size: 20px; line-height: 26px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  function Order() {
+    var q = React.useState('50'), lim = React.useState('48,50'), side = React.useState('buy'), type = React.useState('limit');
+    var n = parseFloat(q[0].replace(/\./g, '').replace(',', '.')) || 0;
+    var p = type[0] === 'market' ? 48.72 : (parseFloat(lim[0].replace(/\./g, '').replace(',', '.')) || 0);
+    var total = (n * p).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    return h(DS.Card, { eyebrow: 'STHANSEREE · 48,72 €', title: 'Order: Hanse Reederei AG', titleAs: 'h2' },
+      h('div', { className: 'stack' },
+        h(DS.SegmentedControl, { 'aria-label': 'Richtung', value: side[0], onChange: side[1], options: [{ value: 'buy', label: 'Kaufen' }, { value: 'sell', label: 'Verkaufen' }] }),
+        h(DS.SegmentedControl, { label: 'Order-Typ', value: type[0], onChange: type[1], options: [{ value: 'market', label: 'Market' }, { value: 'limit', label: 'Limit' }] }),
+        h('div', { className: 'two' },
+          h(DS.Input, { label: 'Anteile', numeric: true, stepper: true, min: 1, step: 1, value: q[0], onChange: function (e) { q[1](e.target.value); } }),
+          h(DS.Input, { label: 'Limit', numeric: true, suffix: '€', disabled: type[0] === 'market', value: type[0] === 'market' ? '' : lim[0], placeholder: type[0] === 'market' ? 'Bestens' : '', onChange: function (e) { lim[1](e.target.value); } })),
+        h('div', { className: 'two' },
+          h(DS.Select, { label: 'Portfolio', defaultValue: 'p', options: [{ value: 'p', label: 'Mein Portfolio' }, { value: 'c', label: 'Hanse Beteiligungs AG' }] }),
+          h(DS.Input, { label: 'Gegenpartei (OTC)', optional: true, placeholder: 'Portfolio' })),
+        h('div', { className: 'sum' }, h('span', { className: 'l' }, 'Geschätzter Betrag'), h('span', { className: 'v' }, total)),
+        h(DS.Button, { variant: 'primary', size: 'lg', fullWidth: true }, side[0] === 'buy' ? 'Kauforder prüfen' : 'Verkaufsorder prüfen')));
+  }
+  function States() {
+    return h(DS.Card, { eyebrow: 'Input', title: 'Zustände', titleAs: 'h2' },
+      h('div', { className: 'stack' },
+        h(DS.Input, { label: 'Suche', placeholder: 'Name, Ticker oder WKN' }),
+        h(DS.Input, { label: 'Limit', numeric: true, suffix: '€', defaultValue: '48,50', hint: 'Aktueller Kurs 48,72 €' }),
+        h(DS.Input, { label: 'Stückzahl', numeric: true, suffix: 'Stk.', defaultValue: '250', error: 'Nicht genug Bargeld – höchstens 172 Anteile.' }),
+        h(DS.Input, { label: 'Gültig ab', type: 'datetime-local', disabled: true, hint: 'Nur mit Goldzugang' }),
+        h(DS.Input, { label: 'Bargeld verfügbar', numeric: true, suffix: '€', readOnly: true, value: '993.113,48' }),
+        h(DS.Input, { label: 'Notiz', optional: true, placeholder: 'z. B. Nachkauf nach Dividende' })));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'grid' }, h(Order), h(States)));
+</script>
+</body>
+</html>

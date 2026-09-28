@@ -1,0 +1,51 @@
+<!-- @dsCard group="Seiten" height=1000 width=1280 subtitle="Profil eines Spielers: Kopf, Highscore-Plätze, Anstellungen als CEO, Erfolge, Beiträge" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Spielerprofil</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-6) var(--space-6) var(--space-8); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: var(--space-6); margin-top: var(--space-6); align-items: start; }
+  .col { display: grid; gap: var(--space-6); min-width: 0; }
+  .ach { display: grid; gap: var(--space-2); }
+  @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now(), D = 864e5;
+  var emp = [
+    { id: 'e1', company: { name: 'Hanse Beteiligungs AG', securityIdentifier: 'STHANSEBET' }, startDate: now - 220 * D, dailyWage: 10000 },
+    { id: 'e2', company: { name: 'Nordkap Bank AG', securityIdentifier: 'STNORDKAPB' }, startDate: now - 60 * D, dailyWage: 350 }
+  ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.ProfileHeader, { kind: 'user', name: 'CptnIglo', eyebrow: ['Hanseatische Allianz'], meta: ['dabei seit 12.4.2021', 'zuletzt online vor 4 Min.'],
+      tags: [{ label: 'Gold', gold: true }],
+      actions: [h(DS.Button, { key: 1, size: 'sm', iconStart: h(DS.Icon, { name: 'chat', size: 16 }) }, 'Nachricht'), h(DS.Button, { key: 2, size: 'sm', variant: 'ghost', iconStart: h(DS.Icon, { name: 'plus', size: 16 }) }, 'Abonnieren')],
+      stats: [{ label: 'Buchwert', value: 5134000000, rank: 149 }, { label: 'Net Cash', value: 2084000000, rank: 212 }, { label: 'Trades', value: '870', rank: 903 }, { label: 'Erfolge', value: '14 / 20' }],
+      tabs: h(DS.Tabs, { size: 'sm', 'aria-label': 'Profil', defaultValue: 'u', items: [{ value: 'u', label: 'Übersicht' }, { value: 'p', label: 'Beiträge', count: 37 }, { value: 'a', label: 'Erfolge' }] }) }),
+    h('div', { className: 'grid' },
+      h('div', { className: 'col' },
+        h(DS.Card, { title: 'Anstellungen', flush: true }, h(DS.EmploymentList, { employments: emp, hrefFor: function () { return '#'; } })),
+        h(DS.Card, { title: 'Beteiligungen', footer: 'Anteil am Unternehmen über alle Portfolios.' }, h(DS.ShareList, { items: [
+          { listing: { name: 'Hanse Beteiligungs AG', securityIdentifier: 'STHANSEBET' }, shareInPercent: 72.4 },
+          { listing: { name: 'Nordkap Bank AG', securityIdentifier: 'STNORDKAPB' }, shareInPercent: 51.2 },
+          { listing: { name: 'Hanse Reederei AG', securityIdentifier: 'STHANSEREE' }, shareInPercent: 18.6 }] }))),
+      h('div', { className: 'col' },
+        h(DS.Card, { title: 'Erfolge', action: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Alle 20') }, h('div', { className: 'ach' },
+          h(DS.Achievement, { title: 'Bankier', description: 'Ein Unternehmen mit Banklizenz führen.', unlocked: true, date: '14.8.2026' }),
+          h(DS.Achievement, { title: 'Oberes Zehntel', description: 'Unter den besten 10 % im Nutzer-Highscore.', unlocked: true, date: '2.9.2026' }),
+          h(DS.Achievement, { title: 'Tausend Trades', description: '1.000 ausgeführte Trades.', progress: { value: 870, max: 1000, unit: 'Trades' } }))),
+        h(DS.Card, { title: 'Allianz' }, h(DS.SummaryList, { items: [{ label: 'Name', value: 'Hanseatische Allianz' }, { label: 'Rolle', value: 'Pressesprecher' }, { label: 'Mitglied seit', value: '3.1.2025' }, { label: 'Mitglieder', value: 24, currency: '', decimals: 0 }] }))))));
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import type { Post, Reaction } from '../../vendor/bankiersgruen';
+import type { Post, Reaction } from '../../design-system/components';
 import type { PostView } from '../api/queries';
 import { htmlToText } from '../lib/html';
 

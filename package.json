@@ -20,7 +20,7 @@
     "lint": "eslint .",
     "api:generate": "openapi-typescript https://stable.alpha-trader.com/v3/api-docs -o src/api/schema.d.ts",
     "api:get": "node scripts/api-get.mjs",
-    "ds:sync": "node scripts/sync-design-system.mjs",
+    "ds:tokens": "node scripts/design-system.mjs",
     "shot": "node scripts/shot.mjs",
     "audit": "node scripts/audit.mjs"
   },

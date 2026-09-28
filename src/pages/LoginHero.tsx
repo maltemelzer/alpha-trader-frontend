@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DS } from '../ds';
-import type { IconName } from '../../vendor/bankiersgruen';
+import type { IconName } from '../../design-system/components';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { candles, nextCandle, priceRange, rng, type Candle } from './candles';
 

@@ -1,0 +1,35 @@
+<!-- @dsCard group="Wertpapier" height=640 width=1180 subtitle="Index: Eckdaten mit Regel und Mitglieder nach Gewicht" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>IndexMembers</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-4) var(--space-6); display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now(), href = function () { return '#'; };
+  function mem(asin, name, shares, price, f) { return { listing: { name: name, securityIdentifier: asin, type: 'STOCK' }, shares: shares, price: price, priceAdjustmentFactor: f || 1, capitalisation: shares * price * (f || 1) }; }
+  var members = [
+    mem('STBBFC1001', 'BBFC1001', 949700000000, 208.27), mem('STFLOATKNG', 'Prime Reserve Bank', 100000000000000, 0.48), mem('STA93E1202', 'AAAAA-Bank', 3431627, 533695.69),
+    mem('STSTENDERB', 'Seylor Tender Bank', 1000000000000, 1.32), mem('STAD5F9F97', 'ATSX Tradings', 9510422615, 125.89), mem('STS5D9319D', 'Ardok', 220765610, 262.33),
+    mem('STR6D0F6A3', 'Segunda', 290144444, 88.83), mem('STF8173E5D', 'FC0850', 30484006, 589.54, 0.5)
+  ];
+  var index = { owner: { username: 'Alphabanker' }, membersCount: 30, baseValue: 1000, chainingFactor: 80950.7992742232, nextChainingDate: now + 7 * 864e5,
+    rule: { sortCriterion: 'MARKET_CAP', topN: 30, assetClass: 'STOCK', weightCapPercent: 20, minFreeFloatPercent: 10, requireTradedLast24h: true } };
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.Card, { title: 'Indexdaten' }, h(DS.IndexFacts, { index: index })),
+    h(DS.Card, { title: 'Mitglieder', flush: true, footer: 'Gewicht = Kapitalisierung im Streubesitz. 8 von 30 gezeigt.' }, h(DS.IndexMembers, { members: members, hrefFor: href }))));
+</script>
+</body>
+</html>

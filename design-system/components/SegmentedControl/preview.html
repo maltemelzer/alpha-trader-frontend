@@ -1,0 +1,24 @@
+<!-- @dsCard group="Formulare" height=190 subtitle="Richtung · Order-Typ · Zeitraum" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>SegmentedControl</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .stack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); padding: var(--space-4); background: var(--bg-card); min-height: 100vh; box-sizing: border-box; align-content: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'stack' },
+    h(DS.SegmentedControl, { label: 'Richtung', options: [{ value: 'buy', label: 'Kaufen' }, { value: 'sell', label: 'Verkaufen' }] }),
+    h(DS.SegmentedControl, { label: 'Order-Typ', defaultValue: 'limit', options: [{ value: 'market', label: 'Market' }, { value: 'limit', label: 'Limit' }, { value: 'stop', label: 'Stop' }] }),
+    h(DS.SegmentedControl, { label: 'Zeitraum', size: 'sm', defaultValue: '1m', options: [{ value: '1t', label: '1T' }, { value: '1w', label: '1W' }, { value: '1m', label: '1M' }, { value: '1j', label: '1J' }] })));
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!-- @dsCard group="Formulare" height=330 width=980 subtitle="Einstellungen und Bestätigungen · halb angekreuzt für „alle“ · Fehler und gesperrt" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Checkbox</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); padding: var(--space-4) var(--space-6); align-items: start; }
+  .box { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  function Demo() {
+    var a = React.useState([true, false, true]);
+    var all = a[0].every(Boolean), some = a[0].some(Boolean);
+    function set(i) { return function (e) { var n = a[0].slice(); n[i] = e.target.checked; a[1](n); }; }
+    return h('div', { className: 'wrap' },
+      h('div', { className: 'box' }, h('div', { className: 'lbl' }, 'Benachrichtigen bei'),
+        h(DS.Checkbox, { label: 'Alle Ereignisse', checked: all, indeterminate: some && !all, onChange: function (e) { a[1]([e.target.checked, e.target.checked, e.target.checked]); } }),
+        h('div', { style: { paddingLeft: '26px', display: 'flex', flexDirection: 'column', gap: '4px' } },
+          h(DS.Checkbox, { label: 'Ausgeführte Orders', checked: a[0][0], onChange: set(0) }),
+          h(DS.Checkbox, { label: 'Neue Abstimmungen', checked: a[0][1], onChange: set(1) }),
+          h(DS.Checkbox, { label: 'Antworten im Forum', checked: a[0][2], onChange: set(2) }))),
+      h('div', { className: 'box' }, h('div', { className: 'lbl' }, 'Bestätigung'),
+        h(DS.Checkbox, { label: 'Ich habe verstanden, dass die Liquidation nicht rückgängig gemacht werden kann.', error: 'Bitte bestätige, um fortzufahren.' }),
+        h(DS.Checkbox, { label: 'Nur Order prüfen, nicht ausführen', defaultChecked: true, hint: 'Entspricht checkOrderOnly – zeigt Ausführungskurs und Volumen.' })),
+      h('div', { className: 'box' }, h('div', { className: 'lbl' }, 'Gesperrt'),
+        h(DS.Checkbox, { label: 'Zeitgesteuerte Order', disabled: true, hint: h('span', null, 'Nur mit ', h('span', { className: 'bnk-gold' }, 'Gold'), '.') }),
+        h(DS.Checkbox, { label: 'An Pressemitteilung anhängen', defaultChecked: true, disabled: true })));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

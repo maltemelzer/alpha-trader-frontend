@@ -1,0 +1,42 @@
+<!-- @dsCard group="Unternehmen" height=900 width=1240 subtitle="Kapitalerhöhung offen · CEO-Bewerbung teilweise abgestimmt · Gewinnausschüttung angenommen" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>PollCard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); padding: var(--space-4) var(--space-6); align-items: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = {};
+  var now = Date.now(), H = 3600e3, D = 24 * H;
+  var me = { username: 'CptnIglo', myUser: true };
+  var alster = { id: 'c9', name: 'Alsterkasse SE', securityIdentifier: 'STALSTERKS', ceo: { username: 'Frieda Kontor' } };
+  var hanse = { id: 'c1', name: 'Hanse Beteiligungs AG', securityIdentifier: 'STHANSEBET', ceo: me };
+  var polls = [
+    { id: 'p1', type: 'YES_NO', company: alster, pollInitiator: { username: 'Frieda Kontor' }, capitalIncreaseType: 'WITH_SUBSCRIPTION_RIGHTS', price: 44, minimalCashVolume: 1879312549956, subscriptionFraction: 4,
+      startDate: now - 20 * H, endDate: now + 28 * H, resultExpireDate: now + 5 * D, abstentionRule: 'COUNTS_AS_REFUSAL', totalNumberOfVoices: 3758625099912,
+      group: [{ groupMember: me, numberOfVoices: 12500000 }], votes: [{ type: 'YES', voices: 1582380000000, voter: { username: 'Frieda Kontor' } }, { type: 'NO', voices: 368300000000, voter: { username: 'Nordkap Bank' } }] },
+    { id: 'p2', type: 'YES_NO', company: { id: 'c5', name: 'Elbwerk Energie SE', securityIdentifier: 'STELBWERKE' }, applicant: { username: 'Kursfeder' }, dailyWage: 250000000, harmless: false,
+      startDate: now - 3 * H, endDate: now + 2 * D, abstentionRule: 'COUNTS_AS_REFUSAL', totalNumberOfVoices: 900000000,
+      group: [{ groupMember: me, numberOfVoices: 120000000 }], votes: [{ type: 'YES', voices: 40000000, voter: me }, { type: 'YES', voices: 310000000, voter: { username: 'Kursfeder' } }] },
+    { id: 'p3', type: 'YES_NO', company: hanse, pollInitiator: me, maximalCashVolume: 4e12, harmless: true,
+      startDate: now - 3 * D, endDate: now - 2 * H, resultExpireDate: now + 3 * D, abstentionRule: 'COUNTS_AS_APPROVAL', totalNumberOfVoices: 8e11, approvalVotesPercentage: 71.4,
+      group: [{ groupMember: me, numberOfVoices: 4.8e11 }], votes: [{ type: 'YES', voices: 4.8e11, voter: me }, { type: 'NO', voices: 1.2e11, voter: { username: 'Zinsjäger' } }] }
+  ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.PollCard, { poll: polls[0], onVote: function () {}, hrefFor: function () { return '#'; } }),
+    h(DS.PollCard, { poll: polls[1], onVote: function () {}, hrefFor: function () { return '#'; } }),
+    h(DS.PollCard, { poll: polls[2], onExecute: function () {}, hrefFor: function () { return '#'; } })));
+</script>
+</body>
+</html>

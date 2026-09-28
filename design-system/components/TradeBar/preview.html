@@ -1,0 +1,29 @@
+<!-- @dsCard group="Handy" height=260 width=390 subtitle="Handelsleiste unten auf der Wertpapierseite: Geld/Brief, öffnet die Order-Maske im Sheet" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>TradeBar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  body { background: var(--bg-page); }
+  .wrap { padding: var(--space-4); font-size: 14px; line-height: 20px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', null,
+    h('div', { className: 'wrap' }, h('div', { className: 'lbl' }, 'Aktie'), 'Beide Seiten sehen gleich aus – Kauf und Verkauf sind keine Farben. Die Messing-Aktion kommt erst in der Order-Maske.'),
+    h(DS.TradeBar, { fixed: false, listing: { name: 'Alsterkasse SE', securityIdentifier: 'STALSTERKS', type: 'STOCK' }, spread: { bidPrice: 55.74, bidSize: 8750037, askPrice: 55.79, askSize: 21 }, onTrade: function () {} }),
+    h('div', { className: 'wrap' }, h('div', { className: 'lbl' }, 'Anleihe, keine Nachfrage')),
+    h(DS.TradeBar, { fixed: false, listing: { name: 'Nordkap Bank 2,05 %', securityIdentifier: 'BONORDK1QZ', type: 'BOND' }, spread: { askPrice: 100.0, askSize: 8000 }, onTrade: function () {} })));
+</script>
+</body>
+</html>

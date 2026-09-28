@@ -1,0 +1,1 @@
+Seitenvorlage „Meine Organisation auf dem Handy“ (390 px): `PageHeader` (md) mit „Order aufgeben“, `PortfolioSummary`, zwei `SuggestionList`-Einträge, Reiter Positionen/Orders/Trades. Die Tabellen werden automatisch zu Karten (`stack="auto"`), die Sortierung wandert in eine Auswahl über der Liste. Unten die `BottomNav`.

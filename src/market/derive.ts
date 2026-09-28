@@ -1,6 +1,6 @@
 import type { MarketRow } from '../api/queries';
 import type { ListingWithTradingVolumeView, SecurityOrderLogEntryView, TradingMatrixItemView } from '../api/types';
-import type { MarketResult, TickerItem } from '../../vendor/bankiersgruen';
+import type { MarketResult, TickerItem } from '../../design-system/components';
 
 /** Latest trades, newest first, as LiveTicker items; names come from whatever lists are loaded. */
 export function tickerItems(

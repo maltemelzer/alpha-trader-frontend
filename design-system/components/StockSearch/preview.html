@@ -1,0 +1,37 @@
+<!-- @dsCard group="Formulare" height=380 subtitle="Treffer beim Tippen · Tastatur · keine Treffer" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>StockSearch</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { display: grid; grid-template-columns: 1.3fr 1fr; gap: var(--space-6); padding: var(--space-4) var(--space-6); align-items: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var all = [
+    { ticker: 'HRD', name: 'Hanse Reederei AG', meta: 'STHANSEREE · Aktie', price: 48.72, change: 2.34 },
+    { ticker: 'HMB', name: 'Hamburger Handelsbank', meta: 'STHHBANKXX · Aktie', price: 31.05, change: -0.48 },
+    { ticker: 'HSW', name: 'Hanseatische Stahlwerke', meta: 'BOHSWERK26 · Anleihe', listingType: 'BOND', price: 99.25, change: 0 },
+    { ticker: 'NBH', name: 'Nordbank Holding', meta: 'STNORDKAPB · Aktie', price: 116.85, change: -0.62 },
+    { ticker: 'RSW', name: 'Rheinstahl Werke', meta: 'STRHEINSTW · Aktie', price: 23.10, change: 0.41 }
+  ];
+  function Live(p) {
+    var q = React.useState(p.start);
+    var res = all.filter(function (r) { var s = q[0].toLowerCase(); return s && (r.name.toLowerCase().indexOf(s) >= 0 || r.ticker.toLowerCase().indexOf(s) >= 0); });
+    return h(DS.StockSearch, { label: p.label, value: q[0], onChange: q[1], results: res, defaultOpen: p.open, shortcut: '/',
+      footer: '↑ ↓ wählen · Enter öffnen · Esc schließen', onSelect: function () {} });
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(Live, { label: 'Aktie suchen', start: 'han', open: true }),
+    h(Live, { label: 'Keine Treffer', start: 'xyz', open: true })));
+</script>
+</body>
+</html>

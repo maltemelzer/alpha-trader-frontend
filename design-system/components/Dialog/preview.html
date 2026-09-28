@@ -1,0 +1,51 @@
+<!-- @dsCard group="Dialoge" height=640 subtitle="Order-Bestätigung · Rückfrage vor Storno · live öffnen" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Dialog</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { display: grid; grid-template-columns: 520px 1fr; gap: var(--space-6); padding: var(--space-4) var(--space-6); align-items: start; }
+  .side { display: grid; gap: var(--space-4); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var orderItems = [
+    { label: 'Aktie', value: 'Hanse Reederei AG (HRD)' },
+    { label: 'Richtung', value: 'Kauf' },
+    { label: 'Stückzahl', value: 50, unit: 'Stk.', decimals: 0 },
+    { label: 'Order-Typ', value: 'Limit 48,50 €' },
+    { label: 'Portfolio', value: 'Mein Portfolio' },
+    { label: 'Kurswert', value: 2425.00 },
+    
+    { label: 'Gesamt', value: 2429.90, total: true }
+  ];
+  function Demo() {
+    var o = React.useState(false);
+    var confirm = function (inline, onClose) {
+      return h(DS.Dialog, { inline: inline, open: true, onClose: onClose, eyebrow: 'Kauforder prüfen', title: 'Hanse Reederei AG kaufen',
+        actions: [h(DS.Button, { key: 'b', onClick: onClose }, 'Zurück'), h(DS.Button, { key: 'k', variant: 'primary', onClick: onClose }, 'Jetzt kaufen')] },
+        h(DS.SummaryList, { items: orderItems }),
+        h(DS.Banner, null, 'Limit-Order: Ausführung nur zu ', h('span', { className: 'num' }, '48,50 €'), ' oder günstiger. Bargeld danach ', h('span', { className: 'num' }, '5.982,10 €'), '.'));
+    };
+    return h('div', { className: 'wrap' },
+      h('div', null, h('div', { className: 'lbl' }, 'Order-Bestätigung'), confirm(true, function () {})),
+      h('div', { className: 'side' },
+        h('div', null, h('div', { className: 'lbl' }, 'Rückfrage · alertdialog'),
+          h(DS.Dialog, { inline: true, size: 'sm', role: 'alertdialog', title: 'Order stornieren?', onClose: function () {},
+            description: 'Die Limit-Order über 50 × HRD zu 48,50 € wird gelöscht. Das lässt sich nicht rückgängig machen.',
+            actions: [h(DS.Button, { key: 'b' }, 'Behalten'), h(DS.Button, { key: 's', variant: 'danger' }, 'Stornieren')] })),
+        h('div', null, h('div', { className: 'lbl' }, 'Live'), h(DS.Button, { onClick: function () { o[1](true); } }, 'Dialog öffnen'))),
+      o[0] ? confirm(false, function () { o[1](false); }) : null);
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

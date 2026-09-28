@@ -1,4 +1,4 @@
-import type { MinerView } from '../../vendor/bankiersgruen';
+import type { MinerView } from '../../design-system/components';
 
 /** Hours until the next miner level has paid for itself through the extra coins (at today's coin price). */
 export function paybackHours(m: MinerView, coinPrice: number | undefined): number | undefined {

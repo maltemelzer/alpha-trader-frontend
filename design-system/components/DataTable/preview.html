@@ -1,0 +1,71 @@
+<!-- @dsCard group="Kurse" height=1200 subtitle="Marktübersicht · Depot mit Summe · Rangliste" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>DataTable</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .page { display: grid; gap: var(--space-4); padding: var(--space-4); }
+  .half { max-width: 480px; }
+  .rank { font-family: var(--font-mono); color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement, noop = function (e) {};
+  var markt = [
+    { t: 'HRD', stock: { name: 'Hanse Reederei AG', ticker: 'STHANSEREE' }, price: 48.72, chg: 2.34, vol: 1284000, cap: 8.4e12 },
+    { t: 'NBH', stock: { name: 'Nordbank Holding', ticker: 'STNORDKAPB' }, price: 116.85, chg: -0.62, vol: 612500, cap: 2.19e14 },
+    { t: 'RSW', stock: { name: 'Rheinstahl Werke', ticker: 'STRHEINSTW' }, price: 23.10, chg: 0.41, vol: 2210400, cap: 5.1e9 },
+    { t: 'BBU', stock: { name: 'Bayerische Brauunion', ticker: 'STBAYBRAUU' }, price: 7.94, chg: 5.12, vol: 3905000, cap: 1.2e8 },
+    { t: 'ELW', stock: { name: 'Elbwerk Energie', ticker: 'STELBWERKE' }, price: 61.30, chg: -2.87, vol: 845200, cap: 1.26e13 },
+    { t: 'KPV', stock: { name: 'Kontor Pharma Vertrieb', ticker: 'STKONTORPH' }, price: 142.05, chg: 0, vol: 198300, cap: 1.73e11 }
+  ];
+  var depot = [
+    { t: 'HRD', stock: { name: 'Hanse Reederei AG', ticker: 'STHANSEREE' }, qty: 120, value: 5846.40, pl: 12.4, plAmt: 644.80 },
+    { t: 'NBH', stock: { name: 'Nordbank Holding', ticker: 'STNORDKAPB' }, qty: 40, value: 4674.00, pl: -3.1, plAmt: -149.60 },
+    { t: 'RSW', stock: { name: 'Rheinstahl Werke', ticker: 'STRHEINSTW' }, qty: 300, value: 6930.00, pl: 4.8, plAmt: 317.40 }
+  ];
+  var rang = [
+    { r: 1, stock: { name: 'Frieda Kontor', meta: 'Hanseatische Allianz' }, value: 3.04e15 },
+    { r: 2, stock: { name: 'Börsenfuchs_77', meta: 'Nordbund' }, value: 2.1e15 },
+    { r: 3, stock: { name: 'Sie', meta: 'Hanseatische Allianz' }, value: 8.7e14, me: true },
+    { r: 4, stock: { name: 'Anleger Paul', meta: 'Kapitalkreis' }, value: 2.4e14 },
+    { r: 5, stock: { name: 'Hanseatin', meta: 'ohne Allianz' }, value: 6.9e13 }
+  ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'page' },
+    h(DS.Card, { title: 'Marktübersicht', eyebrow: 'Stand 17:35 Uhr', flush: true, titleAs: 'h2' },
+      h(DS.DataTable, { caption: 'Marktübersicht', rowKey: 't', rows: markt, defaultSort: { key: 'chg', dir: 'desc' },
+        getRowHref: function (r) { return '#' + r.t; },
+        columns: [
+          { key: 'stock', label: 'Titel', type: 'stock', sortable: true, sticky: true },
+          { key: 'price', label: 'Kurs', type: 'currency', sortable: true },
+          { key: 'chg', label: 'Heute', type: 'change', sortable: true },
+          { key: 'vol', label: 'Volumen', type: 'number', unit: 'Stk.', sortable: true },
+          { key: 'cap', label: 'Marktkap.', type: 'currency', sortable: true }
+        ] })),
+      h(DS.Card, { title: 'Ihr Depot', flush: true, titleAs: 'h2' },
+        h(DS.DataTable, { caption: 'Depot', rowKey: 't', rows: depot, density: 'sm',
+          columns: [
+            { key: 'stock', label: 'Titel', type: 'stock' },
+            { key: 'qty', label: 'Stück', type: 'number' },
+            { key: 'value', label: 'Wert', type: 'currency' },
+            { key: 'pl', label: 'Seit Kauf', type: 'change', amountKey: 'plAmt' }
+          ],
+          summary: { stock: 'Gesamt', value: 17450.40, pl: 4.83, plAmt: 812.60 } })),
+      h(DS.Card, { className: 'half', title: 'Highscore', eyebrow: 'Nutzer · Buchwert', flush: true, titleAs: 'h2' },
+        h(DS.DataTable, { caption: 'Highscore Buchwert', rowKey: 'r', rows: rang, density: 'sm',
+          isRowHighlighted: function (r) { return r.me; },
+          columns: [
+            { key: 'r', label: 'Platz', render: function (r) { return h('span', { className: 'rank' }, r.r + '.'); }, width: 56 },
+            { key: 'stock', label: 'Nutzer', type: 'stock' },
+            { key: 'value', label: 'Buchwert', type: 'currency' }
+          ] }))
+  ));
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!-- @dsCard group="Formulare" height=200 subtitle="Standard · Platzhalter · Fehler" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Select</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); padding: var(--space-4); background: var(--bg-card); min-height: 100vh; box-sizing: border-box; align-content: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var konten = [{ value: 'p', label: 'Mein Portfolio (privat)' }, { value: 'c1', label: 'Hanse Beteiligungs AG' }, { value: 'c2', label: 'Nordkap Bank' }];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'row' },
+    h(DS.Select, { label: 'Portfolio', defaultValue: 'p', options: konten, hint: 'Privat oder für eine AG, deren CEO Sie sind' }),
+    h(DS.Select, { label: 'Wertpapierart', placeholder: 'Art wählen', options: [{ value: 'STOCK', label: 'Aktie' }, { value: 'BOND', label: 'Anleihe' }, { value: 'COIN', label: 'Coin' }, { value: 'ETF', label: 'Fonds' }] }),
+    h(DS.Select, { label: 'Kategorie', placeholder: 'Kategorie wählen', options: [{ value: 'BOOK_VALUE', label: 'Buchwert' }], error: 'Bitte eine Kategorie wählen.' })));
+</script>
+</body>
+</html>

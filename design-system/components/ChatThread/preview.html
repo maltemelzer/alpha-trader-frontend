@@ -1,0 +1,46 @@
+<!-- @dsCard group="Chat" height=940 subtitle="Gruppenchat mit Namen · Direktnachricht ohne Namen" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>ChatThread</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { display: grid; grid-template-columns: 1.3fr 1fr; gap: var(--space-4); padding: var(--space-4) var(--space-6); align-items: start; }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { STHANSEREE: { name: 'Hanse Reederei AG', change: 2.34, href: '#' }, STNORDKAPB: { name: 'Nordkap Bank', change: -0.62, href: '#' }, STELBWERKE: { name: 'Elbwerk Energie SE', change: -2.87, href: '#' } };
+  var frieda = { name: 'Frieda Kontor', badge: h(DS.RankBadge, { rank: 1, size: 'sm' }) };
+  var fuchs = { name: 'Börsenfuchs_77', badge: h(DS.RankBadge, { rank: 2, size: 'sm' }) };
+  var paul = { name: 'Anleger Paul' };
+  var liga = [
+    { day: 'Gestern' },
+    { system: 'Anleger Paul ist der Hanseatischen Allianz beigetreten.' },
+    { author: paul, text: 'Moin zusammen! Wer hält hier noch $STELBWERKE?', time: '18:02' },
+    { day: 'Heute' },
+    { author: frieda, text: 'Ich hab heute früh $STHANSEREE nachgekauft.', time: '09:14' },
+    { author: frieda, trade: { side: 'buy', status: 'ausgeführt', name: 'Hanse Reederei AG', ticker: 'STHANSEREE', qty: 120, price: 47.6, change: 2.35 }, time: '09:14' },
+    { author: fuchs, text: 'Mutig. Ich warte auf die Quartalszahlen.', time: '09:31' },
+    { own: true, text: 'Ich bin auch drin – Limit war bei 48,50 €.', time: '17:40' },
+    { own: true, text: '$STNORDKAPB schwächelt übrigens seit Tagen.', time: '17:41', status: 'Gelesen' }
+  ];
+  var dm = [
+    { day: 'Heute' },
+    { author: frieda, text: 'Hast du die Zahlen von $STHANSEREE gesehen?', time: '17:10' },
+    { author: frieda, text: 'Umsatz +12 %, Dividende bleibt.', time: '17:12' },
+    { own: true, text: 'Ja! Deshalb hab ich nachgelegt.', time: '17:15', status: 'Gelesen' }
+  ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h('div', null, h('div', { className: 'lbl' }, 'Allianz-Chat'), h('div', { className: 'box' }, h(DS.ChatThread, { messages: liga, tickers: tickers, autoScroll: false }))),
+    h('div', null, h('div', { className: 'lbl' }, 'Direktnachricht'), h('div', { className: 'box' }, h(DS.ChatThread, { messages: dm, tickers: tickers, showNames: false, autoScroll: false, typing: 'schreibt …' })))));
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!-- @dsCard group="Kurse" height=250 subtitle="Kurszettel (text) · Etikett (tag)" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>PriceChange</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-card); color: var(--text-primary); font-family: var(--font-sans); }
+  .wrap { padding: var(--space-4); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); padding: var(--space-3) 0; border-bottom: var(--hairline) solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .lbl { width: 150px; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+  .kpi { display: flex; align-items: center; gap: var(--space-3); }
+  .big { font-family: var(--font-mono); font-size: 28px; line-height: 32px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div id="root" class="wrap"></div>
+<script>
+  var P = window.Bankiersgruen.PriceChange, h = React.createElement;
+  function Row(label, kids) { return h('div', { className: 'row' }, h('span', { className: 'lbl' }, label), kids); }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+    Row('Kurszettel · text', [h(P, { key: 1, value: 2.34 }), h(P, { key: 2, value: -0.62 }), h(P, { key: 3, value: 0 })]),
+    Row('Mit Betrag', [h(P, { key: 1, value: 2.34, amount: 1.12 }), h(P, { key: 2, value: -3.1, amount: 3.62, suffix: 'seit Kauf' })]),
+    Row('Etikett · tag', [h(P, { key: 1, value: 1.84, variant: 'tag' }), h(P, { key: 2, value: -0.93, variant: 'tag' }), h(P, { key: 3, value: 0, variant: 'tag' })]),
+    Row('Einzelwert', h('div', { className: 'kpi' }, h('span', { className: 'big' }, '124.380,50 €'), h(P, { value: 1.84, variant: 'tag', size: 'lg', suffix: 'heute' })))
+  ));
+</script>
+</body>
+</html>

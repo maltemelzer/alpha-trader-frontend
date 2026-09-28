@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MarketRow } from '../api/queries';
-import type { BondView } from '../../vendor/bankiersgruen';
+import type { BondView } from '../../design-system/components';
 import {
   activePreset,
   applyScreen,

@@ -1,0 +1,150 @@
+<!-- @dsCard group="Seiten" height=2400 width=1280 subtitle="Aktie komplett: Kopf, Kurs, Orderbuch, Order-Maske, Stammdaten, Anteilseigner, Trades, CEO-Aktionen" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Wertpapierseite</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@3.7.0/plotly.min.js"></script>
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: 0 var(--space-6) var(--space-8); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: var(--space-6); margin-top: var(--space-6); align-items: start; }
+  .col { display: grid; gap: var(--space-6); min-width: 0; }
+  .pad { padding: var(--space-4); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
+  .desc { margin: 0; font-size: 15px; line-height: 23px; color: var(--text-secondary); max-width: 68ch; }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .note { margin: var(--space-3) 0 0; font-size: 12px; color: var(--text-secondary); }
+  #chart { height: 260px; }
+  @media (max-width: 960px) { .grid, .two { grid-template-columns: 1fr; } }
+  @media (max-width: 960px) { .grid, .two { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = {};
+  var listing = { securityIdentifier: 'STALSTERKS', name: 'Alsterkasse SE', type: 'STOCK', startDate: new Date(2026, 8, 5, 20, 43).getTime() };
+  var spread = { bidPrice: 55.74, bidSize: 8750037, askPrice: 55.79, askSize: 21, spreadAbs: 0.05, spreadPercent: 0.0896, lastPrice: { value: 55.74, date: new Date(2026, 8, 24, 6, 47, 30).getTime() } };
+  var company = { id: 'c9', name: 'Alsterkasse SE', securityIdentifier: 'STALSTERKS', ceo: { username: 'Frieda Kontor' }, marketMakerPolicy: 'OPEN', achievementCount: 7, achievementTotal: 9 };
+  var askData = [[73.99, 4e9], [63.46, 155686], [62.56, 21], [62.46, 31], [61.66, 9], [57.94, 85736], [56.83, 12], [56.64, 38], [56.62, 8], [56.61, 31], [56.60, 121, 0, 1], [56.50, 8], [56.49, 8], [56.46, 8], [56.41, 31], [56.38, 8], [56.34, 17], [56.32, 39], [56.29, 30], [56.25, 102], [56.20, 82], [55.96, 21], [55.94, 226937], [55.91, 44], [55.88, 62], [55.83, 9], [55.80, 17], [55.79, 21]];
+  var orderbook = { sellEntries: askData.map(function (a) { return { priceLimit: a[0], size: a[1], own: !!a[3] }; }), buyEntries: [{ priceLimit: 55.74, size: 8750037 }, { priceLimit: 55.21, size: 3 }, { priceLimit: 55.18, size: 89061 }, { priceLimit: 22.71, size: 5360764 }] };
+  var facts = [
+    { label: 'Marktkap.', value: 209505763069094.88 },
+    { label: 'Anteile', value: 3758625099912, currency: '' },
+    { label: 'Buchwert / Aktie', value: 18.37, compact: false },
+    { label: 'CEO', value: 'Frieda Kontor', sub: '2,52 Mrd. € am Tag' },
+    { label: 'Market Maker', value: 'offen' }
+  ];
+  var tabs = h(DS.Tabs, { 'aria-label': 'Wertpapier', defaultValue: 'ov', items: [{ value: 'ov', label: 'Übersicht' }, { value: 'ob', label: 'Orderbuch' }, { value: 'sh', label: 'Anteilseigner' }, { value: 'tr', label: 'Trades' }, { value: 'km', label: 'Kapitalmaßnahmen', count: 1 }, { value: 'news', label: 'Zeitung', count: 12 }] });
+  var holders = [
+    { id: 1, who: { name: 'Frieda Kontor', meta: 'Nutzer · CEO' }, n: 1582380000000, p: 42.1 },
+    { id: 2, who: { name: 'Hanse Beteiligungs AG', ticker: 'STHANSEBET' }, n: 800600000000, p: 21.3 },
+    { id: 3, who: { name: 'Nordkap Bank', ticker: 'STNORDKAPB' }, n: 368300000000, p: 9.8 },
+    { id: 4, who: { name: 'Kursfeder', meta: 'Nutzer' }, n: 154100000000, p: 4.1 },
+    { id: 5, who: { name: 'Streubesitz', meta: '1.284 weitere' }, n: 853245099912, p: 22.7 }
+  ];
+  var trades = [
+    { id: 1, t: '24.9., 06:47', buyer: 'Kursfeder', seller: 'Alsterkasse SE', n: 12, px: 55.74 },
+    { id: 2, t: '24.9., 06:20', buyer: 'Hanse Beteiligungs AG', seller: 'Nordlicht', n: 89061, px: 55.79 },
+    { id: 3, t: '24.9., 05:58', buyer: 'Zinsjäger', seller: 'Alsterkasse SE', n: 400, px: 55.77 },
+    { id: 4, t: '23.9., 23:15', buyer: 'Tagesgeld', seller: 'Anleger Paul', n: 2500000, px: 55.60 },
+    { id: 5, t: '23.9., 21:02', buyer: 'Nordkap Bank', seller: 'Stiller Teilhaber', n: 31, px: 55.81 }
+  ].map(function (r) { r.vol = r.n * r.px; return r; });
+/* Bankiersgrün – Plotly-Theme. Liest die Design-Tokens (CSS-Variablen aus tokens.css),
+   damit Darkmode und Farbenblind-Modus automatisch stimmen. */
+function bankiersgruenPlotly() {
+  var cs = getComputedStyle(document.documentElement);
+  var v = function (n) { return cs.getPropertyValue('--' + n).trim(); };
+  var sans = v('font-sans'), serif = v('font-serif'), mono = v('font-mono');
+  var axis = {
+    showgrid: false, zeroline: false, showline: true, linecolor: v('line-strong'), linewidth: 1,
+    ticks: '', automargin: true, fixedrange: true,
+    tickfont: { family: mono, size: 11, color: v('text-secondary') }
+  };
+  return {
+    tokens: v,
+    layout: {
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { family: sans, size: 12, color: v('text-secondary') },
+      title: { font: { family: serif, size: 18, color: v('text-primary') }, x: 0, xanchor: 'left' },
+      colorway: [1, 2, 3, 4, 5].map(function (i) { return v('chart-' + i); }),
+      separators: ',.',
+      margin: { l: 0, r: 0, t: 8, b: 0 },
+      xaxis: Object.assign({}, axis, {
+        showspikes: true, spikemode: 'across', spikesnap: 'cursor', spikedash: 'solid',
+        spikecolor: v('line-strong'), spikethickness: 1
+      }),
+      yaxis: Object.assign({}, axis, { side: 'right', showline: false, showgrid: true, gridcolor: v('line'), gridwidth: 1 }),
+      hovermode: 'x unified',
+      hoverlabel: { bgcolor: v('bg-raised'), bordercolor: v('line-strong'),
+                    font: { family: mono, size: 12, color: v('text-primary') } },
+      legend: { orientation: 'h', x: 0, y: -0.12, bgcolor: 'rgba(0,0,0,0)',
+                font: { family: sans, size: 12, color: v('text-secondary') } },
+      dragmode: false
+    },
+    config: { displayModeBar: false, responsive: true, scrollZoom: false }
+  };
+}
+/* Bei Theme-Wechsel (z. B. Farbenblind-Modus) neu zeichnen */
+function bankiersgruenWatch(render) {
+  new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
+  function drawChart() {
+    var t = bankiersgruenPlotly(), v = t.tokens, x = [], y = [], s = 11, p = 44;
+    for (var i = 0; i < 19; i++) { s = (s * 16807) % 2147483647; p = p * (1 + ((s / 2147483647) - 0.42) * 0.05); x.push(new Date(2026, 8, 5 + i)); y.push(p); }
+    var k = 55.74 / y[18]; y = y.map(function (q) { return Math.round(q * k * 100) / 100; });
+    var layout = Object.assign({}, t.layout, { showlegend: false, xaxis: Object.assign({}, t.layout.xaxis, { tickformat: '%d.%m.' }) });
+    Plotly.react('chart', [{ x: x, y: y, type: 'scatter', mode: 'lines', line: { color: v(y[y.length - 1] >= y[0] ? 'gain' : 'loss'), width: 2 }, xhoverformat: '%d.%m.%Y', hovertemplate: '%{y:,.2f} €<extra></extra>' }], layout, t.config);
+  }
+  function Page() {
+    var ot = React.useRef(null);
+    var pick = React.useState(null);
+    React.useEffect(function () { drawChart(); }, []);
+    return h('div', { className: 'wrap' },
+      h(DS.SecurityHeader, { listing: listing, spread: spread, company: company, change: -0.0538, changeAmount: -0.03, changeSuffix: 'heute', facts: facts,
+        onBuy: function () {}, onSell: function () {}, actions: h(DS.Button, { variant: 'ghost', size: 'sm', iconStart: '+' }, 'Beobachten'), tabs: tabs }),
+      h('div', { className: 'grid' },
+        h('div', { className: 'col' },
+          h(DS.Card, { title: 'Kursverlauf', action: h(DS.SegmentedControl, { 'aria-label': 'Zeitraum', size: 'sm', fullWidth: false, defaultValue: 'm', options: [{ value: 't', label: '1T' }, { value: 'w', label: '1W' }, { value: 'm', label: '1M' }, { value: 'a', label: 'Alles' }] }) },
+            h('div', { id: 'chart' })),
+          h(DS.Card, { title: 'Orderbuch', flush: true, action: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Aktualisieren') },
+            h(DS.OrderBook, { listing: listing, orderbook: orderbook, lastPrice: 55.74, depth: 6, onSelect: pick[1] })),
+          h('div', { className: 'two' },
+            h(DS.Card, { title: 'Stammdaten' }, h(DS.SummaryList, { items: [
+              { label: 'ASIN', value: 'STALSTERKS' }, { label: 'Typ', value: 'Aktie' }, { label: 'Notiert seit', value: '5.9.2026, 20:43' },
+              { label: 'Marktkapitalisierung', value: 209505763069094.88, compact: true }, { label: 'Ausgegebene Anteile', value: 3758625099912, currency: '', decimals: 0, compact: true },
+              { label: 'Streubesitz', value: '22,7 %' } ] })),
+            h(DS.Card, { title: 'Unternehmen' }, h(DS.SummaryList, { items: [
+              { label: 'CEO', value: 'Frieda Kontor' }, { label: 'Tägliches Gehalt', value: 2521136126.58, compact: true }, { label: 'Banklizenz', value: 'Ja' },
+              { label: 'Zentralbankkredite', value: 2.5e12, compact: true }, { label: 'Zentralbankreserven', value: 2.5e13, compact: true },
+              { label: 'Net Cash', value: 1760063993716.94, compact: true }, { label: 'Buchwert', value: 69058819264881.92, compact: true },
+              { label: 'Buchwert / Aktie', value: 18.37 }, { label: 'Fairer Preis / Aktie', value: 18.84, total: true } ] }))),
+          h(DS.Card, { title: 'Anteilseigner', flush: true, action: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Alle') },
+            h(DS.DataTable, { caption: 'Anteilseigner', rowKey: 'id', rows: holders, density: 'sm', columns: [
+              { key: 'who', label: 'Inhaber', type: 'stock' }, { key: 'n', label: 'Anteile', type: 'number' }, { key: 'p', label: 'Anteil', type: 'percent', decimals: 1 } ] })),
+          h(DS.Card, { title: 'Letzte Trades', flush: true, action: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Alle') },
+            h(DS.DataTable, { caption: 'Letzte Trades', rowKey: 'id', rows: trades, density: 'sm', columns: [
+              { key: 't', label: 'Zeit' }, { key: 'buyer', label: 'Käufer' }, { key: 'seller', label: 'Verkäufer' },
+              { key: 'n', label: 'Anteile', type: 'number' }, { key: 'px', label: 'Kurs', type: 'price', listingType: 'STOCK' }, { key: 'vol', label: 'Volumen', type: 'currency' } ] }))),
+        h('div', { className: 'col' },
+          h(DS.Card, null, h(DS.OrderTicket, { key: pick[0] ? pick[0].price + pick[0].side : 'x', ref: ot, listing: listing, spread: spread, change: -0.0538,
+            accounts: [{ id: 'p', name: 'Mein Portfolio', privateAccount: true, cash: 993113.48 }, { id: 'c', name: 'Hanse Beteiligungs AG', cash: 2521136126.58 }],
+            defaultAction: pick[0] ? pick[0].side : 'BUY', defaultType: pick[0] ? 'LIMIT' : 'MARKET', defaultPrice: pick[0] ? pick[0].price : undefined, onSubmit: function () {} })),
+          h(DS.Card, { title: 'Beschreibung' }, h('p', { className: 'desc' }, 'Die Alsterkasse ist ein Versicherungs- und Finanzkonzern. Das Unternehmen bietet Vorsorge- und Finanzprodukte für Spieler und Unternehmen an und hält eine Banklizenz.')),
+          h(DS.Card, { eyebrow: 'Nur für den CEO sichtbar', title: 'Unternehmen führen' },
+            h('div', { className: 'actions' },
+              ['Kapitalerhöhung', 'Kapitalherabsetzung', 'Gewinnausschüttung', 'Namenswechsel', 'Fusion', 'Depotabverkauf', 'Nachricht an alle Aktionäre'].map(function (a) { return h(DS.Button, { key: a, size: 'sm' }, a); }),
+              h(DS.Button, { variant: 'danger', size: 'sm' }, 'Liquidation einleiten')),
+            h('p', { className: 'note' }, 'Jede Maßnahme startet eine Abstimmung der Aktionäre.')))));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Page));
+</script>
+</body>
+</html>

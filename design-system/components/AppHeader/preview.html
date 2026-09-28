@@ -1,0 +1,72 @@
+<!-- @dsCard group="Navigation" height=1360 width=1280 subtitle="Desktop mit aufgeklapptem Markt · mobil mit geöffnetem Menü" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>AppHeader</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { padding: var(--space-4) var(--space-6) var(--space-2); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+  .page { padding: var(--space-6); min-height: 340px; box-sizing: border-box; }
+  .page p { max-width: 560px; margin: var(--space-4) 0 0 660px; color: var(--text-secondary); font-size: 15px; line-height: 22px; }
+  .page h1 { margin: 0; display: inline-block; padding-bottom: 6px; border-bottom: var(--rule) solid var(--brass); font-family: var(--font-serif); font-size: 28px; line-height: 34px; font-weight: 600; }
+  .phone { width: 360px; margin: 0 var(--space-6) var(--space-6); border: var(--border) solid var(--line-strong); border-radius: var(--radius-md); overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement, stop = function (item, e) { e.preventDefault(); };
+  var items = [
+    { label: 'Markt', children: [
+      { label: 'Wertpapiere', href: '#markt', active: true, description: 'Aktien, Anleihen, Coins, Indizes, Fonds' },
+      { label: 'Anleihen', href: '#anleihen', description: 'Zins, Fälligkeit, Kurs in %' },
+      { label: 'Kapitalmaßnahmen', href: '#km', description: 'Kapitalerhöhungen, Ausschüttungen, Fusionen' },
+      { label: 'Immobilien', href: '#immo' },
+      { label: 'Live-Statistiken', href: '#stats' }
+    ] },
+    { label: 'Organisation', children: [
+      { label: 'Portfolio', href: '#pos' },
+      { label: 'Unternehmen', href: '#ag', badge: 3 },
+      { label: 'Miner', href: '#miner' },
+      { label: 'Erfolge', href: '#erf' }
+    ] },
+    { label: 'Orders', href: '#orders', badge: 2 },
+    { label: 'Highscores', children: [
+      { label: 'Nutzer', href: '#hs-u' },
+      { label: 'Unternehmen', href: '#hs-c' },
+      { label: 'Allianzen', href: '#hs-a' }
+    ] },
+    { label: 'Community', children: [
+      { label: 'Chat', href: '#chat', badge: 4 },
+      { label: 'Zeitung', href: '#news' },
+      { label: 'Foren', href: '#foren' },
+      { label: 'Allianzen', href: '#allianzen' }
+    ] }
+  ];
+  var pmItems = [
+    { label: 'Profil', href: '#profil' },
+    { label: 'Erfolge', href: '#erfolge', badge: 3 },
+    { label: 'Einstellungen', href: '#einst' },
+    { label: 'Hilfe', href: '#hilfe' },
+    { divider: true },
+    { label: 'Abmelden', href: '#logout' }
+  ];
+  var stats = [
+    h(DS.HeaderStat, { key: 'd', label: 'Buchwert', value: 2321581.52 }),
+    h(DS.HeaderStat, { key: 'b', label: 'Bargeld', value: 993113.48 })
+  ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+    h('div', { className: 'lbl' }, 'Desktop'),
+    h(DS.AppHeader, { brand: 'Alpha-Trader', brandHref: '#', dateline: 'Mi., 24. Sept. · 06:50 Uhr', items: items, onNavigate: stop, defaultOpenItem: 0,
+      meta: stats.concat([h(DS.PlayerMenu, { key: 'p', name: 'CptnIglo', subtitle: 'Hanseatische Allianz · Gold', items: pmItems })]) }),
+    h('div', { className: 'page' }, h('h1', null, 'Wertpapiere'), h('p', null, 'Hauptbereiche mit Unterpunkten klappen per Klick senkrecht auf. Der aktive Unterpunkt trägt die Messing-Linie, der Hauptbereich darüber ebenfalls. Escape oder ein Klick daneben schließt.')),
+    h('div', { className: 'lbl' }, 'Mobil · Menü geöffnet, Markt aufgeklappt'),
+    h('div', { className: 'phone' },
+      h(DS.AppHeader, { brand: 'Alpha-Trader', brandHref: '#', items: items, collapse: 'always', defaultMenuOpen: true, onNavigate: stop, menuFooter: stats.concat([h(DS.PlayerMenu, { key: 'p', variant: 'inline', name: 'CptnIglo', subtitle: 'Hanseatische Allianz · Gold', items: pmItems })]) }))
+  ));
+</script>
+</body>
+</html>

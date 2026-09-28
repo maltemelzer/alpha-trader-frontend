@@ -1,0 +1,39 @@
+<!-- @dsCard group="Spiel" height=860 width=1180 subtitle="Market-Kauf · Limit-Verkauf aus einer AG mit Schnellwahl und Optionen · Prüfung mit Ausführungskurs" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>OrderTicket</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); padding: var(--space-4) var(--space-6); align-items: start; }
+  .box { padding: var(--space-4); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = {};
+  var listing = { securityIdentifier: 'STHANSEREE', name: 'Hanse Reederei AG', type: 'STOCK' };
+  var spread = { bidPrice: 48.70, bidSize: 8750, askPrice: 48.74, askSize: 21, spreadAbs: 0.04, spreadPercent: 0.0821, lastPrice: { value: 48.72, date: Date.now() } };
+  var accounts = [
+    { id: 'p1', name: 'Mein Portfolio', privateAccount: true, cash: 993113.48 },
+    { id: 'c1', name: 'Hanse Beteiligungs AG', privateAccount: false, cash: 2521136126.58 }
+  ];
+  function col(label, el) { return h('div', null, h('div', { className: 'lbl' }, label), h('div', { className: 'box' }, el)); }
+  function check(p) { return new Promise(function (res) { setTimeout(function () { res({ executionPrice: 48.74, executionVolume: p.numberOfShares * 48.74, checkResult: { ok: true, failed: false } }); }, 400); }); }
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    col('Kaufen · Market', h(DS.OrderTicket, { listing: listing, spread: spread, change: 2.34, changeSuffix: 'heute', accounts: accounts.slice(0, 1), defaultShares: 400, onCheck: check, onSubmit: function () {} })),
+    col('Verkaufen · Limit · AG-Portfolio', h(DS.OrderTicket, { listing: listing, spread: spread, change: 2.34, accounts: accounts, defaultAccountId: 'c1', position: { numberOfShares: 2500000, averageBuyingPrice: 42.15 },
+      defaultAction: 'SELL', defaultType: 'LIMIT', defaultShares: 1200000, defaultPrice: 49.5, submitVariant: 'secondary', onSubmit: function () {} })),
+    col('Anleihe · Prüfung abgelehnt', h(DS.OrderTicket, { listing: { securityIdentifier: 'BOAZBMWFZ0', name: 'Hanse Beteiligungs 2,05 % 30/09/2026', type: 'BOND' }, faceValue: 1000,
+      spread: { bidPrice: 99.928, askPrice: 100, bidSize: 400, askSize: 1000, spreadPercent: 0.072, lastPrice: { value: 99.95 } }, accounts: accounts.slice(0, 1), defaultShares: 50, defaultType: 'LIMIT', defaultPrice: 99.5, submitVariant: 'secondary',
+      check: { checkResult: { failed: true, ok: false, msg: { filledString: 'Das Limit liegt unter dem minimalen Preis für diese Anleihe.' }, concerningParams: ['PRICE'] } }, onSubmit: function () {} }))));
+</script>
+</body>
+</html>

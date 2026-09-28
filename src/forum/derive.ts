@@ -1,4 +1,4 @@
-import type { ForumCategory, ForumThreadItem } from '../../vendor/bankiersgruen';
+import type { ForumCategory, ForumThreadItem } from '../../design-system/components';
 import type { BoardView, PostSearchHit, PostView } from '../api/queries';
 import { listTime } from '../chat/derive';
 import { snippet } from '../lib/highlight';

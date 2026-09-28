@@ -1,0 +1,39 @@
+<!-- @dsCard group="Forum" height=520 width=1000 subtitle="Startseite des Forums: Bereiche, Zahlen, letzter Beitrag" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>ForumCategoryList</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { padding: var(--space-4) var(--space-6); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var cats = [
+    { id: 'a', name: 'Allgemeines', initials: 'A', description: 'Markt, Stimmung und alles, was sonst nirgends passt.', threads: 1284, posts: 18402, unread: 12,
+      last: { title: 'Zinsentscheid: Was heißt das für Banken?', author: 'Börsenfuchs_77', time: 'vor 4 Min.', href: '#' } },
+    { id: 'b', name: 'Aktien im Gespräch', initials: 'A', description: 'Ein Thema pro Aktie: Zahlen, Einschätzungen, Kursziele.', threads: 642, posts: 9310, unread: true,
+      last: { title: 'Hanse Reederei AG – nach den Quartalszahlen', author: 'Frieda Kontor', time: '17:42', href: '#' } },
+    { id: 'c', name: 'Strategien', initials: 'S', description: 'Dividenden, Momentum, Value – wie spielt ihr?', threads: 318, posts: 5122,
+      last: { title: 'Nur noch Anleihen halten, solange der Leitzins steigt?', author: 'Anleger Paul', time: 'Gestern', href: '#' } },
+    { id: 'd', name: 'Verbesserungsvorschläge', initials: 'V', description: 'Ideen für das Spiel – der Entwickler liest mit.', threads: 97, posts: 1440,
+      last: { title: 'Coin-Boost reformieren – 5.000-€-Cap pro Coin', author: 'Zinsjäger', time: 'Mo.', href: '#' } },
+    { id: 'e', name: 'Hilfe für Einsteiger', initials: 'H', description: 'Keine Frage ist zu klein: Orders, Limits, Anleihen, Miner.', threads: 211, posts: 2208,
+      last: { title: 'Was ist der Unterschied zwischen Limit und Stop?', author: 'Neuling_42', time: '21.09.', href: '#' } }
+  ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(DS.PageHeader, { title: 'Forum', size: 'md', meta: [h('span', { key: 1 }, '2.552 Themen'), h('span', { key: 2 }, '36.482 Beiträge'), h('span', { key: 3 }, '214 online')],
+      actions: h(DS.Button, { variant: 'primary' }, 'Neues Thema') }),
+    h('div', { className: 'box' }, h(DS.ForumCategoryList, { categories: cats, onSelect: function (c, e) { e.preventDefault(); } }))));
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!-- @dsCard group="Navigation" height=560 width=980 subtitle="Glocke und Chat-Knopf mit Zahl im Kopf · Liste ungelesen/gelesen · leer" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Notifications</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .box { background: var(--bg-card); border-radius: var(--radius-md); }
+  .wrap { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: var(--space-4); padding: var(--space-4) var(--space-6); align-items: start; }
+  .bar { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-3); }
+  .panel { border: var(--hairline) solid var(--line-strong); border-radius: var(--radius-md); overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var tickers = { HRD: { name: 'Hanse Reederei AG', change: 2.34, href: '#HRD' }, NBH: { name: 'Nordbank Holding', change: -0.62, href: '#NBH' }, ELW: { name: 'Elbwerk Energie', change: -2.87, href: '#ELW' }, SIG: { name: 'Signalwerk AG', change: 3.18, href: '#SIG' } };
+  var now = Date.now(), M = 60e3;
+  var items = [
+    { id: 'n1', subject: 'Order ausgeführt', content: 'Kauf 50 × Hanse Reederei AG zu 48,72 € – Gesamt 2.436,00 €.', date: now - 4 * M, readByReceiver: false },
+    { id: 'n2', subject: 'Neue Abstimmung: Kapitalerhöhung Alsterkasse SE', content: 'Sie halten 12,5 Mio. Stimmen. Abstimmung endet in 28 Std.', date: now - 52 * M, readByReceiver: false },
+    { id: 'n3', subject: 'Frieda Kontor hat auf Ihren Beitrag geantwortet', content: '„Zinsentscheid: Was heißt das für Banken?“', date: now - 5 * 60 * M, readByReceiver: true },
+    { id: 'n4', subject: 'Dividende erhalten', content: 'Elbwerk Energie SE hat 1,24 Mio. € an Sie ausgeschüttet.', date: now - 26 * 60 * M, readByReceiver: true }];
+  function Demo() {
+    var s = React.useState(items);
+    var unread = s[0].filter(function (n) { return !n.readByReceiver; }).length;
+    return h('div', { className: 'wrap' },
+      h('div', null, h('div', { className: 'box bar' }, h(DS.NotificationBell, { count: unread, expanded: true, haspopup: true }), h(DS.NotificationBell, { count: 0 }), h(DS.NotificationBell, { count: 128 }), h(DS.NotificationBell, { icon: 'chat', label: 'Nachrichten', count: 3 }), h(DS.NotificationBell, { icon: 'chat', label: 'Nachrichten', count: 0, pressed: true })),
+        h('div', { className: 'panel' }, h(DS.NotificationList, { items: s[0],
+          onOpen: function (n) { s[1](s[0].map(function (x) { return x.id === n.id ? Object.assign({}, x, { readByReceiver: true }) : x; })); },
+          onReadAll: function () { s[1](s[0].map(function (x) { return Object.assign({}, x, { readByReceiver: true }); })); },
+          onDelete: function (n) { s[1](s[0].filter(function (x) { return x.id !== n.id; })); },
+          footer: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Alle Benachrichtigungen') }))),
+      h('div', { className: 'panel' }, h(DS.NotificationList, { items: [] })));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

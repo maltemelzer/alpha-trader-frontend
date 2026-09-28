@@ -23,11 +23,20 @@ npm run dev
 
 Die Grundsätze stehen oben in [`CLAUDE.md`](CLAUDE.md), die wichtigsten:
 
-1. **Visualisieren statt beschreiben** – welches Diagramm wofür: `vendor/bankiersgruen/diagramme.md`.
+1. **Visualisieren statt beschreiben** – welches Diagramm wofür: `design-system/guidelines/diagramme.md`.
 2. **Eine Seite = ein Bildschirm**, Panels mit festem Rahmen und internem Scroll.
 3. **Mobil gleichwertig** – ab 360 px, Tippflächen ≥ 44 px, nichts nur per Hover; Handy-Bausteine aus `src/app/phone.tsx`.
-4. **Design-System vor Eigenbau** – erst in `vendor/bankiersgruen/index.d.ts` suchen, dann kombinieren,
-   erst zuletzt neu bauen. `vendor/` nicht von Hand ändern.
+4. **Design-System vor Eigenbau** – erst in `design-system/components/index.d.ts` suchen (oder in der
+   Galerie unter `/design-system/`), dann kombinieren, erst zuletzt neu bauen.
+
+## Design-System ändern
+
+- Komponenten stehen in `design-system/components/bundle.js` (klassisches Skript mit `h()`, kein Build);
+  eine neue Komponente am Ende bei `window.Bankiersgruen` eintragen, Typen in `index.d.ts` ergänzen.
+- Je Komponente `components/<Name>/README.md` (erster Satz = Zusammenfassung) und `preview.html`
+  (Zeile 1 `<!-- @dsCard group="…" height=… -->`).
+- Tokens nur in `tokens.json` ändern, dann `npm run ds:tokens`. Regeln und Kontraste im Markenbuch
+  `design-system/README.md` beachten (Farbenblind-Theme `cb` mitdenken).
 
 ## Konventionen
 

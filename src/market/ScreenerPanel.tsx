@@ -3,7 +3,7 @@
 // follow into the URL after a pause (a field bound to the URL loses keystrokes).
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DS, format } from '../ds';
-import type { DataTableColumn } from '../../vendor/bankiersgruen';
+import type { DataTableColumn } from '../../design-system/components';
 import { parseDe, ratePct, short, span } from '../lib/format';
 import { useDebounced } from '../lib/useDebounced';
 import { OptionsButton } from '../app/phone';
