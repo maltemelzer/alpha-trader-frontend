@@ -137,7 +137,7 @@ export function AppShell() {
   const whatsNew = useWhatsNew();
   const [newsManual, setNewsManual] = useState(false);
   const [newsDismissed, setNewsDismissed] = useState(false);
-  const newsMode = newsManual ? 'all' : whatsNew.ready && whatsNew.count > 0 && !newsDismissed ? 'new' : null;
+  const newsMode = newsManual ? 'all' : whatsNew.ready && whatsNew.auto && whatsNew.count > 0 && !newsDismissed ? 'new' : null;
 
   const menu = (
     <DS.PlayerMenu

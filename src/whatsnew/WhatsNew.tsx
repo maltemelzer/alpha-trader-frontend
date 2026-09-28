@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useNavigate } from 'react-router';
 import { DS } from '../ds';
 import { useEngineUpdatePosts, useFrontendPref, useSaveFrontendPref } from '../api/queries';
 import { useNow } from '../lib/useNow';
 import { UI_CHANGES, type UiChange } from './changelog';
 import {
+  autoOpen,
   dayLabel,
   engineUpdates,
   mergeSeen,
@@ -14,13 +15,18 @@ import {
   seenAfter,
   unseen,
   type EngineUpdate,
+  withAuto,
   type Seen,
 } from './derive';
 import './WhatsNew.css';
 
-function readLocal(): Seen | null {
+// The local copy as a tiny store: the dialog in the shell and the switch in the settings share it
+// (same tab via an event, other tabs via `storage`).
+const CHANGED = 'at:whatsnew';
+
+function readLocalRaw(): string | null {
   try {
-    return parseSeen(localStorage.getItem(SEEN_KEY));
+    return localStorage.getItem(SEEN_KEY);
   } catch {
     return null;
   }
@@ -32,6 +38,16 @@ function writeLocal(s: Seen) {
   } catch {
     /* private mode: the server record still holds it */
   }
+  window.dispatchEvent(new Event(CHANGED));
+}
+
+function subscribe(fn: () => void) {
+  window.addEventListener(CHANGED, fn);
+  window.addEventListener('storage', fn);
+  return () => {
+    window.removeEventListener(CHANGED, fn);
+    window.removeEventListener('storage', fn);
+  };
 }
 
 /**
@@ -43,7 +59,8 @@ export function useWhatsNew() {
   const posts = useEngineUpdatePosts();
   const pref = useFrontendPref(SEEN_IDENTIFIER);
   const save = useSaveFrontendPref(SEEN_IDENTIFIER);
-  const [local, setLocal] = useState(readLocal);
+  const raw = useSyncExternalStore(subscribe, readLocalRaw);
+  const local = useMemo(() => parseSeen(raw), [raw]);
   const now = useNow(10 * 60_000);
 
   const engine = useMemo(() => engineUpdates(posts.data?.content ?? []), [posts.data]);
@@ -52,16 +69,27 @@ export function useWhatsNew() {
   const fresh = unseen({ engine, ui: UI_CHANGES, seen, now });
   const ready = !posts.isLoading && !pref.isLoading;
 
-  /** Everything shown counts as read: local at once, then the server record (failures stay local). */
-  const markSeen = (shown: { engine: EngineUpdate[]; ui: UiChange[] }) => {
-    const next = seenAfter(seen, shown.engine, shown.ui);
+  // Local at once, then the server record (failures stay local).
+  const store = (next: Seen) => {
     writeLocal(next);
-    setLocal(next);
     const content = JSON.stringify(next);
     if (pref.isSuccess && pref.data?.content !== content) save.mutate({ id: pref.data?.id, content });
   };
+  /** Everything shown counts as read. */
+  const markSeen = (shown: { engine: EngineUpdate[]; ui: UiChange[] }) => store(seenAfter(seen, shown.engine, shown.ui));
+  /** Setting: open the dialog by itself when something is new. */
+  const setAuto = (on: boolean) => store(withAuto(seen, on));
 
-  return { engine, fresh, count: fresh.engine.length + fresh.ui.length, ready, markSeen };
+  return {
+    engine,
+    fresh,
+    count: fresh.engine.length + fresh.ui.length,
+    ready,
+    auto: autoOpen(seen),
+    saving: save.isPending,
+    markSeen,
+    setAuto,
+  };
 }
 
 const paragraphs = (text: string) => text.split(/\n{2,}/).filter(Boolean);

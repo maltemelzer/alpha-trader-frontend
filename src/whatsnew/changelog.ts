@@ -14,7 +14,10 @@ export const UI_CHANGES: UiChange[] = [
     id: '2026-09-28',
     title: 'Neuigkeiten und Zinstender',
     items: [
-      { text: 'Dieses Fenster: Neues aus der Spiel-Engine (die „Updates on Alpha-Trader.com“ der Zeitung) und Neues in dieser Oberfläche, einmal je Neuigkeit.' },
+      {
+        text: 'Dieses Fenster: Neues aus der Spiel-Engine (die „Updates on Alpha-Trader.com“ der Zeitung) und Neues in dieser Oberfläche, einmal je Neuigkeit. Abschalten kannst du es in den Einstellungen.',
+        href: '/einstellungen?bereich=konto',
+      },
       {
         text: 'Zinstender: Der Kreditrahmen begrenzt den Kaufpreis deines Gebots, nicht den Nennwert – bei 98 % passen mehr Stück hinein.',
         href: '/zentralbank?ansicht=tender',

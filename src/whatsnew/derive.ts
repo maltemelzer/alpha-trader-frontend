@@ -63,6 +63,10 @@ export interface Seen {
   engine: number;
   /** id of the newest UI entry seen */
   ui: string;
+  /** open the dialog by itself when something is new (setting, default on) */
+  auto?: boolean;
+  /** when `auto` was last changed (ms) – the later setting wins across devices */
+  at?: number;
 }
 
 export const SEEN_TYPE = 'AT_FRONTEND';
@@ -76,7 +80,10 @@ export function parseSeen(s: string | null | undefined): Seen | null {
   try {
     const v = JSON.parse(s) as Partial<Seen>;
     if (typeof v.engine !== 'number' || typeof v.ui !== 'string') return null;
-    return { engine: v.engine, ui: v.ui };
+    const out: Seen = { engine: v.engine, ui: v.ui };
+    if (typeof v.auto === 'boolean') out.auto = v.auto;
+    if (typeof v.at === 'number') out.at = v.at;
+    return out;
   } catch {
     return null;
   }
@@ -84,7 +91,11 @@ export function parseSeen(s: string | null | undefined): Seen | null {
 
 export function mergeSeen(a: Seen | null, b: Seen | null): Seen | null {
   if (!a || !b) return a ?? b;
-  return { engine: Math.max(a.engine, b.engine), ui: a.ui > b.ui ? a.ui : b.ui };
+  const setting = (b.at ?? 0) > (a.at ?? 0) ? b : a;
+  const out: Seen = { engine: Math.max(a.engine, b.engine), ui: a.ui > b.ui ? a.ui : b.ui };
+  if (setting.auto != null) out.auto = setting.auto;
+  if (setting.at != null) out.at = setting.at;
+  return out;
 }
 
 /** Everything the player hasn't seen yet. */
@@ -105,6 +116,21 @@ export function seenAfter(prev: Seen | null, engine: EngineUpdate[], ui: UiChang
     ui: ui.reduce((m, c) => (c.id > m ? c.id : m), ''),
   };
   return mergeSeen(prev, next)!;
+}
+
+/** Opens by itself unless switched off in the settings. */
+export const autoOpen = (s: Seen | null) => s?.auto !== false;
+
+/**
+ * Record after switching the automatic dialog on or off. Without any record so far, the first-visit
+ * window counts as seen, so switching off doesn't turn old updates into „unread“.
+ */
+export function withAuto(prev: Seen | null, auto: boolean, now = Date.now()): Seen {
+  const base = prev ?? {
+    engine: now - FIRST_VISIT_DAYS * 86_400_000,
+    ui: new Date(now - FIRST_VISIT_DAYS * 86_400_000).toISOString().slice(0, 10),
+  };
+  return { ...base, auto, at: now };
 }
 
 /** „28.09.2026“ from „2026-09-28“ (optional suffix -2 ignored). */

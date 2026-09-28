@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { UI_CHANGES } from './changelog';
-import { dayLabel, engineUpdates, germanPart, mergeSeen, parseSeen, sections, seenAfter, unseen, type EngineUpdate } from './derive';
+import { autoOpen, dayLabel, withAuto, engineUpdates, germanPart, mergeSeen, parseSeen, sections, seenAfter, unseen, type EngineUpdate } from './derive';
 
 const POST = {
   id: 'p1',
@@ -75,5 +75,30 @@ describe('changelog', () => {
     expect([...ids].sort().reverse()).toEqual(ids);
     expect(new Set(ids).size).toBe(ids.length);
     expect(dayLabel('2026-09-28-2')).toBe('28.09.2026');
+  });
+});
+
+describe('automatic dialog setting', () => {
+  it('is on by default and survives parsing', () => {
+    expect(autoOpen(null)).toBe(true);
+    expect(autoOpen(parseSeen('{"engine":1,"ui":"a"}'))).toBe(true);
+    expect(autoOpen(parseSeen('{"engine":1,"ui":"a","auto":false,"at":5}'))).toBe(false);
+  });
+
+  it('takes the later setting when merging, the newest seen state from both', () => {
+    const local = { engine: 9, ui: '2026-09-01', auto: true, at: 10 };
+    const server = { engine: 5, ui: '2026-09-28', auto: false, at: 20 };
+    expect(mergeSeen(local, server)).toEqual({ engine: 9, ui: '2026-09-28', auto: false, at: 20 });
+    expect(mergeSeen({ ...local, at: 30 }, server)).toEqual({ engine: 9, ui: '2026-09-28', auto: true, at: 30 });
+  });
+
+  it('keeps what was seen and starts from the first-visit window without a record', () => {
+    const now = Date.UTC(2026, 8, 28);
+    expect(withAuto({ engine: 7, ui: 'x' }, false, now)).toEqual({ engine: 7, ui: 'x', auto: false, at: now });
+    expect(withAuto(null, false, now)).toEqual({ engine: now - 14 * 86_400_000, ui: '2026-09-14', auto: false, at: now });
+  });
+
+  it('marking as read keeps the setting', () => {
+    expect(seenAfter({ engine: 1, ui: 'a', auto: false, at: 3 }, [], [])).toEqual({ engine: 1, ui: 'a', auto: false, at: 3 });
   });
 });

@@ -39,6 +39,7 @@ import {
 import { ChangeFieldDialog, DeleteAccountDialog, NoteDialog, RedeemDialog, ReferrerDialog, SubscriptionDialog } from './AccountDialogs';
 import { referralsChart } from './charts';
 import { MiniStats } from '../app/phone';
+import { useWhatsNew } from '../whatsnew/WhatsNew';
 import './MePage.css';
 
 const AREAS = [
@@ -178,6 +179,7 @@ function AccountArea({ wide, onDialog, notify, onLogout }: AreaProps & { wide: b
   const locale = useMyLocale();
   const act = useAccountActions();
   const [cb, setCb] = useState(getTheme() === 'cb');
+  const whatsNew = useWhatsNew();
   const localeValue = localeOption(locale.data ?? u?.userCapabilities?.locale) ?? '';
   const change = (field: AccountField) => (
     <DS.Button size="sm" onClick={() => onDialog({ kind: 'field', field })}>
@@ -233,6 +235,22 @@ function AccountArea({ wide, onDialog, notify, onLogout }: AreaProps & { wide: b
   );
   const rest = (
     <>
+      <DS.SettingsSection title="Neuigkeiten" description="Gilt für dein Konto auf allen Geräten.">
+        <DS.SettingsRow
+          label="Neuigkeiten automatisch zeigen"
+          description="Öffnet ein Fenster, sobald es Spiel-Updates oder Neues in dieser Oberfläche gibt. Abrufbar bleibt alles unter „Neuigkeiten“ im Spielermenü."
+        >
+          <DS.Switch
+            label="Neuigkeiten automatisch zeigen"
+            checked={whatsNew.auto}
+            disabled={!whatsNew.ready}
+            onChange={(on) => {
+              whatsNew.setAuto(on);
+              notify(true, on ? 'Neuigkeiten gehen wieder von selbst auf.' : 'Neuigkeiten gehen nicht mehr von selbst auf.');
+            }}
+          />
+        </DS.SettingsRow>
+      </DS.SettingsSection>
       <DS.SettingsSection title="Darstellung" description="Gilt nur in diesem Browser.">
         <DS.SettingsRow label="Farbenblind-Modus" description="Gewinn in Blau, Verlust in Orange.">
           <DS.Switch
