@@ -6,6 +6,7 @@ import {
   incomingOtc,
   orderTotals,
   otcOfferParams,
+  rankCounterparties,
   otcTotals,
   premiumPct,
   referencePrice,
@@ -250,5 +251,24 @@ describe('counterpartyLabel', () => {
       title: 'Malte',
       meta: 'Privatdepot',
     });
+  });
+});
+
+describe('rankCounterparties', () => {
+  it('puts name matches before accounts found only through their CEO', () => {
+    const list = [
+      { name: 'Guinea Pig (STG2EF16CB) | Malte' },
+      { name: 'Malte_Fan', privateAccount: true },
+      { name: 'Malte_Fan Inc. (STS9ETMHN1) | Malte_Fan' },
+      { name: 'Malte', privateAccount: true },
+      { name: 'Die Malte-Werke (STX) | Otto' },
+    ];
+    expect(rankCounterparties(list, 'malte').map((a) => a.name)).toEqual([
+      'Malte',
+      'Malte_Fan',
+      'Malte_Fan Inc. (STS9ETMHN1) | Malte_Fan',
+      'Die Malte-Werke (STX) | Otto',
+      'Guinea Pig (STG2EF16CB) | Malte',
+    ]);
   });
 });

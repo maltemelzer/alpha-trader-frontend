@@ -710,7 +710,7 @@ export interface UserPickerProps {
   exclude?: string[];
   /** Standard 2 */
   minChars?: number;
-  /** Standard 8 */
+  /** höchstens so viele Treffer in der Liste (nicht: gewählte Spieler), Standard 8 */
   max?: number;
   placeholder?: string; hint?: React.ReactNode; emptyText?: React.ReactNode; id?: string; className?: string;
 }
