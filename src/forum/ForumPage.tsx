@@ -17,7 +17,7 @@ import {
   type BoardView,
 } from '../api/queries';
 import { ReportDialog, type ReportTarget } from './ReportDialog';
-import { htmlToText, textToHtml } from '../lib/html';
+import { htmlToText, markupToHtml, postText } from '../lib/html';
 import { useHighlight } from '../lib/highlight';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone } from '../lib/useMediaQuery';
@@ -292,7 +292,7 @@ function Board({ boardId }: { boardId: string }) {
           onCancel={() => setWriting(false)}
           onSubmit={(v) =>
             create.mutate(
-              { title: v.title, html: textToHtml(v.body), messageBoardId: boardId },
+              { title: v.title, html: markupToHtml(v.body), messageBoardId: boardId },
               {
                 onSuccess: (p) => {
                   setWriting(false);
@@ -398,7 +398,7 @@ function Thread({ boardId, postId }: { boardId: string; postId: string }) {
         loading={reply.isPending}
         onSubmit={(v) =>
           reply.mutate(
-            { postId, title: replyTitle(p.title), html: textToHtml(v.body) },
+            { postId, title: replyTitle(p.title), html: markupToHtml(v.body) },
             { onSuccess: () => setReplying(false) },
           )
         }
@@ -421,7 +421,7 @@ function Thread({ boardId, postId }: { boardId: string; postId: string }) {
             number={1}
             author={author(p.author)}
             time={p.dateCreated ? DS.format.dateTime(p.dateCreated) : undefined}
-            text={htmlToText(p.content)}
+            text={postText(p.content)}
             actions={reportButton(p.id, p.author, 1)}
           />
           {(comments.data ?? []).map((c, i) => (
@@ -430,7 +430,7 @@ function Thread({ boardId, postId }: { boardId: string; postId: string }) {
               number={i + 2}
               author={author(c.author)}
               time={c.dateCreated ? DS.format.dateTime(c.dateCreated) : undefined}
-              text={htmlToText(c.content)}
+              text={postText(c.content)}
               actions={reportButton(c.id, c.author, i + 2)}
             />
           ))}

@@ -610,6 +610,7 @@ export interface PostView {
   author?: UsernameView;
   company?: { id: string; name: string; securityIdentifier?: string } | null;
   alliance?: { id: string; name: string } | null;
+  messageBoard?: { id: string; name?: string } | null;
   listing?: { name: string; securityIdentifier: string; type?: string } | null;
   hashTags?: { tag: string }[];
   numberOfLikes?: number;
@@ -688,6 +689,13 @@ export function useReact() {
   });
 }
 
+/**
+ * Post bodies are the HTML itself, not a JSON string: the original game sends `data: html` with
+ * `Content-Type: application/json`, and the server stores the body verbatim – JSON.stringify
+ * would leave quotes around every post.
+ */
+const rawBody = (html: string) => html;
+
 export function useCreateComment() {
   const qc = useQueryClient();
   return useMutation({
@@ -696,6 +704,7 @@ export function useCreateComment() {
         api.POST('/api/v2/posts/{postId}/comments', {
           params: { path: { postId }, query: { title } },
           body: html,
+          bodySerializer: rawBody,
         }),
       ),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['news'] }),
@@ -904,7 +913,37 @@ export function useCreatePost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ title, html, messageBoardId }: { title: string; html: string; messageBoardId?: string }) =>
-      unwrap<PostView>(api.POST('/api/v2/posts', { params: { query: { title, messageBoardId } }, body: html })),
+      unwrap<PostView>(
+        api.POST('/api/v2/posts', { params: { query: { title, messageBoardId } }, body: html, bodySerializer: rawBody }),
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['forum'] });
+      void qc.invalidateQueries({ queryKey: ['news'] });
+    },
+  });
+}
+
+/** PUT /api/v2/posts/{postId} – edit an own post; owner (company/alliance), board and language stay. */
+export function useEditPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ post, title, html }: { post: PostView; title: string; html: string }) =>
+      unwrap<PostView>(
+        api.PUT('/api/v2/posts/{postId}', {
+          params: {
+            path: { postId: post.id },
+            query: {
+              title,
+              locale: post.locale ?? undefined,
+              companyId: post.company?.id,
+              allianceId: post.alliance?.id,
+              messageBoardId: post.messageBoard?.id,
+            },
+          },
+          body: html,
+          bodySerializer: rawBody,
+        }),
+      ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['forum'] });
       void qc.invalidateQueries({ queryKey: ['news'] });

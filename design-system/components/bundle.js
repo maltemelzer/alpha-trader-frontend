@@ -1219,31 +1219,57 @@
 
   /* ---------- Forum ---------- */
 
-  /* Einfaches Forum-Markup: **fett**, *kursiv*, > Zitat, - Liste, $TICKER. Absätze durch Leerzeile. Kein HTML. */
+  /* Einfaches Forum-Markup: **fett**, *kursiv*, ## Überschrift, > Zitat, - Liste, 1. Liste, [Text](https://…), https://…,
+     ![Bild](https://…), $TICKER. Absätze durch Leerzeile. Kein HTML – Links und Bilder nur mit http(s) bzw. „/…“ (intern). */
+  function forumHref(u) { return /^https?:\/\/[^\s"'<>]+$/i.test(u) || /^\/(?!\/)[^\s"'<>]*$/.test(u) ? u : null; }
+  function forumLink(href, children, key) {
+    var ext = /^https?:/i.test(href);
+    return h('a', { key: key, href: href, className: 'bnk-fbody__link', target: ext ? '_blank' : undefined, rel: ext ? 'noopener noreferrer' : undefined }, children);
+  }
   function forumInline(text, tickers, keyBase) {
-    var out = [], re = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|\$[A-Z][A-Z0-9]{1,9}\b)/g, last = 0, m, k = 0;
+    var out = [], re = /(!\[[^\]]*\]\([^)\s]+\)|\[[^\]]+\]\([^)\s]+\)|https?:\/\/[^\s<]*[^\s<.,;:!?)"'»“]|\*\*[^*]+\*\*|\*[^*\s][^*]*\*|\$[A-Z][A-Z0-9]{1,9}\b)/g, last = 0, m, k = 0;
     while ((m = re.exec(text))) {
       if (m.index > last) out.push(text.slice(last, m.index));
-      var t = m[0];
-      if (t.charAt(0) === '$') out.push(h(TickerMention, { key: keyBase + '-' + (k++), ticker: t.slice(1), info: tickers && tickers[t.slice(1)] }));
-      else if (t.slice(0, 2) === '**') out.push(h('strong', { key: keyBase + '-' + (k++) }, t.slice(2, -2)));
-      else out.push(h('em', { key: keyBase + '-' + (k++) }, t.slice(1, -1)));
+      var t = m[0], key = keyBase + '-' + (k++), lm, href;
+      if (t.charAt(0) === '$') out.push(h(TickerMention, { key: key, ticker: t.slice(1), info: tickers && tickers[t.slice(1)] }));
+      else if ((lm = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(t))) {
+        href = forumHref(lm[2]);
+        out.push(href ? h('img', { key: key, src: href, alt: lm[1], loading: 'lazy', className: 'bnk-fbody__img' }) : t);
+      } else if ((lm = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(t))) {
+        href = forumHref(lm[2]);
+        out.push(href ? forumLink(href, forumInline(lm[1], tickers, key), key) : t);
+      } else if (/^https?:/i.test(t)) out.push(forumLink(t, t, key));
+      else if (t.slice(0, 2) === '**') out.push(h('strong', { key: key }, forumInline(t.slice(2, -2), tickers, key)));
+      else out.push(h('em', { key: key }, forumInline(t.slice(1, -1), tickers, key)));
       last = m.index + t.length;
     }
     if (last < text.length) out.push(text.slice(last));
     return out;
   }
+  function forumLineKind(l) {
+    return /^>\s?/.test(l) ? 'q' : /^[-•]\s+/.test(l) ? 'ul' : /^\d+[.)]\s+/.test(l) ? 'ol' : /^#{1,3}\s+/.test(l) ? 'h' : 'p';
+  }
   function renderForumText(text, tickers) {
     if (typeof text !== 'string') return text;
-    var blocks = text.replace(/\r/g, '').split(/\n{2,}/);
-    return blocks.map(function (b, i) {
-      var lines = b.split('\n');
-      if (lines.every(function (l) { return /^>\s?/.test(l); })) {
+    /* Zeilen gleicher Art bilden einen Block; Leerzeile beendet ihn, eine Überschrift steht immer allein. */
+    var groups = [], cur = null;
+    text.replace(/\r/g, '').split('\n').forEach(function (l) {
+      if (!l.trim()) { cur = null; return; }
+      var kind = forumLineKind(l);
+      if (!cur || cur.kind !== kind || kind === 'h') groups.push(cur = { kind: kind, lines: [] });
+      cur.lines.push(l);
+    });
+    return groups.map(function (g, i) {
+      var lines = g.lines;
+      if (g.kind === 'q') {
         return h('blockquote', { key: i, className: 'bnk-fbody__quote' },
           h('p', null, forumInline(lines.map(function (l) { return l.replace(/^>\s?/, ''); }).join(' '), tickers, 'q' + i)));
       }
-      if (lines.every(function (l) { return /^[-•]\s+/.test(l); })) {
-        return h('ul', { key: i }, lines.map(function (l, j) { return h('li', { key: j }, forumInline(l.replace(/^[-•]\s+/, ''), tickers, 'l' + i + '-' + j)); }));
+      if (g.kind === 'ul' || g.kind === 'ol') {
+        return h(g.kind, { key: i }, lines.map(function (l, j) { return h('li', { key: j }, forumInline(l.replace(/^([-•]|\d+[.)])\s+/, ''), tickers, 'l' + i + '-' + j)); }));
+      }
+      if (g.kind === 'h') {
+        return h(/^###/.test(lines[0]) ? 'h4' : 'h3', { key: i, className: 'bnk-fbody__h' }, forumInline(lines[0].replace(/^#{1,3}\s+/, ''), tickers, 'h' + i));
       }
       var parts = [];
       lines.forEach(function (l, j) { if (j) parts.push(h('br', { key: 'br' + j })); parts.push.apply(parts, forumInline(l, tickers, 'p' + i + '-' + j)); });
@@ -1465,8 +1491,11 @@
     var tools = [
       { k: 'b', label: 'Fett', glyph: h('strong', null, 'F'), run: function () { wrap('**', '**', 'fetter Text'); } },
       { k: 'i', label: 'Kursiv', glyph: h('em', null, 'K'), run: function () { wrap('*', '*', 'kursiver Text'); } },
+      { k: 'h', label: 'Zwischenüberschrift', glyph: h('strong', null, 'H'), run: function () { prefix('## ', 'Zwischenüberschrift'); } },
       { k: 'q', label: 'Zitat', glyph: '„“', run: function () { prefix('> ', 'Zitat'); } },
       { k: 'l', label: 'Liste', glyph: '•', run: function () { prefix('- ', 'Punkt'); } },
+      { k: 'n', label: 'Nummerierte Liste', glyph: '1.', run: function () { prefix('1. ', 'Punkt'); } },
+      { k: 'a', label: 'Link', glyph: '↗', run: function () { wrap('[', '](https://)', 'Linktext'); } },
       { k: 't', label: 'Aktie erwähnen', glyph: '$', run: function () { wrap('$', '', 'HRD'); } }
     ];
     var canSend = body.trim() && (!isThread || (title.trim() && (catSt[0] || !props.categories)));
@@ -1505,7 +1534,7 @@
             : h('div', { className: 'bnk-feditor__preview' },
                 body.trim() ? h(ForumText, { text: body, tickers: props.tickers }) : h('p', { className: 'bnk-feditor__empty' }, 'Noch nichts zu sehen.')))),
       h('div', { className: 'bnk-feditor__foot' },
-        h('span', { id: id + '-hint', className: 'bnk-feditor__hint' }, props.hint || '**fett**  *kursiv*  > Zitat  - Liste  $HRD für Aktien'),
+        h('span', { id: id + '-hint', className: 'bnk-feditor__hint' }, props.hint || '**fett**  *kursiv*  ## Überschrift  > Zitat  - Liste  [Text](https://…)  $HRD'),
         h('div', { className: 'bnk-feditor__actions' },
           props.onCancel ? h(Button, { onClick: props.onCancel }, props.cancelLabel || 'Abbrechen') : null,
           h(Button, { type: 'submit', variant: props.submitVariant || 'primary', disabled: !canSend || props.disabled, loading: props.loading },
