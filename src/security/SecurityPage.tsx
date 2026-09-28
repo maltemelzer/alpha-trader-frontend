@@ -24,7 +24,7 @@ import { Plot } from '../charts/Plot';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useTick } from '../lib/useTick';
-import { afterRebase, availableAt, change24h, defaultShares, depth, depthNear, holderSlices, recentPrices, window_ } from './derive';
+import { afterRebase, availableAt, change24h, defaultShares, depth, depthNear, holderSlices, limitPrice, recentPrices, window_ } from './derive';
 import { assetClass, isTradable, type AssetClass } from './assetClass';
 import {
   BondPanel,
@@ -151,8 +151,9 @@ export function SecurityPage() {
       change={ch?.pct}
       changeAmount={ch?.abs}
       changeSuffix="24 h"
-      onBuy={isPhone || !tradable ? undefined : (price) => openOrder({ side: 'BUY', price, type: 'MARKET', available: spread.data?.askSize })}
-      onSell={isPhone || !tradable ? undefined : (price) => openOrder({ side: 'SELL', price, type: 'MARKET', available: spread.data?.bidSize })}
+      tradeWithoutQuote
+      onBuy={isPhone || !tradable ? undefined : () => openOrder({ side: 'BUY', price: limitPrice('BUY', sp), type: 'LIMIT', available: spread.data?.askSize })}
+      onSell={isPhone || !tradable ? undefined : () => openOrder({ side: 'SELL', price: limitPrice('SELL', sp), type: 'LIMIT', available: spread.data?.bidSize })}
       actions={
         p.company && !isPhone ? (
           <DS.Button variant="ghost" size="sm" onClick={() => navigate(`/unternehmen/${asin}`)}>
@@ -296,8 +297,14 @@ export function SecurityPage() {
           <DS.TradeBar
             listing={listing}
             spread={sp}
+            tradeWithoutQuote
             onTrade={(t) =>
-              openOrder({ side: t.action, price: t.price, type: 'MARKET', available: t.action === 'BUY' ? spread.data?.askSize : spread.data?.bidSize })
+              openOrder({
+                side: t.action,
+                price: limitPrice(t.action, sp),
+                type: 'LIMIT',
+                available: t.action === 'BUY' ? spread.data?.askSize : spread.data?.bidSize,
+              })
             }
           />
         )}
@@ -987,8 +994,8 @@ function Ticket({
         faceValue={profile.bond?.faceValue}
         premium={!!me.data?.userCapabilities?.premium}
         defaultAction={pick?.side ?? 'BUY'}
-        defaultType={pick?.type ?? 'MARKET'}
-        defaultPrice={pick?.type === 'LIMIT' ? pick.price : undefined}
+        defaultType={pick?.type ?? 'LIMIT'}
+        defaultPrice={pick ? (pick.type === 'LIMIT' ? pick.price : undefined) : limitPrice('BUY', spread ?? undefined)}
         defaultShares={shares}
         onCheck={onCheck}
         onSubmit={onSubmit}

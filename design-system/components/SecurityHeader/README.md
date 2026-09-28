@@ -49,6 +49,9 @@ const { SecurityHeader, Tabs, Button } = window.Bankiersgruen;
 // Ein-Bildschirm-Seite
 <SecurityHeader compact listing={listing} spread={spread} company={company} facts={facts}
   onBuy={…} onSell={…} />
+
+// Kaufen/Verkaufen auch ohne Brief/Geld (die App öffnet dann eine Limit-Order zum letzten Kurs)
+<SecurityHeader listing={listing} spread={spread} tradeWithoutQuote onBuy={…} onSell={…} />
 ```
 
 ## Barrierefreiheit

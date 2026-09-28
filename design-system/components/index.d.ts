@@ -1025,6 +1025,8 @@ export interface SecurityHeaderProps {
   facts?: SecurityFact[];
   onBuy?: (askPrice?: number) => void;
   onSell?: (bidPrice?: number) => void;
+  /** Kaufen/Verkaufen auch ohne Brief/Geld anklickbar (dann Limit-Order, Preis `undefined`) */
+  tradeWithoutQuote?: boolean;
   actions?: React.ReactNode;
   /** z. B. <Banner> für laufende Kapitalmaßnahmen */
   notice?: React.ReactNode;
@@ -1609,7 +1611,7 @@ export interface MobileTopBarProps {
   sticky?: boolean; as?: 'h1' | 'h2'; className?: string;
 }
 export declare function MobileTopBar(props: MobileTopBarProps): React.ReactElement;
-export interface TradeBarProps { listing: Listing; spread: PriceSpread; onTrade?: (t: { action: 'BUY' | 'SELL'; price?: number }) => void; fixed?: boolean; disabled?: boolean; currency?: string; className?: string }
+export interface TradeBarProps { listing: Listing; spread: PriceSpread; onTrade?: (t: { action: 'BUY' | 'SELL'; price?: number }) => void; /** Seite ohne Kurs trotzdem anklickbar (die App öffnet dann eine Limit-Order), Beschriftung „Kein Brief · mit Limit“ */ tradeWithoutQuote?: boolean; fixed?: boolean; disabled?: boolean; currency?: string; className?: string }
 /** Handelsleiste am unteren Rand der Wertpapierseite auf dem Handy – beide Seiten gleich, öffnet die Order-Maske */
 export declare function TradeBar(props: TradeBarProps): React.ReactElement;
 

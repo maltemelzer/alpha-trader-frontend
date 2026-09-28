@@ -32,6 +32,17 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-28-7',
+    title: 'Order: Limit ist jetzt Standard',
+    items: [
+      {
+        text: 'Die Order-Maske öffnet immer als Limit-Order, vorbelegt mit dem Brief (Kaufen) bzw. Geld (Verkaufen). Eine Market-Order gibt es nur, wenn du sie ausdrücklich wählst.',
+        href: '/wertpapier/STSN3G03LB',
+      },
+      { text: 'Steht kein Geld- oder Briefkurs, kannst du trotzdem auf Kaufen bzw. Verkaufen tippen – das Limit steht dann auf dem letzten Kurs.' },
+    ],
+  },
+  {
     id: '2026-09-28-6',
     title: 'Chat: Wertpapiere mit # und !',
     items: [

@@ -1,4 +1,4 @@
-import { afterRebase, bondYield, coverageText, issuerCoverage, buildingSize, change24h, depth, depthNear, holderSlices, indexWeights, niceTicks, rebased, recentPrices, termProgress, withoutSpikes, dailyYield, quantile, yieldDots, availableAt, defaultShares } from './derive';
+import { afterRebase, bondYield, coverageText, issuerCoverage, buildingSize, change24h, depth, depthNear, holderSlices, indexWeights, niceTicks, rebased, recentPrices, termProgress, withoutSpikes, dailyYield, quantile, yieldDots, availableAt, defaultShares, limitPrice } from './derive';
 import { assetClass, bondOfRepo, isTradable } from './assetClass';
 import type { ShareholderView } from '../api/types';
 
@@ -274,5 +274,22 @@ describe('defaultShares', () => {
     expect(defaultShares(30, 'BUY', 100, 5, undefined)).toBe(30);
     expect(defaultShares(30, 'SELL', 100, undefined, 0)).toBe(30);
     expect(defaultShares(undefined, 'BUY', 100, 5, undefined)).toBeUndefined();
+  });
+});
+
+describe('limitPrice', () => {
+  const spread = { askPrice: 72, bidPrice: 70, lastPrice: { value: 71 } };
+  it('takes the counter quote', () => {
+    expect(limitPrice('BUY', spread)).toBe(72);
+    expect(limitPrice('SELL', spread)).toBe(70);
+  });
+  it('falls back to the last price without a quote', () => {
+    expect(limitPrice('BUY', { askPrice: null, bidPrice: 70, lastPrice: { value: 71 } })).toBe(71);
+    expect(limitPrice('SELL', { lastPrice: { value: 71 } })).toBe(71);
+    expect(limitPrice('SELL', { lastPrice: 69 })).toBe(69);
+  });
+  it('is empty without any price', () => {
+    expect(limitPrice('BUY', {})).toBeUndefined();
+    expect(limitPrice('BUY', undefined)).toBeUndefined();
   });
 });
