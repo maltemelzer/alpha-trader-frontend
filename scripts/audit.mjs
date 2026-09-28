@@ -13,6 +13,7 @@
 //   npm run audit                              # all pages, 1440×900 + 390×844
 //   npm run audit -- /markt /orders --size 1280x720 --watch 30000
 //   npm run audit -- /markt --local at.chatSidebar=1   # localStorage entry before loading
+//   npm run audit -- / --whatsnew                      # with „Neu bei Alpha-Trader“ (hidden by default)
 //
 // Read-only: it only navigates and hovers nothing.
 
@@ -75,6 +76,8 @@ const opt = (name, dflt) => {
 };
 const paths = args.filter((a, i) => a.startsWith('/') && !['--size', '--watch', '--local'].includes(args[i - 1]));
 const local = args.flatMap((a, i) => (args[i - 1] === '--local' ? [a.split('=')] : []));
+// „Neu bei Alpha-Trader“ would cover every page: count everything as read, unless --whatsnew.
+if (!args.includes('--whatsnew')) local.unshift(['at.whatsnew', '{"engine":9e15,"ui":"9999"}']);
 const sizes = opt('--size') ? [opt('--size')] : ['1440x900', '390x844'];
 const watch = Number(opt('--watch', 12000));
 const app = opt('--app', 'http://localhost:5173');
