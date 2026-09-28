@@ -4,6 +4,7 @@ import type { InterestRateSnapshot } from '../api/queries';
 import { clip, short } from '../lib/format';
 import { shortAxis } from '../charts/ticks';
 import { POT_SHORT, signedPct, type BankShare, type PotRow, type SupplyPoint } from './derive';
+import type { ReservesEffect } from './reserves';
 
 type Theme = ReturnType<typeof plotlyTheme>;
 const NARROW = 520;
@@ -229,6 +230,56 @@ export function potsChart(t: Theme, w: number, rows: PotRow[]) {
         side: 'left',
         showgrid: false,
         automargin: true,
+        tickfont: { family: v('font-sans'), size: 13, color: v('text-primary') },
+      },
+    },
+  };
+}
+
+/**
+ * Increasing the reserves moves money inside the bank: one bar for now and one for afterwards, each
+ * the bank's cash plus its reserves (same length – nothing is lost), split into reserves, the part
+ * added now and the cash that stays. No gain/loss colours: this is a transfer, not a price move.
+ */
+export function reservesMoveChart(t: Theme, w: number, e: ReservesEffect) {
+  const v = t.tokens;
+  const narrow = w < NARROW;
+  const total = Math.max(1, e.cashBefore + e.reservesBefore);
+  const rows = ['Danach', 'Jetzt']; // Plotly draws the first bar at the bottom
+  const part = (name: string, color: string, values: [number, number]) => ({
+    type: 'bar',
+    orientation: 'h',
+    name,
+    y: rows,
+    x: values.map((n) => (n / total) * 100),
+    marker: { color: v(color), line: { color: v('bg-card'), width: 2 } },
+    text: values.map((n) => (n / total > (narrow ? 0.22 : 0.12) ? `${short(n)} €` : '')),
+    textposition: 'inside',
+    insidetextanchor: 'middle',
+    textfont: { family: v('font-mono'), size: 12, color: v(color === 'line-strong' ? 'text-primary' : 'bg-page') },
+    customdata: values.map((n) => [`${short(n)} €`]),
+    hovertemplate: `${name} %{customdata[0]}<extra></extra>`,
+  });
+  return {
+    data: [
+      part('Einlage', 'chart-1', [e.reservesBefore, e.reservesBefore]),
+      part('neu eingelegt', 'chart-2', [e.amount, 0]),
+      part('Bargeld', 'line-strong', [e.cashAfter, e.cashBefore]),
+    ],
+    layout: {
+      barmode: 'stack',
+      hovermode: 'closest',
+      showlegend: true,
+      legend: { orientation: 'h', x: 0, y: 1.02, yanchor: 'bottom', traceorder: 'normal', font: { size: 11, color: v('text-secondary') } },
+      bargap: 0.35,
+      margin: { l: 0, r: 0, t: 24, b: 0 },
+      xaxis: { ...t.layout.xaxis, visible: false, range: [0, 100], showspikes: false, fixedrange: true },
+      yaxis: {
+        ...t.layout.yaxis,
+        side: 'left',
+        showgrid: false,
+        automargin: true,
+        fixedrange: true,
         tickfont: { family: v('font-sans'), size: 13, color: v('text-primary') },
       },
     },

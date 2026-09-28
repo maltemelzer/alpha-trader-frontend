@@ -22,6 +22,7 @@ import { CB_FILTERS } from './filters';
 import { bankSharesChart, dueChart, moneySupplyChart, potsChart, rateHistoryChart } from './charts';
 import { bankShares, dueByDay, potRows, rateOnlyBelowTarget, rateWindow, signedPct, supplySeries, targetGrowthPct } from './derive';
 import { CreditForm } from './CreditForm';
+import { ReservesCard } from './ReservesForm';
 import { TenderBid, TenderPhone, TenderSide } from './TenderPanel';
 import { MiniStats } from '../app/phone';
 import './CentralBankPage.css';
@@ -34,6 +35,7 @@ const VIEWS: PageView[] = [
   { value: 'zinsen', label: 'Zinsen', description: 'Leitzins, Einlagezins und Systemanleihe im Verlauf' },
   { value: 'banken', label: 'Banken', parent: 'zinsen', description: 'Wer die Einlagen hält und wie viel Kredit genutzt wird' },
   { value: 'tender', label: 'Zinstender', description: 'Was dein Gebot bewirkt, Verlauf und Buch' },
+  { value: 'einlage', label: 'Einlage', description: 'Zentralbankeinlage deiner Bank erhöhen – was sie bringt' },
   { value: 'kredite', label: 'Kredite', description: 'Laufende Systemanleihen und Kredit aufnehmen' },
   { value: 'geld', label: 'Geldmenge', description: 'Geldmenge gegen Ziel und wo das Geld liegt' },
   { value: 'regeln', label: 'So funktioniert’s', description: 'Die Regeln in Kürze, mit Quellen' },
@@ -152,6 +154,8 @@ export function CentralBankPage() {
             </>
           ) : view === 'tender' ? (
             <TenderPhone />
+          ) : view === 'einlage' ? (
+            <ReservesCard phone />
           ) : view === 'kredite' ? (
             <CreditPhone />
           ) : view === 'banken' ? (
@@ -178,6 +182,12 @@ export function CentralBankPage() {
       <>
         {card('Was bewirkt dein Gebot?', <TenderBid />, 'cb__tender')}
         {card('Leitzins und Tender', <TenderSide />)}
+      </>
+    ),
+    einlage: (
+      <>
+        <ReservesCard />
+        {card('Banken', <Banks />)}
       </>
     ),
     kredite: (
@@ -443,7 +453,8 @@ function Rules({ mainRate, reserveRate }: { mainRate?: number; reserveRate?: num
         <dt>Zentralbankeinlage</dt>
         <dd>
           Bargeld, das eine Bank bei der Zentralbank anlegt. Sie zahlt jeden Tag den Einlagezins darauf (jetzt {pct(reserveRate)},
-          halb so viel wie der Leitzins). Mit AlphaCoins lässt er sich um je 0,01 % erhöhen, bis 2 % pro Tag – die Coins werden
+          halb so viel wie der Leitzins). Erhöhen kann sie der CEO der Bank unter <a href="/zentralbank?ansicht=einlage">Einlage</a>;
+          zurückholen lässt sie sich nicht. Mit AlphaCoins lässt er sich um je 0,01 % erhöhen, bis 2 % pro Tag – die Coins werden
           verbrannt.
         </dd>
         <dt>Kreditrahmen</dt>

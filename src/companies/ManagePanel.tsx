@@ -13,6 +13,7 @@ import {
   type CompanyProfile,
   type IssueRequest,
 } from '../api/queries';
+import { Confirm } from './Confirm';
 import { LogoForm, SalaryPanel } from './CeoPanels';
 import { MarketMakerManage } from './Sponsorships';
 
@@ -40,6 +41,8 @@ export function ManagePanel({ company: c }: { company: CompanyProfile }) {
   const raw = params.get('aktion');
   const aktion: Action = ACTIONS.some((a) => a.value === raw) ? (raw as Action) : 'kapital';
   const [done, setDone] = useState<string | null>(null);
+  /** amount waiting for confirmation – the DS form sends without asking, reserves cannot be taken back */
+  const [reservesAmount, setReservesAmount] = useState<number | null>(null);
 
   const action = useCorporateAction();
   const issue = useIssue(c.id);
@@ -176,14 +179,40 @@ export function ManagePanel({ company: c }: { company: CompanyProfile }) {
             tender={banking.tender.data ?? undefined}
             tenderHref={(t) => `/wertpapier/${t.bondListing.securityIdentifier}`}
             onRequestLicense={() => bank.license.mutate(undefined, { onSuccess: () => setDone('Banklizenz beantragt.') })}
-            onIncreaseReserves={(amount) => bank.reserves.mutate(amount, { onSuccess: () => setDone('Reserven erhöht.') })}
+            onIncreaseReserves={setReservesAmount}
             onBoost={(multiplier) =>
               r?.id && bank.boost.mutate({ reservesId: r.id, multiplier }, { onSuccess: () => setDone('Zinsbonus erhöht.') })
             }
             primaryAction="reserves"
           />
+          {(caps?.bank || banking.license.data) && (
+            <p className="company__note">
+              Was eine höhere Einlage bringt, zeigt <a href={`/zentralbank?ansicht=einlage&bank=${c.securityIdentifier}`}>Zentralbank → Einlage</a>.
+            </p>
+          )}
+          <Confirm
+            open={reservesAmount != null}
+            alert
+            title="Einlage erhöhen?"
+            description={`${c.name} legt ${DS.format.money(reservesAmount ?? 0, '€', 2)} bei der Zentralbank an. Zurückholen geht nicht.`}
+            confirmLabel="Verbindlich einlegen"
+            pending={bank.reserves.isPending}
+            error={bank.reserves.error?.message}
+            onClose={() => {
+              setReservesAmount(null);
+              bank.reserves.reset();
+            }}
+            onConfirm={() =>
+              reservesAmount != null &&
+              bank.reserves.mutate(reservesAmount, {
+                onSuccess: () => {
+                  setReservesAmount(null);
+                  setDone('Einlage erhöht.');
+                },
+              })
+            }
+          />
           {error(bank.license, 'Lizenz nicht beantragt')}
-          {error(bank.reserves, 'Reserven nicht erhöht')}
           {error(bank.boost, 'Bonus nicht erhöht')}
         </>
       );
