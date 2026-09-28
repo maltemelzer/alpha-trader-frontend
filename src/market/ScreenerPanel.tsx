@@ -7,6 +7,7 @@ import type { DataTableColumn } from '../../design-system/components';
 import { parseDe, ratePct, short, span } from '../lib/format';
 import { useDebounced } from '../lib/useDebounced';
 import { OptionsButton } from '../app/phone';
+import { coverageText } from '../security/derive';
 import {
   activePreset,
   chips,
@@ -356,6 +357,7 @@ function FilterSheet({
             <RangeField k="zins" label="Zins bis Fälligkeit" unit="%" value={screen.ranges.zins} bins={dist.zins} setParam={setParam} hint="Für die ganze Laufzeit, nicht pro Jahr" />
             <RangeField k="rt" label="Rendite pro Tag" unit="%" value={screen.ranges.rt} bins={dist.rt} setParam={setParam} hint="Zum Brief gerechnet" />
             <RangeField k="lz" label="Restlaufzeit" unit="Tage" value={screen.ranges.lz} bins={dist.lz} setParam={setParam} hint="0,04 Tage ≈ 1 Stunde" />
+            <RangeField k="deck" label="Deckung" unit="%" value={screen.ranges.deck} bins={dist.deck} setParam={setParam} hint="Net Cash des Emittenten ÷ Rückzahlung aller seiner laufenden Anleihen · 100 = gerade gedeckt · lädt je Emittent, sobald genutzt" />
             <TextFilter k="em" label="Emittent" value={screen.issuer} setParam={setParam} placeholder="Name enthält …" />
           </fieldset>
         )}
@@ -461,6 +463,8 @@ function cellFor(k: ColKey, now: number, maxVolume: number): DataTableColumn<Scr
       return { ...base, type: 'percent', render: (r) => (r.yieldPerDay == null ? '–' : ratePct(r.yieldPerDay)) };
     case 'lz':
       return { ...base, type: 'number', render: (r) => (r.maturity == null ? '–' : span(r.maturity - now)) };
+    case 'deck':
+      return { ...base, type: 'percent', render: (r) => coverageText(r.coverage) };
     case 'em':
       return {
         ...base,
@@ -527,6 +531,7 @@ function PhoneList({ rows, sort, now }: { rows: ScreenRow[]; sort: NonNullable<S
     if (metaKey === 'lz') return `${c.short} ${span((v as number) - now)}`;
     if (metaKey === 'em') return String(v);
     if (metaKey === 'rt') return `${c.short} ${ratePct(v as number)}`;
+    if (metaKey === 'deck') return `${c.short} ${coverageText(v as number)}`;
     if (c.unit === '%') return `${c.short} ${pct(v as number)}`;
     if (c.unit === '€') return `${c.short} ${format.money(v as number, '€', 2, true)}`;
     return `${c.short} ${(v as number).toLocaleString('de-DE')}${c.unit ? NB + c.unit : ''}`;

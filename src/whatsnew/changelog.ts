@@ -11,6 +11,17 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-28-4',
+    title: 'Anleihen: Deckung in der Liste',
+    items: [
+      {
+        text: 'Im Markt gibt es für Anleihen die Spalte und den Filter „Deckung“: Net Cash des Emittenten geteilt durch die Rückzahlung aller seiner laufenden Anleihen. So findest du gedeckte Anleihen, ohne jede einzeln zu öffnen.',
+        href: '/markt?art=BOND&mit=brief&lz=0.04166667..&deck=100..&sort=-rt',
+      },
+      { text: 'Neue Vorlage „Gedeckte Anleihen“. Auch die Kachel „Deckung“ auf der Anleihe rechnet jetzt mit allen Anleihen des Emittenten, nicht nur mit dieser einen.' },
+    ],
+  },
+  {
     id: '2026-09-28-3',
     title: 'Market Maker: Regeln im Quote',
     items: [

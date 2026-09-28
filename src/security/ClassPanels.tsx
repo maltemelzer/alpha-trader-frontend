@@ -22,7 +22,7 @@ import type { ListingProfile } from '../api/types';
 import { Plot } from '../charts/Plot';
 import { assetClass, bondOfRepo } from './assetClass';
 import { buildingCompareChart, trackingChart, weightsTreemap, yieldStrip, type YieldDot } from './classCharts';
-import { afterRebase, bondCoverage, bondYield, buildingSize, dailyYield, indexWeights, rebased, recentPrices, termProgress, yieldDots } from './derive';
+import { afterRebase, bondYield, buildingSize, coverageText, dailyYield, indexWeights, issuerCoverage, rebased, recentPrices, termProgress, yieldDots } from './derive';
 import { useParamState } from '../lib/useParamState';
 import { useIsPhone } from '../lib/useMediaQuery';
 import { parseDe, ratePct, span } from '../lib/format';
@@ -105,8 +105,13 @@ export function BondPanel({ profile, bare = false }: { profile: ListingProfile; 
     );
   const progress = termProgress(bond.issueDate, bond.maturityDate, now);
   const netCash = issuer.data?.companyCapabilities?.netCash;
-  const coverage = bondCoverage(netCash, bond.volume, bond.interestRate);
-  const due = bond.volume * (1 + bond.interestRate / 100);
+  // All running bonds of the issuer are paid from the same net cash; this one counts even if the profile lags.
+  const issued = issuer.data?.issuedBonds ?? [];
+  const cover = issuerCoverage(
+    netCash,
+    issued.some((b) => b.listing?.securityIdentifier === bond.listing.securityIdentifier) ? issued : [...issued, bond],
+    now,
+  );
   const term = bond.issueDate ? span(bond.maturityDate - bond.issueDate) : undefined;
   return (
     <Panel
@@ -150,10 +155,10 @@ export function BondPanel({ profile, bare = false }: { profile: ListingProfile; 
             />
             <DS.StatTile
               label="Deckung"
-              value={coverage == null ? '–' : coverage <= 0 ? 'keine' : coverage >= 10 ? (isPhone ? '> 1.000 %' : 'über 1.000 %') : pct(coverage * 100, 0)}
+              value={coverageText(cover.coverage == null ? null : cover.coverage * 100)}
               hint={
                 netCash != null
-                  ? `Rückzahlung ${DS.format.money(due, '€', 2, true)} · Net Cash ${DS.format.money(netCash, '€', 2, true)}`
+                  ? `${cover.count > 1 ? `${cover.count.toLocaleString('de-DE')} Anleihen` : 'Rückzahlung'} ${DS.format.money(cover.due, '€', 2, true)} · Net Cash ${DS.format.money(netCash, '€', 2, true)}`
                   : 'Net Cash des Emittenten unbekannt'
               }
             />

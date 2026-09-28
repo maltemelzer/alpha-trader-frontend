@@ -1,4 +1,4 @@
-import { afterRebase, bondCoverage, bondYield, buildingSize, change24h, depth, depthNear, holderSlices, indexWeights, niceTicks, rebased, recentPrices, termProgress, withoutSpikes, dailyYield, quantile, yieldDots, availableAt, defaultShares } from './derive';
+import { afterRebase, bondYield, coverageText, issuerCoverage, buildingSize, change24h, depth, depthNear, holderSlices, indexWeights, niceTicks, rebased, recentPrices, termProgress, withoutSpikes, dailyYield, quantile, yieldDots, availableAt, defaultShares } from './derive';
 import { assetClass, bondOfRepo, isTradable } from './assetClass';
 import type { ShareholderView } from '../api/types';
 
@@ -127,9 +127,21 @@ describe('asset class helpers', () => {
   });
 
   it('measures how well the issuer covers the repayment', () => {
-    expect(bondCoverage(220, 100, 10)).toBeCloseTo(2);
-    expect(bondCoverage(-5, 100, 0)).toBe(-0.05);
-    expect(bondCoverage(undefined, 100, 0)).toBeUndefined();
+    const bonds = [
+      { volume: 100, interestRate: 10, maturityDate: 2_000 },
+      { volume: 100, interestRate: 0, maturityDate: 3_000 },
+      { volume: 1_000, interestRate: 0, maturityDate: 500 },
+    ];
+    // only running bonds count: 110 + 100 due
+    expect(issuerCoverage(420, bonds, 1_000)).toEqual({ coverage: 2, due: 210, count: 2 });
+    expect(issuerCoverage(-21, bonds, 1_000).coverage).toBeCloseTo(-0.1);
+    expect(issuerCoverage(undefined, bonds, 1_000).coverage).toBeUndefined();
+    expect(issuerCoverage(100, [], 1_000)).toEqual({ coverage: undefined, due: 0, count: 0 });
+    expect(coverageText(null)).toBe('–');
+    expect(coverageText(-5)).toBe('keine');
+    expect(coverageText(185.4)).toBe('185\u00a0%');
+    expect(coverageText(2_540)).toBe('25-fach');
+    expect(coverageText(1_234_500)).toBe('12.345-fach');
   });
 
   it('measures term progress', () => {

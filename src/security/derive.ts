@@ -290,11 +290,30 @@ export function buildingSize(name: string): number | undefined {
   return m ? Number(m[1]) : undefined;
 }
 
-/** How often the issuer's net cash covers the repayment (face volume plus interest). */
-export function bondCoverage(netCash: number | undefined, volume: number, ratePct: number): number | undefined {
-  const due = volume * (1 + ratePct / 100);
-  if (netCash == null || !due) return undefined;
-  return netCash / due;
+/** A running bond as the issuer's company profile lists it (`issuedBonds`). */
+export interface DueBond {
+  volume?: number;
+  interestRate?: number;
+  maturityDate?: number;
+}
+
+/**
+ * How often the issuer's net cash covers the repayment of ALL its running bonds (face volume plus
+ * interest). An issuer with 180 bonds must pay all of them from the same money, so the coverage of
+ * one bond alone would look 180 times better than it is. `due` 0 (no running bonds) → no coverage.
+ */
+export function issuerCoverage(netCash: number | undefined, bonds: DueBond[] | undefined, now: number): { coverage?: number; due: number; count: number } {
+  const running = (bonds ?? []).filter((b) => (b.maturityDate ?? 0) > now);
+  const due = running.reduce((s, b) => s + (b.volume ?? 0) * (1 + (b.interestRate ?? 0) / 100), 0);
+  return { coverage: netCash == null || !due ? undefined : netCash / due, due, count: running.length };
+}
+
+/** Coverage in % as text: „keine“ at or below 0, from 1.000 % as a multiple („25-fach“). */
+export function coverageText(pctValue: number | null | undefined): string {
+  if (pctValue == null || !Number.isFinite(pctValue)) return '–';
+  if (pctValue <= 0) return 'keine';
+  if (pctValue >= 1000) return `${Math.round(pctValue / 100).toLocaleString('de-DE')}-fach`;
+  return `${Math.round(pctValue).toLocaleString('de-DE')}${String.fromCharCode(0xa0)}%`;
 }
 
 /**
