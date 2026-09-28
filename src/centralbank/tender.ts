@@ -163,12 +163,14 @@ export function sharesToReach(base: Bid[], price: number, target: number): numbe
 }
 
 /**
- * Most bonds a bank may bid for: its central bank credit line (maxCentralBankLoans) in face value.
- * Forum „Zinstender-Verfahren“ (2022): „maximal in Höhe ihrer System-Kreditsumme“; observed: the
- * largest bids have exactly 10 % of the bidder's reserves as face value (Stockbrot 8 Bio. Stk. × 100 €).
+ * Most bonds a bank may bid for at `price` (%): its central bank credit line (maxCentralBankLoans) caps
+ * what the bid costs, not its face value. Forum „Zinstender-Verfahren“ (2022): „maximal in Höhe ihrer
+ * System-Kreditsumme“; observed on the allotments (Stockbrot, credit line 800 Bio. €): 8,001 Bio. bonds
+ * at 98 % (face value above the line, cost 784 Bio. €) and 7,843 Bio. at 102 % (cost 799,999 Bio. €).
  */
-export function maxBidShares(maxCentralBankLoans: number | undefined): number | undefined {
-  return maxCentralBankLoans != null && maxCentralBankLoans > 0 ? Math.floor(maxCentralBankLoans / FACE) : undefined;
+export function maxBidShares(maxCentralBankLoans: number | undefined, price = 100): number | undefined {
+  if (maxCentralBankLoans == null || maxCentralBankLoans <= 0 || !(price > 0)) return undefined;
+  return Math.floor(maxCentralBankLoans / ((price / 100) * FACE) + 1e-9);
 }
 
 /**

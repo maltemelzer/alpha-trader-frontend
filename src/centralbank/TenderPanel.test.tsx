@@ -51,7 +51,7 @@ const bank: MyBank = {
   securityIdentifier: 'STTEST0001',
   securitiesAccountId: 'acct-1',
   cash: 1_000_000,
-  maxCentralBankLoans: 500_000, // → at most 5.000 bonds
+  maxCentralBankLoans: 500_000, // → at most 5.000 bonds at 100 % (the line caps the cost)
   takenCentralBankLoans: 0,
 };
 
@@ -111,10 +111,15 @@ describe('TenderBid', () => {
     expect(screen.getByRole('button', { name: /Gebot abgeben/ })).toBeDisabled();
     expect(screen.getByText('Mehr als dein Kreditrahmen erlaubt.')).toBeInTheDocument();
     unmount();
-    renderBid('/zentralbank?ansicht=tender&gebot=103&stueck=10');
+    const { unmount: unmount2 } = renderBid('/zentralbank?ansicht=tender&gebot=103&stueck=10');
     expect(screen.getByRole('button', { name: /Gebot abgeben/ })).toBeDisabled();
+    // the credit line (500.000 €) caps the cost: 103 % counts as 102 %, 98 % buys more bonds
     fireEvent.click(screen.getByRole('button', { name: 'Max.' }));
-    expect(screen.getByLabelText('Stück')).toHaveValue('5.000');
+    expect(screen.getByLabelText('Stück')).toHaveValue('4.901');
+    unmount2();
+    renderBid('/zentralbank?ansicht=tender&gebot=98,00&stueck=10');
+    fireEvent.click(screen.getByRole('button', { name: 'Max.' }));
+    expect(screen.getByLabelText('Stück')).toHaveValue('5.102');
   });
 
   it('lists own bids and withdraws one only after confirming', () => {
