@@ -861,7 +861,14 @@ a.bnk-tick:focus-visible { outline: var(--rule) solid var(--brass); outline-offs
 .bnk-fbody > * { margin: 0; }
 .bnk-fbody > * + * { margin-top: var(--space-3); }
 .bnk-fbody strong { font-weight: 600; }
-.bnk-fbody ul { padding-left: var(--space-6); }
+.bnk-fbody ul, .bnk-fbody ol { padding-left: var(--space-6); }
+.bnk-fbody__h { font-family: var(--font-serif); font-weight: 600; color: var(--text-primary); }
+h3.bnk-fbody__h { font-size: 19px; line-height: 26px; }
+h4.bnk-fbody__h { font-size: 16px; line-height: 24px; }
+.bnk-fbody > * + .bnk-fbody__h { margin-top: var(--space-6); }
+.bnk-fbody__link { color: inherit; text-decoration: underline; text-decoration-color: var(--brass); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.bnk-fbody__link:hover { text-decoration-thickness: 2px; }
+.bnk-fbody__img { display: block; max-width: 100%; height: auto; margin: var(--space-2) 0; }
 .bnk-fbody li + li { margin-top: var(--space-1); }
 .bnk-fbody__quote { margin: 0; padding: var(--space-1) 0 var(--space-1) var(--space-4); border-left: var(--rule) solid var(--line-strong); color: var(--text-secondary); max-width: 72ch; font-size: 15px; line-height: 24px; }
 .bnk-fbody__quote p { margin: 0; }
@@ -1006,14 +1013,15 @@ a.bnk-pag__btn:hover, button.bnk-pag__btn:hover { background: var(--bg-raised); 
 @media (max-width: 640px) { .bnk-feditor__fields { grid-template-columns: 1fr; } }
 .bnk-feditor__box { border: var(--border) solid var(--line-control); border-radius: var(--radius-md); background: var(--bg-page); overflow: hidden; }
 .bnk-feditor__box:focus-within { border-color: var(--brass); }
-.bnk-feditor__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-2) 0 var(--space-1); border-bottom: var(--hairline) solid var(--line-strong); background: var(--bg-card); }
+.bnk-feditor__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-2) 0 var(--space-1); border-bottom: var(--hairline) solid var(--line-strong); background: var(--bg-card); }
 .bnk-feditor__tabs { display: flex; }
 .bnk-feditor__tab { position: relative; height: 36px; padding: 0 var(--space-3); border: 0; background: none; cursor: pointer; font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--text-secondary); }
 .bnk-feditor__tab:hover { color: var(--text-primary); }
 .bnk-feditor__tab.is-on { color: var(--text-primary); }
 .bnk-feditor__tab.is-on::after { content: ""; position: absolute; left: var(--space-3); right: var(--space-3); bottom: 0; height: var(--rule); background: var(--brass); }
 .bnk-feditor__tab:focus-visible, .bnk-feditor__tool:focus-visible { outline: var(--rule) solid var(--brass); outline-offset: -4px; border-radius: var(--radius-sm); }
-.bnk-feditor__tools { display: flex; gap: 2px; }
+.bnk-feditor__tools { display: flex; flex-wrap: wrap; gap: 2px; margin-left: auto; }
+@media (pointer: coarse) { .bnk-feditor__tool { min-width: 40px; height: 44px; } }
 .bnk-feditor__tool { min-width: 28px; height: 28px; padding: 0 6px; border: 0; border-radius: var(--radius-sm); background: none; cursor: pointer; font-family: var(--font-serif); font-size: 15px; color: var(--text-secondary); }
 .bnk-feditor__tool:hover:not(:disabled) { background: var(--bg-raised); color: var(--text-primary); }
 .bnk-feditor__tool em { font-style: italic; }
