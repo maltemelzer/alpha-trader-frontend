@@ -11,7 +11,7 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
-    id: '2026-09-28-4',
+    id: '2026-09-28-5',
     title: 'Anleihen: Deckung in der Liste',
     items: [
       {
@@ -19,6 +19,18 @@ export const UI_CHANGES: UiChange[] = [
         href: '/markt?art=BOND&mit=brief&lz=0.04166667..&deck=100..&sort=-rt',
       },
       { text: 'Neue Vorlage „Gedeckte Anleihen“. Auch die Kachel „Deckung“ auf der Anleihe rechnet jetzt mit allen Anleihen des Emittenten, nicht nur mit dieser einen.' },
+    ],
+  },
+  {
+    id: '2026-09-28-4',
+    title: 'Zentralbank: Einlage erhöhen',
+    items: [
+      {
+        text: 'Neue Ansicht „Einlage“: Als CEO einer Bank legst du Bargeld bei der Zentralbank an und siehst schon beim Tippen, wie viel vom Bargeld in die Einlage wandert, was sie am Tag an Zinsen bringt und wie weit dein Kreditrahmen wächst.',
+        href: '/zentralbank?ansicht=einlage',
+      },
+      { text: 'Schnellwahl 10 % · 25 % · 50 % · Alles, und vor dem Absenden eine Bestätigung – eine Einlage lässt sich nicht zurückholen.' },
+      { text: 'Ohne Bank zeigt die Ansicht, wie weit deine Unternehmen von der Banklizenz (5 Mio. € Bargeld) entfernt sind.' },
     ],
   },
   {

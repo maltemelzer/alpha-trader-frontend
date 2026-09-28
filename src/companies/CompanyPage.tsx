@@ -376,7 +376,8 @@ function BankFacts({ caps, isCeo, asin }: { caps: NonNullable<CompanyProfile['co
       <p className="company__note">
         {isCeo ? (
           <>
-            Einlage erhöhen und Zins-Boost unter <a href={`/unternehmen/${asin}?ansicht=fuehren&aktion=bank`}>Führen → Bank</a>. {' '}
+            <a href={`/zentralbank?ansicht=einlage&bank=${asin}`}>Einlage erhöhen</a>, Zins-Boost unter{' '}
+            <a href={`/unternehmen/${asin}?ansicht=fuehren&aktion=bank`}>Führen → Bank</a>.{' '}
           </>
         ) : null}
         Alle Banken, Leitzins und Zinstender: <a href="/zentralbank">Zentralbank</a>.

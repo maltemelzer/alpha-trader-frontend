@@ -3154,8 +3154,20 @@ export interface MyBank {
   securityIdentifier: string;
   securitiesAccountId: string;
   cash?: number;
+  /** central bank reserves (companyCapabilities.reserves) */
+  reserves?: number;
   maxCentralBankLoans?: number;
   takenCentralBankLoans?: number;
+}
+
+/** A company the player runs that is not a bank yet – with its cash towards the license. */
+export interface MyNonBank {
+  id: string;
+  name: string;
+  securityIdentifier: string;
+  cash?: number;
+  /** the game says the company could get a license now */
+  bankReady?: boolean;
 }
 
 /** Companies the player runs as CEO that hold a banking license (only banks may bid in the tender). */
@@ -3175,12 +3187,26 @@ export function useMyBanks() {
         securityIdentifier: p.securityIdentifier,
         securitiesAccountId: c.securitiesAccountId,
         cash: p.bankAccount?.cash ?? c.bankAccount?.cash,
+        reserves: p.companyCapabilities.reserves,
         maxCentralBankLoans: p.companyCapabilities.maxCentralBankLoans,
         takenCentralBankLoans: p.companyCapabilities.takenCentralBankLoans,
       },
     ];
   });
-  return { banks, isLoading: loading, companies: list.length };
+  const others: MyNonBank[] = list.flatMap((c, i) => {
+    const p = profiles[i]?.data;
+    if (!p || p.companyCapabilities?.bank || !c.id) return [];
+    return [
+      {
+        id: c.id,
+        name: p.name ?? c.name ?? '',
+        securityIdentifier: p.securityIdentifier,
+        cash: p.bankAccount?.cash ?? c.bankAccount?.cash,
+        bankReady: p.companyCapabilities?.bankReady,
+      },
+    ];
+  });
+  return { banks, others, isLoading: loading, companies: list.length };
 }
 
 /** Open orders of several of my accounts on one security (shares the cache with useOpenOrders). */
