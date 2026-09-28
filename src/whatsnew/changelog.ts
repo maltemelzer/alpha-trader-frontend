@@ -11,6 +11,19 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-28-2',
+    title: 'Zeitung und Forum: Formatierung wie im Spiel',
+    items: [
+      {
+        text: 'Artikel, Kommentare und Forenbeiträge werden als echtes HTML gespeichert, so wie im Original – fett, kursiv, Zwischenüberschriften, Listen, Links und Bilder kommen dort richtig an, ohne Anführungszeichen drumherum.',
+        href: '/zeitung?schreiben=1',
+      },
+      { text: 'Neu im Editor: Zwischenüberschrift (## …), nummerierte Liste und Link ([Text](https://…)).' },
+      { text: 'Beiträge aus dem Spiel zeigen ihre Formatierung jetzt auch hier: Überschriften, Links, Listen und Bilder.', href: '/zeitung' },
+      { text: 'Eigene Artikel kannst du bearbeiten („Bearbeiten“ oben im Artikel).' },
+    ],
+  },
+  {
     id: '2026-09-28',
     title: 'Umbuchen, Neuigkeiten und Zinstender',
     items: [

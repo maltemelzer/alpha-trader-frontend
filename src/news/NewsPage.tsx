@@ -12,7 +12,7 @@ import {
   type PostView,
 } from '../api/queries';
 import { useHighlight } from '../lib/highlight';
-import { textToHtml } from '../lib/html';
+import { markupToHtml } from '../lib/html';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
 import { useUrlSearch } from '../lib/useUrlSearch';
@@ -285,7 +285,7 @@ export function NewsPage() {
           onCancel={() => setWriting(false)}
           onSubmit={(v) =>
             create.mutate(
-              { title: v.title, html: textToHtml(v.body) },
+              { title: v.title, html: markupToHtml(v.body) },
               { onSuccess: (p) => navigate(p?.id ? `/zeitung/${p.id}` : '/zeitung', { replace: true }) },
             )
           }

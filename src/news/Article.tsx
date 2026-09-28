@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DS } from '../ds';
-import { useComments, useCreateComment, useLikes, useNewsPost, usePostInterest, useReact } from '../api/queries';
-import { htmlToText, textToHtml } from '../lib/html';
+import { useComments, useCreateComment, useEditPost, useLikes, useMe, useNewsPost, usePostInterest, useReact } from '../api/queries';
+import { htmlToMarkup, markupToHtml, postText } from '../lib/html';
 import { useIsPhone } from '../lib/useMediaQuery';
 import { ReportDialog, type ReportTarget } from '../forum/ReportDialog';
 import { FollowControl } from './FollowControl';
@@ -10,7 +10,8 @@ import { interestParts, myReaction, newsHref, replyTitle } from './derive';
 /**
  * One article with reactions, comments and a reply box. Author, company and hashtags lead to the
  * filtered newspaper and can be followed; „Relevanz für dich“ shows the parts of the player's
- * interest in the post as the server keeps it.
+ * interest in the post as the server keeps it. The author can edit it (title and text, as in the
+ * original game; owner, board and language stay).
  */
 export function Article({ postId, onClose }: { postId: string; onClose: () => void }) {
   const post = useNewsPost(postId);
@@ -22,12 +23,16 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
   const [report, setReport] = useState<ReportTarget | null>(null);
   const isPhone = useIsPhone();
   const [writing, setWriting] = useState(false);
+  const me = useMe();
+  const edit = useEditPost();
+  const [editing, setEditing] = useState(false);
 
   if (post.isLoading) return <DS.Loading rows={10} label="Artikel wird geladen" />;
   if (post.isError || !post.data) return <DS.EmptyState title="Artikel nicht gefunden" />;
   const p = post.data;
   const asin = p.company?.securityIdentifier;
   const author = p.author?.username;
+  const mine = !!author && author === me.data?.username;
   const tags = (p.hashTags ?? []).map((t) => t.tag);
   const editor = (
     <>
@@ -38,7 +43,7 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
         submitVariant={isPhone ? 'primary' : 'secondary'}
         loading={reply.isPending}
         onSubmit={(v) =>
-          reply.mutate({ postId, title: replyTitle(p.title), html: textToHtml(v.body) }, { onSuccess: () => setWriting(false) })
+          reply.mutate({ postId, title: replyTitle(p.title), html: markupToHtml(v.body) }, { onSuccess: () => setWriting(false) })
         }
       />
       {reply.isError && <DS.Banner variant="error">Kommentar nicht gesendet: {reply.error.message}</DS.Banner>}
@@ -51,13 +56,20 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
         <DS.Button variant="ghost" size="sm" onClick={onClose}>
           ← Zur Übersicht
         </DS.Button>
-        <DS.Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setReport({ id: p.id, type: 'POST', label: author ? `Artikel von ${author}` : 'Artikel' })}
-        >
-          Melden
-        </DS.Button>
+        <span className="article__actions">
+          {mine && (
+            <DS.Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+              Bearbeiten
+            </DS.Button>
+          )}
+          <DS.Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setReport({ id: p.id, type: 'POST', label: author ? `Artikel von ${author}` : 'Artikel' })}
+          >
+            Melden
+          </DS.Button>
+        </span>
       </div>
       <p className="article__kicker">
         {p.company && asin ? (
@@ -87,7 +99,7 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
         </div>
       )}
       <div className="article__body">
-        <DS.ForumText text={htmlToText(p.content)} />
+        <DS.ForumText text={postText(p.content)} />
       </div>
       {tags.length > 0 && (
         <p className="article__tags">
@@ -119,7 +131,7 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
                 author={{ name: c.author?.username ?? '?', href: `/spieler/${encodeURIComponent(c.author?.username ?? '')}` }}
                 number={i + 1}
                 time={c.dateCreated ? DS.format.dateTime(c.dateCreated) : undefined}
-                text={htmlToText(c.content)}
+                text={postText(c.content)}
                 actions={
                   <DS.Button
                     variant="ghost"
@@ -152,6 +164,24 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
         editor
       )}
       <ReportDialog target={report} onClose={() => setReport(null)} />
+      {mine && (
+        <DS.Sheet open={editing} onClose={() => !edit.isPending && setEditing(false)} title="Artikel bearbeiten" side="auto" width={640}>
+          <DS.ForumEditor
+            key={`${p.id}-${p.dateEdited ?? ''}`}
+            mode="thread"
+            titlePlaceholder="Überschrift"
+            defaultTitle={p.title}
+            defaultValue={htmlToMarkup(p.content)}
+            submitLabel="Speichern"
+            loading={edit.isPending}
+            onCancel={() => setEditing(false)}
+            onSubmit={(v) =>
+              edit.mutate({ post: p, title: v.title, html: markupToHtml(v.body) }, { onSuccess: () => setEditing(false) })
+            }
+          />
+          {edit.isError && <DS.Banner variant="error">Nicht gespeichert: {edit.error.message}</DS.Banner>}
+        </DS.Sheet>
+      )}
     </article>
   );
 }
