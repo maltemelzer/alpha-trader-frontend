@@ -222,6 +222,13 @@ export function useOpenOrders(securitiesAccountId: string | undefined) {
   });
 }
 
+/** Open orders of one account, read once (checks after placing orders). */
+export const fetchOpenOrders = (securitiesAccountId: string) =>
+  getPage<SecurityOrderView>('/api/v2/securityorders', {
+    securitiesAccountId,
+    pageable: { page: 0, size: 100, sort: ['creationDate,desc'] },
+  });
+
 export function useDeleteOrder() {
   const qc = useQueryClient();
   return useMutation({

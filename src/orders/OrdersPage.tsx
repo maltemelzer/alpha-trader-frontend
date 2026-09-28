@@ -8,6 +8,7 @@ import { MiniStats } from '../app/phone';
 import { OpenOrders } from './OpenOrders';
 import { OtcIncoming, type MyAccount } from './Otc';
 import { OtcNewSheet } from './OtcNew';
+import { MoveSheet } from './MoveSheet';
 import { incomingOtc, orderTotals, otcTotals } from './derive';
 import './OrdersPage.css';
 
@@ -26,7 +27,7 @@ export function OrdersPage() {
   const me = useMe();
   const portfolio = usePortfolio();
   const companies = useMyCompanies(me.data?.id);
-  const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
+  const [toast, setToast] = useState<{ ok: boolean; title: string; text: string } | null>(null);
 
   const myAccounts = useMemo<MyAccount[]>(
     () => [
@@ -55,6 +56,7 @@ export function OrdersPage() {
   const view: View = VIEWS.find((v) => v === params.get('ansicht')) ?? 'offen';
   const otcView = params.get('otc') === 'von-dir' ? 'von-dir' : 'an-dich';
   const newOtc = params.get('neu');
+  const move = params.get('umbuchen');
   // All changes of one interaction in one call (setSearchParams keeps only the last call per tick).
   const update = (changes: Record<string, string | null>) =>
     setParams(
@@ -90,9 +92,12 @@ export function OrdersPage() {
   const ot = otcTotals(incoming);
 
   const done = (ok: boolean, text: string) => {
-    setToast({ ok, text });
+    setToast({ ok, title: ok ? 'OTC-Order gesendet' : 'OTC-Order fehlgeschlagen', text });
     if (ok) update({ neu: null });
   };
+  // The sheet stays open after a move: it shows the result per security.
+  const moved = (ok: boolean, text: string) =>
+    setToast({ ok, title: ok ? 'Umgebucht' : 'Nicht alles umgebucht', text });
 
   return (
     <div className="page orders" onClick={onLinkClick}>
@@ -223,9 +228,16 @@ export function OrdersPage() {
                             },
                           ]}
                         />
-                        <DS.Button size="sm" onClick={() => update({ neu: '1' })}>
-                          Neue OTC-Order
-                        </DS.Button>
+                        <span className="otc__actions">
+                          {myAccounts.length > 1 && (
+                            <DS.Button size="sm" variant="ghost" onClick={() => update({ umbuchen: '1' })}>
+                              Umbuchen
+                            </DS.Button>
+                          )}
+                          <DS.Button size="sm" onClick={() => update({ neu: '1' })}>
+                            Neue OTC-Order
+                          </DS.Button>
+                        </span>
                       </div>
                       {otcView === 'an-dich' ? (
                         <OtcIncoming
@@ -258,11 +270,22 @@ export function OrdersPage() {
         asin={newOtc && newOtc !== '1' ? newOtc : undefined}
         onDone={done}
       />
+      {myAccounts.length > 1 && (
+        <MoveSheet
+          key={move ? `${move}:${params.get('von') ?? account}` : 'closed'}
+          open={!!move}
+          onClose={() => update({ umbuchen: null, von: null })}
+          accounts={myAccounts}
+          from={params.get('von') ?? account}
+          asin={move && move !== '1' ? move : undefined}
+          onDone={moved}
+        />
+      )}
       {toast && (
         <DS.ToastRegion>
           <DS.Toast
             variant={toast.ok ? 'info' : 'error'}
-            title={toast.ok ? 'OTC-Order gesendet' : 'OTC-Order fehlgeschlagen'}
+            title={toast.title}
             duration={toast.ok ? 5000 : undefined}
             onClose={() => setToast(null)}
           >
