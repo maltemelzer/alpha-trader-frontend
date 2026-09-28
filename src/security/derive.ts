@@ -344,3 +344,16 @@ export function defaultShares(
   const cap = side === 'BUY' ? (unit && cash != null ? Math.floor(cash / unit) : undefined) : held;
   return cap != null && cap > 0 ? Math.min(available, cap) : available;
 }
+
+/**
+ * Limit to prefill in the order ticket: the best counter quote (ask to buy, bid to sell),
+ * without one the last price – so an order is possible even when nobody quotes.
+ */
+export function limitPrice(
+  side: 'BUY' | 'SELL',
+  spread: { askPrice?: number | null; bidPrice?: number | null; lastPrice?: number | { value?: number | null } | null } | undefined,
+): number | undefined {
+  const quote = side === 'BUY' ? spread?.askPrice : spread?.bidPrice;
+  const last = spread?.lastPrice;
+  return quote ?? (typeof last === 'number' ? last : last?.value) ?? undefined;
+}

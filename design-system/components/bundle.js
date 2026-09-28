@@ -2042,12 +2042,12 @@
           props.change != null ? h(PriceChange, { value: props.change, amount: props.changeAmount, variant: 'tag', size: 'lg', suffix: props.changeSuffix, currency: isPercentQuoted(l.type) ? 'Pp.' : cur }) : null,
           lastDate ? h('time', { className: 'bnk-sech__time', dateTime: new Date(lastDate).toISOString() }, 'Letzter Trade ' + dateTime(lastDate)) : null)),
       h('div', { className: 'bnk-sech__quote' },
-        side('Geld', s.bidPrice, s.bidSize, props.onSell ? h(Button, { size: 'sm', onClick: function () { props.onSell(s.bidPrice); }, disabled: s.bidPrice == null }, 'Verkaufen') : null),
+        side('Geld', s.bidPrice, s.bidSize, props.onSell ? h(Button, { size: 'sm', onClick: function () { props.onSell(s.bidPrice); }, disabled: s.bidPrice == null && !props.tradeWithoutQuote }, 'Verkaufen') : null),
         h('div', { className: 'bnk-sech__q bnk-sech__q--spread' },
           h('span', { className: 'bnk-sech__qlabel' }, 'Spread'),
           h('span', { className: 'bnk-sech__qval' }, s.spreadAbs != null ? price(s.spreadAbs, l.type, cur) : '–',
             s.spreadPercent != null ? h('small', null, ' (' + fmt(s.spreadPercent, 2) + ' %)') : null)),
-        side('Brief', s.askPrice, s.askSize, props.onBuy ? h(Button, { size: 'sm', onClick: function () { props.onBuy(s.askPrice); }, disabled: s.askPrice == null }, 'Kaufen') : null),
+        side('Brief', s.askPrice, s.askSize, props.onBuy ? h(Button, { size: 'sm', onClick: function () { props.onBuy(s.askPrice); }, disabled: s.askPrice == null && !props.tradeWithoutQuote }, 'Kaufen') : null),
         props.actions ? h('div', { className: 'bnk-sech__actions' }, props.actions) : null,
         facts.length ? h('dl', { className: 'bnk-sech__facts' }, facts.map(function (f, i) {
           var v = f.value;
@@ -3455,11 +3455,12 @@
     var l = props.listing || {};
     var cur = props.currency == null ? '€' : props.currency;
     function side(label, px, size, act, text) {
-      return h('button', { type: 'button', className: cx('bnk-tbar__btn', 'is-' + act.toLowerCase()), disabled: px == null || props.disabled,
+      var open = px == null && props.tradeWithoutQuote;
+      return h('button', { type: 'button', className: cx('bnk-tbar__btn', 'is-' + act.toLowerCase()), disabled: (px == null && !open) || props.disabled,
           onClick: function () { if (props.onTrade) props.onTrade({ action: act, price: px }); } },
         h('span', { className: cx('bnk-tbar__verb', 'bnk-side', act === 'BUY' ? 'is-buy' : 'is-sell') }, text),
         h('span', { className: 'bnk-tbar__px' }, px != null ? price(px, l.type, cur) : '–'),
-        h('span', { className: 'bnk-tbar__lbl' }, label + (size != null ? ' · ' + number(size, 0, true) + ' Stk.' : '')));
+        h('span', { className: 'bnk-tbar__lbl' }, open ? 'Kein ' + label + ' · mit Limit' : label + (size != null ? ' · ' + number(size, 0, true) + ' Stk.' : '')));
     }
     return h('div', { className: cx('bnk-tbar', props.fixed !== false && 'is-fixed', props.className), role: 'region', 'aria-label': 'Handeln: ' + (l.name || l.securityIdentifier || '') },
       side('Geld', s.bidPrice, s.bidSize, 'SELL', 'Verkaufen'),

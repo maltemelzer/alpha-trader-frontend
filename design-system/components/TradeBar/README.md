@@ -3,7 +3,7 @@ Handelsleiste am unteren Rand der Wertpapierseite auf dem Handy: links „Verkau
 ## Regeln
 
 1. **Beide Seiten sehen gleich aus.** Kein Messing, kein Grün/Rot – nur die kleinen Markierungen Tintenblau (Kauf) und Kupfer (Verkauf) wie in Orderbuch und Order-Liste. Die Messing-Aktion („Order prüfen“) kommt erst im Sheet.
-2. Fehlt eine Seite im Orderbuch, ist der Knopf gesperrt und zeigt „–“.
+2. Fehlt eine Seite im Orderbuch, ist der Knopf gesperrt und zeigt „–“. Mit `tradeWithoutQuote` bleibt er anklickbar („Kein Brief · mit Limit“), `price` ist dann `undefined` – die App öffnet eine Limit-Order zum letzten Kurs.
 3. Auf dem Handy entfallen dafür die Knöpfe im `SecurityHeader` (kein `onBuy`/`onSell` übergeben) und die `BottomNav`.
 4. Anleihen und Repos in % (wie überall).
 
