@@ -191,3 +191,24 @@ export function counterpartyLabel(a: { name?: string; privateAccount?: boolean }
         meta: `Unternehmen · CEO ${name.slice(i + 3)}`,
       };
 }
+
+/**
+ * Counterparty hits in a useful order. The server also matches the CEO part of „Firma (ASIN) | CEO“,
+ * so a search for a player lists all their companies before e.g. „<Name> Inc.“. Rank by the account's
+ * own name: exact, starts with, contains, then CEO-only matches; server order within each rank.
+ */
+export function rankCounterparties<T extends { name?: string; privateAccount?: boolean }>(list: T[], search: string): T[] {
+  const q = search.trim().toLowerCase();
+  if (!q) return list;
+  const rank = (a: T) => {
+    const t = counterpartyLabel(a).title.toLowerCase();
+    if (t === q) return 0;
+    if (t.startsWith(q)) return 1;
+    if (t.includes(q)) return 2;
+    return 3;
+  };
+  return list
+    .map((a, i) => ({ a, i, r: rank(a) }))
+    .sort((x, y) => x.r - y.r || x.i - y.i)
+    .map((x) => x.a);
+}

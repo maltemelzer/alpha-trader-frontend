@@ -11,7 +11,7 @@ import {
 } from '../api/queries';
 import { toSpread } from '../api/types';
 import { useDebounced } from '../lib/useDebounced';
-import { counterpartyLabel, otcOfferParams } from './derive';
+import { counterpartyLabel, otcOfferParams, rankCounterparties } from './derive';
 import type { MyAccount } from './Otc';
 
 type OrderParams = Parameters<NonNullable<React.ComponentProps<typeof DS.OrderTicket>['onSubmit']>>[0];
@@ -30,8 +30,9 @@ function CounterpartyPicker({
   exclude: string[];
 }) {
   const [q, setQ] = useState('');
-  const search = useOtcCounterparties(useDebounced(q, 250));
-  const results = (search.data ?? [])
+  const debounced = useDebounced(q, 250);
+  const search = useOtcCounterparties(debounced);
+  const results = rankCounterparties(search.data ?? [], debounced)
     .filter((a) => a.id && !exclude.includes(a.id))
     .slice(0, 20)
     .map((a) => {
@@ -46,7 +47,8 @@ function CounterpartyPicker({
       onSearch={setQ}
       results={results}
       loading={search.isFetching}
-      max={1}
+      // max limits the shown hits, not the picks: one counterparty is kept by onChange (slice(-1)).
+      max={10}
       placeholder="Spieler oder Unternehmen suchen"
       hint="Privatdepot eines Spielers oder Portfolio eines Unternehmens."
       emptyText="Kein Portfolio gefunden."

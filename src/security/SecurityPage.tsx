@@ -276,6 +276,7 @@ export function SecurityPage() {
               cls={cls}
               tradable={tradable}
               canQuote={!!sponsoring}
+              canMove={!!myCompanies.data?.length}
               onClose={() => setMore(false)}
               onQuote={() => {
                 setMore(false);
@@ -798,6 +799,7 @@ function PhoneMore({
   cls,
   tradable,
   canQuote,
+  canMove,
   onClose,
   onQuote,
 }: {
@@ -805,6 +807,8 @@ function PhoneMore({
   cls: AssetClass;
   tradable: boolean;
   canQuote: boolean;
+  /** I run a company, so there is a second account to move shares to */
+  canMove: boolean;
   onClose: () => void;
   onQuote: () => void;
 }) {
@@ -826,6 +830,8 @@ function PhoneMore({
   if (canQuote) actions.push({ label: 'Quote stellen (Market Maker)', hint: 'Geld- und Briefkurs deines Unternehmens', run: onQuote });
   if (tradable)
     actions.push({ label: 'Außerbörslich (OTC) an einen Spieler …', hint: 'Angebot direkt an ein anderes Depot', run: () => go(`/orders?ansicht=otc&neu=${profile.securityIdentifier}`) });
+  if (tradable && canMove)
+    actions.push({ label: 'Zwischen eigenen Depots umbuchen …', hint: 'Privat ⇄ deine Unternehmen, per OTC-Paar', run: () => go(`/orders?ansicht=otc&umbuchen=${profile.securityIdentifier}`) });
   if (cls === 'coin') actions.push({ label: 'Miner: AlphaCoins schürfen', run: () => go('/miner') });
   return (
     <div className="sec-more">
@@ -997,6 +1003,18 @@ function Ticket({
       >
         Außerbörslich (OTC) an einen Spieler …
       </DS.Button>
+      {accounts.length > 1 && pos && pos.numberOfShares > 0 && (
+        <DS.Button
+          variant="ghost"
+          size="sm"
+          fullWidth
+          onClick={() =>
+            navigate(`/orders?ansicht=otc&umbuchen=${profile.securityIdentifier}&von=${account?.id ?? accounts[0].id}`)
+          }
+        >
+          In ein anderes eigenes Depot umbuchen …
+        </DS.Button>
+      )}
     </TicketDraft>
   );
 }
