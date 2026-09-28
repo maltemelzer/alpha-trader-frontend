@@ -1,0 +1,132 @@
+/* The dialog keeps its head and foot; only the content scrolls. */
+.wn.bnk-dlg {
+  overflow: hidden;
+}
+
+.wn .bnk-dlg__body {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.wn__scroll {
+  position: relative;
+  min-height: 0;
+  max-height: min(60dvh, 560px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.wn__block + .wn__block {
+  padding-top: var(--space-4);
+  border-top: var(--hairline) solid var(--line);
+}
+
+.wn__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.wn__head h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.wn__head a {
+  flex: none;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.wn__date {
+  flex: none;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.wn__new {
+  display: inline-block;
+  margin-left: var(--space-1);
+  padding: 0 6px;
+  border: var(--hairline) solid var(--brass);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brass);
+  vertical-align: middle;
+}
+
+.wn__details > summary {
+  margin-top: var(--space-2);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.wn__details > summary::before {
+  content: '▸';
+  margin-right: var(--space-2);
+  color: var(--text-primary);
+}
+
+.wn__details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.wn__details > summary {
+  list-style: none;
+}
+
+.wn__details[open] > summary {
+  display: none;
+}
+
+.wn__topic h4 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.wn__topic p {
+  margin: 0 0 var(--space-2);
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--text-secondary);
+}
+
+.wn__items {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.wn__items li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--text-secondary);
+}
+
+.wn__items li > :last-child:not(:first-child) {
+  flex: none;
+}

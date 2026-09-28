@@ -13,6 +13,7 @@ import { GlobalSearch } from './GlobalSearch';
 import { MarketTape } from './MarketTape';
 import { tickClass, useTick } from '../lib/useTick';
 import { ChatLive } from '../chat/ChatLive';
+import { useWhatsNew, WhatsNewDialog } from '../whatsnew/WhatsNew';
 import { CHAT_SIDEBAR_ID, ChatSidebar } from '../chat/ChatSidebar';
 import {
   CHAT_SIDEBAR_MIN_VIEWPORT,
@@ -132,11 +133,18 @@ export function AppShell() {
     />
   );
 
+  // „Neu bei Alpha-Trader“: opens by itself once something is unseen, or from the player menu.
+  const whatsNew = useWhatsNew();
+  const [newsManual, setNewsManual] = useState(false);
+  const [newsDismissed, setNewsDismissed] = useState(false);
+  const newsMode = newsManual ? 'all' : whatsNew.ready && whatsNew.count > 0 && !newsDismissed ? 'new' : null;
+
   const menu = (
     <DS.PlayerMenu
       key="p"
       name={me.data?.username ?? '…'}
       items={[
+        { label: 'Neuigkeiten', onClick: () => setNewsManual(true), badge: whatsNew.count || undefined },
         { label: 'Einstellungen', href: '/einstellungen' },
         { divider: true },
         { label: 'Abmelden', onClick: logout },
@@ -213,6 +221,18 @@ export function AppShell() {
         <Outlet />
       </main>
       {docked && <ChatSidebar chatId={sidebarChat} onChatId={setSidebarChat} onClose={() => setChatSidebarOpen(false)} />}
+      {newsMode && (
+        <WhatsNewDialog
+          mode={newsMode}
+          engine={whatsNew.engine}
+          fresh={whatsNew.fresh}
+          onClose={(shown) => {
+            whatsNew.markSeen(shown);
+            setNewsManual(false);
+            setNewsDismissed(true);
+          }}
+        />
+      )}
       {me.data?.username && <ChatLive me={me.data.username} onFresh={onFresh} />}
       {notice && (
         <DS.ToastRegion>

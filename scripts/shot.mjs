@@ -7,6 +7,7 @@
 //   npm run shot -- /markt --size 390x844 --out /tmp/shots
 //   npm run shot -- /anmelden --anon                       # without login
 //   npm run shot -- /markt --local at.chatSidebar=1        # localStorage entry before loading (chat sidebar open)
+//   npm run shot -- / --whatsnew                      # with „Neu bei Alpha-Trader“ (hidden by default)
 //   npm run shot -- / --hover '.bnk-psum__bar'              # hover an element before the shot (tooltips)
 //   npm run shot -- /markt --click '.shell__title'          # click an element before the shot (menus, sheets)
 //
@@ -54,6 +55,8 @@ const wait = Number(opt('--wait', 2500));
 const hover = opt('--hover');
 const click = opt('--click');
 const local = args.flatMap((a, i) => (args[i - 1] === '--local' ? [a.split('=')] : []));
+// „Neu bei Alpha-Trader“ would cover every page: count everything as read, unless --whatsnew.
+if (!args.includes('--whatsnew')) local.unshift(['at.whatsnew', '{"engine":9e15,"ui":"9999"}']);
 
 const e = env();
 const jwt = args.includes('--anon') ? null : await token(e, e.VITE_API_BASE || 'https://stable.alpha-trader.com');

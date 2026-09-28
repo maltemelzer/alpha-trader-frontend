@@ -30,6 +30,7 @@ import type { ApiMessage } from '../lib/messages';
 import { mergeTrades } from '../app/tape';
 import { NOTE_TYPE, referrerOf, type NoteRequest, type UserChange } from '../me/account';
 import type { AddOrderQuery } from '../orders/derive';
+import { SEEN_TYPE as FRONTEND_PREF_TYPE } from '../whatsnew/derive';
 import type { CompanyHistograms, HistoryEntry } from '../companies/profile';
 import type {
   AchievementItem,
@@ -2259,6 +2260,50 @@ export function useNotes() {
     queryKey: ['account', 'notes'],
     queryFn: () => getPage<UserPreferenceView>('/api/v2/userpreferences', { type: NOTE_TYPE, pageable: { page: 0, size: 200 } }),
     staleTime: SLOW,
+  });
+}
+
+/** Engine changes the operators post in the newspaper („Updates on Alpha-Trader.com (YYYYMMDD)“), newest first. */
+export function useEngineUpdatePosts() {
+  return useQuery({
+    queryKey: ['news', 'engine-updates'],
+    queryFn: () =>
+      getPage<PostView>('/api/v2/news', {
+        search: 'Updates on Alpha-Trader.com',
+        pageable: { page: 0, size: 10, sort: ['dateCreated,desc'] },
+      }),
+    staleTime: SLOW,
+    refetchInterval: 30 * 60_000,
+  });
+}
+
+/** Our own record in the player's user preferences (type AT_FRONTEND), e.g. what „Neu bei Alpha-Trader“ showed. */
+export function useFrontendPref(identifier: string) {
+  return useQuery({
+    queryKey: ['account', 'frontendpref', identifier],
+    queryFn: async () => {
+      const page = await getPage<UserPreferenceView>('/api/v2/userpreferences', {
+        type: FRONTEND_PREF_TYPE,
+        pageable: { page: 0, size: 50 },
+      });
+      return page.content.find((p) => p.type === FRONTEND_PREF_TYPE && p.identifier === identifier) ?? null;
+    },
+    staleTime: Infinity,
+    retry: 1,
+  });
+}
+
+/** Creates or updates our record (PUT with its id, else POST). */
+export function useSaveFrontendPref(identifier: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, content }: { id?: string; content: string }) => {
+      const query = { type: FRONTEND_PREF_TYPE, identifier, content };
+      return id
+        ? unwrap(api.PUT('/api/v2/userpreferences/{prefId}', { params: { path: { prefId: id }, query } }))
+        : unwrap(api.POST('/api/v2/userpreferences', { params: { query } }));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['account', 'frontendpref', identifier] }),
   });
 }
 
