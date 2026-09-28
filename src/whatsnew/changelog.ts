@@ -11,6 +11,16 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-28-3',
+    title: 'Market Maker: Regeln im Quote',
+    items: [
+      {
+        text: 'Der Reiter „Quote“ heißt jetzt „Market Maker“. Spread (mindestens 5 %) und Volumen je Seite (1–2 % der Anteile) stellst du mit zwei Reglern ein, sie füllen Kurse und Stückzahlen – ein Verstoß steht direkt am Feld.',
+      },
+      { text: 'Vorbelegt sind die Mindestwerte: 5 % Spread um die Mitte, 1 % der Anteile auf jeder Seite.' },
+    ],
+  },
+  {
     id: '2026-09-28',
     title: 'Umbuchen, Neuigkeiten und Zinstender',
     items: [

@@ -3,13 +3,26 @@ import { DS } from '../ds';
 import { useAccountPortfolio, useListingProfile, useOpenOrders, useOrderbook, usePlaceQuote, usePriceSpread } from '../api/queries';
 import type { OrderbookView } from '../api/types';
 import { Plot } from '../charts/Plot';
-import { parseDe } from '../lib/format';
+import { parseDe, short } from '../lib/format';
 import { PERCENT_QUOTED } from '../security/charts';
 import { depth, depthNear } from '../security/derive';
 import { quoteChart } from './charts';
 import { Confirm } from './Confirm';
 import { volumeRateText, type Sponsorship } from './derive';
-import { bestPrices, quoteBand, quoteErrors, quoteShare, runningQuote, spreadPct, suggestQuote, unitCost, type Quote } from './quote';
+import {
+  bestPrices,
+  MM_RULES,
+  pricesAround,
+  quoteBand,
+  quoteErrors,
+  quoteShare,
+  runningQuote,
+  shareBounds,
+  spreadPct,
+  suggestQuote,
+  unitCost,
+  type Quote,
+} from './quote';
 import { RatingMeter } from './Sponsorships';
 import './QuotePanel.css';
 
@@ -18,6 +31,8 @@ const pctText = (n: number, d = 2) => `${n.toLocaleString('de-DE', { minimumFrac
 /** Quoted share of all shares (fraction) – tiny values keep two significant digits. */
 const shareText = (f: number | undefined) =>
   f == null ? '–' : `${(f * 100).toLocaleString('de-DE', { maximumSignificantDigits: 2 })}${NBSP}%`;
+/** Share counts in hints: short from 1 Mio. on (37,59 Mio.), otherwise in full. */
+const stk = (n: number) => (n >= 1e6 ? short(n) : `${n.toLocaleString('de-DE')}${NBSP}Stk.`);
 const inputText =(n: number | undefined, decimals = 4) => (n == null ? '' : n.toLocaleString('de-DE', { maximumFractionDigits: decimals }));
 const num = (s: string) => {
   const n = parseDe(s);
@@ -34,8 +49,10 @@ const toFields = (q: Partial<Quote> | undefined): Fields => ({
 
 /**
  * Quote of a designated sponsor (market maker) for one sponsored listing: the order book with the
- * quote drawn in, market spread against the quote's spread, rating and quoted volume, and the form
- * (buy/sell price and shares), prefilled inside the current market. Sending asks first.
+ * quote drawn in, market spread against the quote's spread, rating and quoted volume, and the form.
+ * The rules (`MM_RULES`: spread ≥ 5 %, 1–2 % of the shares per side) are two controls that fill the
+ * price and share fields; the fields stay editable and say when a rule is broken. Prefilled with
+ * the minimum the rules allow. Sending asks first.
  * `compact` leaves the chart out (the securities page shows the depth next to it).
  */
 export function QuotePanel({
@@ -137,8 +154,13 @@ function QuoteForm({
   onDone: (msg: string) => void;
 }) {
   const asin = s.listing.securityIdentifier;
-  const suggestion = suggestQuote({ ...market, cash, freeShares, faceValue, percentQuoted });
+  const suggestion = suggestQuote({ mid: market.mid, cash, freeShares, outstanding, faceValue, percentQuoted });
   const [f, setF] = useState<Fields>(() => toFields(suggestion));
+  // Text of the rule controls while they are being edited; null = follow the fields.
+  const [spreadText, setSpreadText] = useState<string | null>(null);
+  const [volText, setVolText] = useState<string | null>(null);
+  // Middle the spread control widens around, fixed while it is being edited (no drift from rounding).
+  const [anchor, setAnchor] = useState<number | undefined>(undefined);
   const [asked, setAsked] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const place = usePlaceQuote();
@@ -146,7 +168,7 @@ function QuoteForm({
   const buyPrice = num(f.buyPrice);
   const sellPrice = num(f.sellPrice);
   const q: Partial<Quote> = { buyPrice, sellPrice, buyShares: num(f.buyShares), sellShares: num(f.sellShares) };
-  const errors = quoteErrors(q, { cash, freeShares, faceValue });
+  const errors = quoteErrors(q, { cash, freeShares, faceValue, outstanding });
   const valid = Object.keys(errors).length === 0;
   // Empty fields only complain after the first attempt; wrong values right away.
   const err = (k: keyof Quote) => (asked || f[k].trim() ? errors[k] : undefined);
@@ -155,11 +177,37 @@ function QuoteForm({
   const price = (n: number) => DS.format.price(n, type);
   const marketSpread = spreadPct(market.bid, market.ask);
   const mySpread = spreadPct(q.buyPrice, q.sellPrice);
-  const maxSpread = Math.max(marketSpread ?? 0, mySpread ?? 0) || 1;
+  const maxSpread = Math.max(marketSpread ?? 0, mySpread ?? 0, MM_RULES.minSpreadPct);
+  const bounds = shareBounds(outstanding);
   const affordable = cash != null && q.buyPrice ? Math.floor(cash / unitCost(q.buyPrice, faceValue)) : undefined;
   const buyShare = quoteShare(q.buyShares, outstanding);
   const sellShare = quoteShare(q.sellShares, outstanding);
-  const set = (k: keyof Quote) => (e: React.ChangeEvent<HTMLInputElement>) => setF((prev) => ({ ...prev, [k]: e.target.value }));
+  const set = (k: keyof Quote) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (k === 'buyPrice' || k === 'sellPrice') setSpreadText(null);
+    else setVolText(null);
+    setF((prev) => ({ ...prev, [k]: value }));
+  };
+  const setSpread = (text: string) => {
+    const quoteMid = buyPrice && sellPrice && sellPrice > buyPrice ? (buyPrice + sellPrice) / 2 : undefined;
+    const center = (spreadText != null && anchor) || quoteMid || market.mid;
+    setSpreadText(text);
+    setAnchor(center);
+    const v = num(text);
+    const p = center && v != null ? pricesAround(center, v, percentQuoted) : undefined;
+    if (p) setF((prev) => ({ ...prev, buyPrice: inputText(p.buyPrice), sellPrice: inputText(p.sellPrice) }));
+  };
+  const setVolume = (text: string) => {
+    setVolText(text);
+    const v = num(text);
+    if (v == null || !outstanding || v <= 0) return;
+    const n = inputText(Math.max(1, Math.round((v / 100) * outstanding)), 0);
+    setF((prev) => ({ ...prev, buyShares: n, sellShares: n }));
+  };
+  const spreadValue = spreadText ?? (mySpread != null ? inputText(Math.floor(mySpread * 100 + 1e-6) / 100, 2) : '');
+  const sameShare = buyShare != null && buyShare === sellShare;
+  const volValue = volText ?? (sameShare ? inputText(buyShare * 100, 3) : '');
+  const clamp = (v: number | undefined, lo: number, hi: number, fallback: number) => Math.min(hi, Math.max(lo, v ?? fallback));
 
   const mid = market.mid;
   const band = quoteBand(mid, [market.bid, market.ask, buyPrice, sellPrice]);
@@ -176,7 +224,7 @@ function QuoteForm({
       : diff < 0
         ? `▼ −${pctText(-diff).replace(`${NBSP}%`, '')} Pp. enger als der Markt`
         : diff > 0
-          ? `▲ +${pctText(diff).replace(`${NBSP}%`, '')} Pp. weiter als der Markt – dein Quote verbessert das Angebot nicht.`
+          ? `▲ +${pctText(diff).replace(`${NBSP}%`, '')} Pp. weiter als der Markt`
           : 'So eng wie der Markt.';
 
   const send = () =>
@@ -229,12 +277,65 @@ function QuoteForm({
           <DS.StatTile
             label="Dieser Quote"
             value={buyShare != null && buyShare === sellShare ? shareText(buyShare) : buyShare != null || sellShare != null ? `${shareText(buyShare)} / ${shareText(sellShare)}` : '–'}
-            hint={buyShare != null && buyShare === sellShare ? 'je Seite, aller Anteile' : 'Kauf / Verkauf, aller Anteile'}
+            hint={sameShare ? 'je Seite, aller Anteile (1–2 %)' : 'Kauf / Verkauf, aller Anteile (1–2 %)'}
           />
         </DS.StatGroup>
       </div>
 
       <div className="mmq__form">
+        <fieldset className="mmq__rules">
+          <legend className="mmq__legend">Regeln für Market Maker</legend>
+          <div className="mmq__rule">
+            <DS.Input
+              numeric
+              size="sm"
+              label="Spread"
+              suffix="%"
+              value={spreadValue}
+              onChange={(e) => setSpread(e.target.value)}
+              error={errors.spread}
+              hint={`mind. ${MM_RULES.minSpreadPct}${NBSP}% des Briefs`}
+            />
+            <input
+              type="range"
+              className="mmq__range"
+              aria-label="Spread in Prozent"
+              min={MM_RULES.minSpreadPct}
+              max={20}
+              step={0.1}
+              value={clamp(num(spreadValue), MM_RULES.minSpreadPct, 20, MM_RULES.minSpreadPct)}
+              onChange={(e) => setSpread(inputText(Number(e.target.value), 2))}
+            />
+          </div>
+          <div className="mmq__rule">
+            <DS.Input
+              numeric
+              size="sm"
+              label="Volumen je Seite"
+              suffix="%"
+              value={volValue}
+              disabled={!bounds}
+              onChange={(e) => setVolume(e.target.value)}
+              error={volText != null ? (errors.buyShares ?? errors.sellShares) : undefined}
+              hint={
+                bounds
+                  ? `1–2${NBSP}% = ${stk(bounds.min)}–${stk(bounds.max)}`
+                  : 'Zahl der Anteile unbekannt'
+              }
+            />
+            <input
+              type="range"
+              className="mmq__range"
+              aria-label="Volumen je Seite in Prozent der Anteile"
+              min={MM_RULES.minShare * 100}
+              max={MM_RULES.maxShare * 100}
+              step={0.05}
+              disabled={!bounds}
+              value={clamp(num(volValue), MM_RULES.minShare * 100, MM_RULES.maxShare * 100, MM_RULES.minShare * 100)}
+              onChange={(e) => setVolume(inputText(Number(e.target.value), 2))}
+            />
+          </div>
+        </fieldset>
         <div className="mmq__fields">
           <DS.Input
             numeric
@@ -297,8 +398,16 @@ function QuoteForm({
             Quote stellen …
           </DS.Button>
           {suggestion && (
-            <DS.Button size="sm" variant="ghost" onClick={() => setF(toFields(suggestion))}>
-              Vorschlag
+            <DS.Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setSpreadText(null);
+                setVolText(null);
+                setF(toFields(suggestion));
+              }}
+            >
+              Mindestwerte
             </DS.Button>
           )}
         </div>

@@ -95,3 +95,57 @@
     gap: var(--space-2);
   }
 }
+
+/* Rule controls: number field + slider, above the price and share fields */
+.mmq__rules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.mmq__legend {
+  grid-column: 1 / -1;
+  float: left;
+  width: 100%;
+  margin-bottom: var(--space-1);
+  padding: 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.mmq__rule {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* sliders line up when one hint wraps */
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* Native range slider in the tokens' colours (no range control in the design system yet). */
+.mmq__range {
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  accent-color: var(--brass);
+  background: transparent;
+  cursor: pointer;
+}
+
+.mmq__range:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+@media (pointer: coarse) {
+  .mmq__range {
+    height: 44px;
+  }
+}
