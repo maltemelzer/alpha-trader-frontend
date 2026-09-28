@@ -6,6 +6,7 @@ Die Eingabe schreibt und sendet Chat-Nachrichten; das Feld wächst mit dem Text,
 - **Aktionen links (`actions`, optional):** Ghost-Buttons in `sm`, z. B. „Trade teilen“.
 - **Senden rechts:** `Button` in `primary`/`sm`, gesperrt bei leerem Text.
 - **Handy (bis 480px):** Feld und Senden bleiben in einer Zeile (Senden unten bündig, wenn das Feld wächst); Zusatzaktionen rücken in eine zweite Zeile darunter.
+- **Vorschläge (`popup`, optional):** schweben direkt über dem Feld in voller Breite (z. B. `MentionMenu`).
 - **Hinweiszeile:** Standard „Enter senden · Umschalt+Enter neue Zeile“; ab 50 verbleibenden Zeichen ein Zähler in Mono (Standardgrenze 500).
 
 ## Zustände
@@ -17,7 +18,7 @@ Die Eingabe schreibt und sendet Chat-Nachrichten; das Feld wächst mit dem Text,
 
 1. **Eine Messing-Aktion** (Regel 1): Hat der Bildschirm schon eine, dann `sendVariant="secondary"`.
 2. **Keine Emoji-Leiste, keine GIFs** im Standard – Alpha-Trader ist ein Börsenparkett, kein Messenger. Trades teilen ist die wichtigste Zusatzaktion.
-3. **`$`-Ticker** werden beim Senden nicht verändert; die Erkennung passiert in `ChatThread`.
+3. **`#`/`!`-Erwähnungen** werden beim Senden nicht verändert; die Erkennung passiert in `ChatThread`. Beim Tippen zeigt die App über `popup` ein `MentionMenu` (Suche nach Name oder ASIN); `onKeyDown` läuft vor der eigenen Tastenbehandlung – mit `e.preventDefault()` wählt Enter einen Vorschlag, statt zu senden. `inputProps` reicht `role="combobox"`, `aria-activedescendant` usw. ans Feld durch.
 
 ## Verwendung
 

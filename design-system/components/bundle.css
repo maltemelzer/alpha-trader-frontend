@@ -783,6 +783,10 @@ a.bnk-tick:focus-visible { outline: var(--rule) solid var(--brass); outline-offs
 .bnk-msg--other.is-last .bnk-msg__bubble { border-bottom-left-radius: var(--radius-sm); }
 .bnk-msg--own.is-last .bnk-msg__bubble { border-bottom-right-radius: var(--radius-sm); }
 .bnk-msg__att { max-width: 100%; }
+.bnk-msg__embeds { display: flex; flex-direction: column; gap: var(--space-1); margin-top: 2px; width: 340px; max-width: 100%; }
+/* Karten brauchen mehr Breite als Blasen (Sparkline, drei Eckdaten) */
+.bnk-msg__col:has(> .bnk-msg__embeds) { max-width: min(92%, 560px); }
+.bnk-msg--own .bnk-msg__embeds { align-self: flex-end; }
 .bnk-msg__meta { margin: 2px var(--space-1) 0; font-family: var(--font-mono); font-size: 11px; line-height: 14px; color: var(--text-secondary); }
 .bnk-chat__day { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-4) 0 var(--space-1); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
 .bnk-chat__day::before, .bnk-chat__day::after { content: ""; flex: 1; border-top: var(--hairline) solid var(--line); }
@@ -807,6 +811,25 @@ a.bnk-tick:focus-visible { outline: var(--rule) solid var(--brass); outline-offs
 .bnk-comp__count.is-over { color: var(--loss); }
 .bnk-comp.is-disabled .bnk-comp__box { border-color: var(--line); background: var(--bg-card); }
 .bnk-comp.is-disabled .bnk-comp__ta { color: var(--text-disabled); }
+/* Vorschlagsliste über dem Feld (popup, z. B. MentionMenu) */
+.bnk-comp { position: relative; }
+.bnk-comp__pop { position: absolute; left: 0; bottom: calc(100% + 4px); z-index: 20; width: min(100%, 480px); }
+
+/* MentionMenu – Vorschläge für #/! im Chat */
+.bnk-mention { display: flex; flex-direction: column; max-height: min(320px, 50dvh); background: var(--bg-card); border: var(--hairline) solid var(--line-strong); border-radius: var(--radius-md); overflow: hidden; font-family: var(--font-sans); }
+.bnk-mention__head { display: flex; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-bottom: var(--hairline) solid var(--line); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+.bnk-mention__keys { font-weight: 400; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+.bnk-mention__list { list-style: none; margin: 0; padding: 0; overflow-y: auto; position: relative; }
+.bnk-mention__opt { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); min-height: 44px; padding: 6px var(--space-3); border-bottom: var(--hairline) solid var(--line); cursor: pointer; box-sizing: border-box; }
+.bnk-mention__opt:last-child { border-bottom: 0; }
+.bnk-mention__opt.is-active { background: var(--bg-raised); box-shadow: inset var(--rule) 0 0 var(--brass); }
+.bnk-mention__id { display: flex; flex-direction: column; min-width: 0; }
+.bnk-mention__name { font-family: var(--font-serif); font-size: 15px; line-height: 20px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bnk-mention__meta { display: flex; gap: var(--space-2); font-size: 12px; line-height: 16px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; }
+.bnk-mention__asin { font-family: var(--font-mono); }
+.bnk-mention__price { font-family: var(--font-mono); font-size: 13px; color: var(--text-primary); white-space: nowrap; }
+.bnk-mention__state { padding: var(--space-3); font-size: 14px; color: var(--text-secondary); }
+@media (max-width: 480px) { .bnk-mention__keys { display: none; } }
 
 /* ConversationList */
 .bnk-convs { display: flex; flex-direction: column; font-family: var(--font-sans); }
@@ -2088,3 +2111,25 @@ a.bnk-wm:focus-visible { outline: var(--rule) solid var(--brass); outline-offset
   .bnk-sech--compact .bnk-sech__facts { flex-basis: 100%; border-left: 0; }
   .bnk-sech--compact .bnk-sech__fact:first-child { padding-left: 0; }
 }
+
+/* AssetCard – Wertpapier als Karte im Chat (!ASIN) */
+.bnk-acard { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; min-width: 0; padding: var(--space-2) var(--space-3) var(--space-3); background: var(--bg-card); border: var(--hairline) solid var(--line-strong); border-radius: var(--radius-md); color: var(--text-primary); text-decoration: none; font-family: var(--font-sans); box-sizing: border-box; }
+a.bnk-acard:hover { background: var(--bg-raised); }
+a.bnk-acard:focus-visible { outline: var(--rule) solid var(--brass); outline-offset: 2px; }
+.bnk-acard__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); min-width: 0; }
+.bnk-acard__id { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.bnk-acard__name { font-family: var(--font-serif); font-size: 15px; line-height: 20px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bnk-acard__meta { display: flex; gap: var(--space-2); font-size: 12px; line-height: 16px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; }
+.bnk-acard__asin { font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--text-secondary); }
+.bnk-acard__px { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
+.bnk-acard__price { font-family: var(--font-mono); font-size: 16px; line-height: 20px; }
+.bnk-acard__chart { display: flex; flex-direction: column-reverse; gap: 2px; }
+.bnk-acard__chart .bnk-spark { display: block; width: 100%; height: auto; }
+.bnk-acard__period { font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+.bnk-acard__nochart { display: flex; align-items: center; justify-content: center; height: 56px; font-size: 13px; color: var(--text-muted); border: var(--hairline) dashed var(--line); border-radius: var(--radius-sm); }
+.bnk-acard__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1) var(--space-2); margin: 0; padding-top: var(--space-2); border-top: var(--hairline) solid var(--line); }
+.bnk-acard__facts > div { min-width: 0; }
+.bnk-acard__facts dt { font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+.bnk-acard__facts dd { margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bnk-acard.is-error .bnk-acard__head { align-items: center; }
+.bnk-acard__note { font-size: 13px; color: var(--text-secondary); }
