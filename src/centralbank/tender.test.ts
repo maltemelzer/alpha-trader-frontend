@@ -148,6 +148,10 @@ describe('bid', () => {
     expect(bidMoney(98, 1000)).toEqual({ cost: 98_000, payout: 100_000, result: 2000 });
     expect(bidMoney(102, 10).result).toBe(-20);
     expect(maxBidShares(800_000_000_000_000)).toBe(8_000_000_000_000);
+    // the credit line caps the cost of the bid: more bonds below 100 %, fewer above
+    expect(maxBidShares(13_600_000_000_000, 98)).toBe(138_775_510_204);
+    expect(maxBidShares(13_600_000_000_000, 102)).toBe(133_333_333_333);
+    expect(maxBidShares(800_000_000_000_000, 102)).toBe(7_843_137_254_901);
     expect(maxBidShares(0)).toBeUndefined();
   });
 

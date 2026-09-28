@@ -158,7 +158,6 @@ export function TenderBid({ phone }: { phone?: boolean }) {
   const { banks, isLoading: banksLoading } = useMyBanks();
   const [bankId, setBankId] = useState<string>();
   const bank = banks.find((b) => b.id === bankId) ?? banks[0];
-  const maxShares = maxBidShares(bank?.maxCentralBankLoans);
   const accountIds = useMemo(() => banks.map((b) => b.securitiesAccountId), [banks]);
   const own = useOrdersOn(accountIds, asin);
   const now = useNow(30_000);
@@ -174,6 +173,7 @@ export function TenderBid({ phone }: { phone?: boolean }) {
   const priceOk = Number.isFinite(price) && price >= MIN_BID && price <= MAX_BID;
   const simPrice = priceOk ? price : Math.min(MAX_BID, Math.max(MIN_BID, Number.isFinite(price) ? price : 100));
   const simShares = Number.isFinite(shares) && shares > 0 ? shares : 0;
+  const maxShares = maxBidShares(bank?.maxCentralBankLoans, simPrice);
 
   const base = useMemo(() => projectionBase(tenders, bookBids, assume as Assumption), [tenders, bookBids, assume]);
   const without = useMemo(() => project(base), [base]);
@@ -241,7 +241,12 @@ export function TenderBid({ phone }: { phone?: boolean }) {
           <DS.Button variant="primary" disabled={ended || !!error} onClick={() => setConfirm(true)}>
             Gebot abgeben …
           </DS.Button>
-          <span className="cb__note">{error ?? `${bank.name} · Rahmen ${maxShares != null ? short(maxShares) : '–'}${NBSP}Stk.`}</span>
+          <span className="cb__note">
+            {error ??
+              `${bank.name} · Rahmen ${bank.maxCentralBankLoans ? `${short(bank.maxCentralBankLoans)}${NBSP}€` : '–'}${
+                maxShares != null ? ` = ${short(maxShares)}${NBSP}Stk. zu ${pct(simPrice)}` : ''
+              }`}
+          </span>
         </>
       ) : (
         <span className="cb__note tdr__lock">
