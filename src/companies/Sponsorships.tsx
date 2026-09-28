@@ -156,7 +156,8 @@ export function MarketMakerFacts({
         </section>
       </div>
       <p className="company__note">
-        Rating A–D: wie viel der Sponsor pro Tag quotet (A am meisten).{' '}
+        Ein Quote stellt je Seite 1–2 % der Anteile, Geld und Brief mindestens 5 % auseinander. Rating A–D: wie viel der
+        Sponsor pro Tag quotet (A am meisten).{' '}
         {isCeo && (
           <>
             Verwalten unter <a href={`/unternehmen/${c.securityIdentifier}?ansicht=fuehren&aktion=marketmaker`}>Führen → Market Maker</a>.

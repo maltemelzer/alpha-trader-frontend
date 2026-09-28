@@ -208,7 +208,7 @@ export function SecurityPage() {
           { value: 'boerse', label: 'Börse', content: ticket },
           {
             value: 'quote',
-            label: 'Quote',
+            label: 'Market Maker',
             content: (
               <QuotePanel compact sponsorship={sponsoring} owner={sponsorAccount} onDone={(text) => setToast({ ok: true, text })} />
             ),
@@ -286,7 +286,7 @@ export function SecurityPage() {
           )}
         </DS.Sheet>
         {sponsoring && (
-          <DS.Sheet open={handel === 'quote'} onClose={() => setHandel('boerse')} title={`Quote stellen: ${p.name}`}>
+          <DS.Sheet open={handel === 'quote'} onClose={() => setHandel('boerse')} title={`Market Maker: ${p.name}`}>
             {handel === 'quote' && (
               <QuotePanel compact sponsorship={sponsoring} owner={sponsorAccount} onDone={(text) => setToast({ ok: true, text })} />
             )}
@@ -827,7 +827,7 @@ function PhoneMore({
   if (profile.company) actions.push({ label: 'Unternehmen öffnen', hint: 'Profil, Bilanz, Chronik, Abstimmungen', run: () => go(`/unternehmen/${profile.securityIdentifier}`) });
   if (underlying) actions.push({ label: `Basiswert öffnen: ${warrant.data?.underlying?.name ?? underlying}`, run: () => go(`/wertpapier/${underlying}`) });
   if (baseIndex) actions.push({ label: `Basisindex öffnen: ${etf.data?.baseIndexName ?? baseIndex}`, run: () => go(`/wertpapier/${baseIndex}`) });
-  if (canQuote) actions.push({ label: 'Quote stellen (Market Maker)', hint: 'Geld- und Briefkurs deines Unternehmens', run: onQuote });
+  if (canQuote) actions.push({ label: 'Market Maker', hint: 'Quote stellen: Geld- und Briefkurs deines Unternehmens', run: onQuote });
   if (tradable)
     actions.push({ label: 'Außerbörslich (OTC) an einen Spieler …', hint: 'Angebot direkt an ein anderes Depot', run: () => go(`/orders?ansicht=otc&neu=${profile.securityIdentifier}`) });
   if (tradable && canMove)

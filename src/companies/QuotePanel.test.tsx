@@ -29,27 +29,47 @@ const sponsorship: Sponsorship = {
 beforeEach(() => mutate.mockReset());
 
 describe('QuotePanel', () => {
-  it('prefills a quote inside the market and sends it only after confirming', () => {
+  it('prefills the minimum the rules allow and sends it only after confirming', () => {
     render(<QuotePanel compact sponsorship={sponsorship} owner="acc-1" onDone={vi.fn()} />);
-    // middle 100, market 20 % wide → 1 % around the middle; a tenth of cash (100 → 10) and free shares (1.000 → 100)
-    expect(screen.getByLabelText('Kaufen zu')).toHaveValue('99,5');
-    expect(screen.getByLabelText('Verkaufen zu')).toHaveValue('100,5');
-    expect(screen.getByLabelText('Stück Kauf')).toHaveValue('10');
+    // middle 100 → 5 % spread; 10.000 shares outstanding → 1 % = 100 per side
+    expect(screen.getByLabelText('Kaufen zu')).toHaveValue('97,43');
+    expect(screen.getByLabelText('Verkaufen zu')).toHaveValue('102,56');
+    expect(screen.getByLabelText('Stück Kauf')).toHaveValue('100');
+    expect(screen.getByLabelText('Stück Verkauf')).toHaveValue('100');
+    expect(screen.getByLabelText('Spread')).toHaveValue('5');
+    expect(screen.getByLabelText('Volumen je Seite')).toHaveValue('1');
+    expect(screen.getByText(/1–2.% = 100.Stk\.–200.Stk\./)).toBeInTheDocument();
     expect(screen.getByText(/enger als der Markt/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Quote stellen …' }));
     expect(mutate).not.toHaveBeenCalled();
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Quote stellen' }));
-    expect(mutate.mock.calls[0][0]).toEqual({ owner: 'acc-1', securityIdentifier: 'STX', buyPrice: 99.5, sellPrice: 100.5, buyShares: 10, sellShares: 10 });
+    expect(mutate.mock.calls[0][0]).toEqual({ owner: 'acc-1', securityIdentifier: 'STX', buyPrice: 97.43, sellPrice: 102.56, buyShares: 100, sellShares: 100 });
   });
 
-  it('does not ask when the quote is crossed or too large', () => {
+  it('sets prices from the spread and both sizes from the volume', () => {
     render(<QuotePanel compact sponsorship={sponsorship} owner="acc-1" onDone={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText('Verkaufen zu'), { target: { value: '99' } });
+    fireEvent.change(screen.getByLabelText('Spread'), { target: { value: '10' } });
+    expect(screen.getByLabelText('Kaufen zu')).toHaveValue('94,73');
+    expect(screen.getByLabelText('Verkaufen zu')).toHaveValue('105,26');
+    fireEvent.change(screen.getByLabelText('Volumen je Seite in Prozent der Anteile'), { target: { value: '1.5' } });
+    expect(screen.getByLabelText('Stück Kauf')).toHaveValue('150');
+    expect(screen.getByLabelText('Stück Verkauf')).toHaveValue('150');
+    // editing a price moves the spread control along
+    fireEvent.change(screen.getByLabelText('Verkaufen zu'), { target: { value: '100' } });
+    expect(screen.getByLabelText('Spread')).toHaveValue('5,27');
+  });
+
+  it('does not ask when a rule is broken or the quote is crossed', () => {
+    render(<QuotePanel compact sponsorship={sponsorship} owner="acc-1" onDone={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Verkaufen zu'), { target: { value: '97' } });
     fireEvent.change(screen.getByLabelText('Stück Verkauf'), { target: { value: '5000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Quote stellen …' }));
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(screen.getByText('Der Verkaufskurs muss über dem Kaufkurs liegen.')).toBeInTheDocument();
-    expect(screen.getByText('Mehr, als das Unternehmen frei hält.')).toBeInTheDocument();
+    expect(screen.getByText(/Höchstens 2.% der Anteile: 200 Stk\./)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Verkaufen zu'), { target: { value: '100' } });
+    expect(screen.getByText(/Mindestens 5.% Spread – jetzt 2,57.%\./)).toBeInTheDocument();
   });
 });
