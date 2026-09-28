@@ -12,8 +12,13 @@ export interface UiChange {
 export const UI_CHANGES: UiChange[] = [
   {
     id: '2026-09-28',
-    title: 'Neuigkeiten und Zinstender',
+    title: 'Umbuchen, Neuigkeiten und Zinstender',
     items: [
+      {
+        text: 'Umbuchen zwischen deinen eigenen Depots: Aktien vom Privatdepot in deine AG, zurück oder zwischen zwei AGs – die beiden OTC-Orders legt die App für dich an.',
+        href: '/orders?ansicht=otc&umbuchen=1',
+      },
+      { text: 'Die Gegenpartei-Suche bei OTC-Orders zeigt wieder alle Treffer, passende Namen zuerst.', href: '/orders?ansicht=otc&neu=1' },
       {
         text: 'Dieses Fenster: Neues aus der Spiel-Engine (die „Updates on Alpha-Trader.com“ der Zeitung) und Neues in dieser Oberfläche, einmal je Neuigkeit. Abschalten kannst du es in den Einstellungen.',
         href: '/einstellungen?bereich=konto',
