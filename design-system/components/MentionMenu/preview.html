@@ -1,0 +1,37 @@
+<!-- @dsCard group="Chat" height=420 subtitle="# verlinken mit Treffern · ! Karte anhängen · ohne Treffer" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>MentionMenu</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-4); padding: var(--space-4) var(--space-6); align-items: start; }
+  .slot { position: relative; padding-top: 250px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var hits = [
+    { asin: 'ACALPHCOIN', name: 'AlphaCoins', listingType: 'COIN', price: 18523.4 },
+    { asin: 'STALPHBANK', name: 'Alpha Bank', listingType: 'STOCK', price: 3.12 },
+    { asin: 'STSN3G03LB', name: 'Alphakasse SE', listingType: 'STOCK', price: 71.6 }
+  ];
+  function Demo(p) {
+    var st = React.useState(0);
+    return h('div', null, h('div', { className: 'lbl' }, p.label),
+      h('div', { className: 'slot' }, h(DS.ChatComposer, { defaultValue: p.text, sendVariant: 'secondary',
+        popup: h(DS.MentionMenu, { id: p.id, mode: p.mode, items: p.items, active: st[0], onActive: st[1], emptyText: p.empty }) })));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    h(Demo, { id: 'm1', label: '# verlinken', mode: 'link', text: 'Schaut euch #alph', items: hits }),
+    h(Demo, { id: 'm2', label: '! Karte anhängen', mode: 'embed', text: '!alph', items: hits.slice(0, 2) }),
+    h(Demo, { id: 'm3', label: 'Noch zu kurz', mode: 'link', text: '#a', items: [], empty: 'Name oder ASIN tippen' })));
+</script>
+</body>
+</html>

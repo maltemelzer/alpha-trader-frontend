@@ -1,4 +1,4 @@
-<!-- @dsCard group="Chat" height=940 subtitle="Gruppenchat mit Namen · Direktnachricht ohne Namen" -->
+<!-- @dsCard group="Chat" height=1180 subtitle="Gruppenchat mit Namen, #-Erwähnung und !-Karte · Direktnachricht ohne Namen" -->
 <!doctype html>
 <html lang="de">
 <head>
@@ -26,21 +26,31 @@
     { system: 'Anleger Paul ist der Hanseatischen Allianz beigetreten.' },
     { author: paul, text: 'Moin zusammen! Wer hält hier noch $STELBWERKE?', time: '18:02' },
     { day: 'Heute' },
-    { author: frieda, text: 'Ich hab heute früh $STHANSEREE nachgekauft.', time: '09:14' },
+    { author: frieda, text: 'Ich hab heute früh #STHANSEREE nachgekauft.', time: '09:14' },
     { author: frieda, trade: { side: 'buy', status: 'ausgeführt', name: 'Hanse Reederei AG', ticker: 'STHANSEREE', qty: 120, price: 47.6, change: 2.35 }, time: '09:14' },
     { author: fuchs, text: 'Mutig. Ich warte auf die Quartalszahlen.', time: '09:31' },
     { own: true, text: 'Ich bin auch drin – Limit war bei 48,50 €.', time: '17:40' },
-    { own: true, text: '$STNORDKAPB schwächelt übrigens seit Tagen.', time: '17:41', status: 'Gelesen' }
+    { own: true, text: '#STNORDKAPB schwächelt übrigens seit Tagen:', time: '17:41' },
+    { own: true, text: '!STNORDKAPB', time: '17:41', status: 'Gelesen' }
   ];
   var dm = [
     { day: 'Heute' },
-    { author: frieda, text: 'Hast du die Zahlen von $STHANSEREE gesehen?', time: '17:10' },
+    { author: frieda, text: 'Hast du die Zahlen von #STHANSEREE gesehen? !STHANSEREE', time: '17:10' },
     { author: frieda, text: 'Umsatz +12 %, Dividende bleibt.', time: '17:12' },
     { own: true, text: 'Ja! Deshalb hab ich nachgelegt.', time: '17:15', status: 'Gelesen' }
   ];
+  var cards = {
+    STHANSEREE: { name: 'Hanse Reederei AG', listingType: 'STOCK', price: 48.72, change: 2.34, spark: [44.1, 44.8, 45.2, 44.6, 45.9, 46.3, 47.1, 46.8, 47.6, 48.72] },
+    STNORDKAPB: { name: 'Nordkap Bank', listingType: 'STOCK', price: 12.18, change: -0.62, spark: [14.2, 13.9, 13.6, 13.8, 13.1, 12.9, 12.7, 12.4, 12.3, 12.18] }
+  };
+  function renderEmbed(asin) {
+    var c = cards[asin] || {};
+    return h(DS.AssetCard, Object.assign({ asin: asin, href: '#', changeSuffix: '24 h', period: '30 T',
+      facts: [{ label: 'Geld', value: DS.format.price(c.price * 0.99) }, { label: 'Brief', value: DS.format.price(c.price * 1.01) }, { label: 'Spread', value: '1,98 %' }] }, c));
+  }
   ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
-    h('div', null, h('div', { className: 'lbl' }, 'Allianz-Chat'), h('div', { className: 'box' }, h(DS.ChatThread, { messages: liga, tickers: tickers, autoScroll: false }))),
-    h('div', null, h('div', { className: 'lbl' }, 'Direktnachricht'), h('div', { className: 'box' }, h(DS.ChatThread, { messages: dm, tickers: tickers, showNames: false, autoScroll: false, typing: 'schreibt …' })))));
+    h('div', null, h('div', { className: 'lbl' }, 'Allianz-Chat'), h('div', { className: 'box' }, h(DS.ChatThread, { messages: liga, tickers: tickers, renderEmbed: renderEmbed, autoScroll: false }))),
+    h('div', null, h('div', { className: 'lbl' }, 'Direktnachricht'), h('div', { className: 'box' }, h(DS.ChatThread, { messages: dm, tickers: tickers, renderEmbed: renderEmbed, showNames: false, autoScroll: false, typing: 'schreibt …' })))));
 </script>
 </body>
 </html>

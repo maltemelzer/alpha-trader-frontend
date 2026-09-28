@@ -1,0 +1,33 @@
+<!-- @dsCard group="Chat" height=520 subtitle="Coin · Anleihe in % · ohne Verlauf · lädt · nicht gefunden" -->
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>AssetCard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Libre+Franklin:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  body { background: var(--bg-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .lbl { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 340px)); gap: var(--space-4); padding: var(--space-4) var(--space-6); align-items: start; }
+  .slot { position: relative; padding-top: 250px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var DS = window.Bankiersgruen, h = React.createElement;
+  var up = [16900, 17120, 17080, 17350, 17600, 17420, 17810, 17990, 18200, 18110, 18350, 18523.4];
+  var down = [101.2, 101.1, 100.9, 100.95, 100.7, 100.5, 100.55, 100.3, 100.2];
+  function box(label, el) { return h('div', null, h('div', { className: 'lbl' }, label), el); }
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', { className: 'wrap' },
+    box('Coin', h(DS.AssetCard, { asin: 'ACALPHCOIN', name: 'AlphaCoins', listingType: 'COIN', price: 18523.4, change: 1.8, changeSuffix: '24 h', spark: up, period: '30 T', href: '#',
+      facts: [{ label: 'Geld', value: '18.400,00 €' }, { label: 'Brief', value: '18.600,00 €' }, { label: 'Spread', value: '1,08 %' }] })),
+    box('Anleihe (Kurs in %)', h(DS.AssetCard, { asin: 'BOADHCPS2D', name: 'Alphakasse SE Anleihe 2,5000 %', listingType: 'BOND', price: 100.2, change: -0.4, changeSuffix: '24 h', spark: down, period: '30 T', href: '#',
+      facts: [{ label: 'Geld', value: '100,1000 %' }, { label: 'Brief', value: '100,3000 %' }, { label: 'Zins', value: '2,5 %' }] })),
+    box('Ohne Kursverlauf', h(DS.AssetCard, { asin: 'STNEUGRUEN', name: 'Neugründung AG', listingType: 'STOCK', price: 1, period: '30 T', facts: [{ label: 'Geld', value: '–' }, { label: 'Brief', value: '1,00 €' }] })),
+    box('Lädt', h(DS.AssetCard, { asin: 'STSN3G03LB', loading: true })),
+    box('Nicht gefunden', h(DS.AssetCard, { asin: 'STXXXXXXXX', error: 'Wertpapier nicht gefunden' }))));
+</script>
+</body>
+</html>

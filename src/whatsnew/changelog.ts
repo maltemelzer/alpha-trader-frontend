@@ -11,6 +11,18 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-28-6',
+    title: 'Chat: Wertpapiere mit # und !',
+    items: [
+      {
+        text: 'Tipp im Chat # und dann den Namen oder die ASIN: Eine Liste schlägt passende Wertpapiere vor, Pfeiltasten und Enter (oder Antippen) setzen den Link.',
+        href: '/nachrichten',
+      },
+      { text: 'Mit ! statt # hängst du das Wertpapier als kleine Karte an – Kurs, Veränderung, Verlauf der letzten 30 Tage, Geld und Brief. Ein Klick öffnet das Wertpapier.' },
+      { text: 'Alte Nachrichten mit $ bleiben verlinkt.' },
+    ],
+  },
+  {
     id: '2026-09-28-5',
     title: 'Anleihen: Deckung in der Liste',
     items: [

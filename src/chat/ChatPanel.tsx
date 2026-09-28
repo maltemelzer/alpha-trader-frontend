@@ -1,21 +1,23 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DS } from '../ds';
 import {
   useChatMessages,
   useChatRooms,
   useJoinChat,
   useLeaveChat,
+  useListings,
   useMarkChatRead,
   useMe,
   useMyChats,
   useSendMessage,
 } from '../api/queries';
 import { chatKind, chatTitle, toConversations, toThread } from './derive';
+import { AssetEmbed } from './AssetEmbed';
 import { MembersSheet } from './MembersSheet';
+import { mentionedAsins } from './mentions';
+import { useMentions } from './useMentions';
 import { NewChatDialog } from './NewChatDialog';
 import './ChatPage.css';
-
-const TICKER = /\$([A-Z][A-Z0-9]{1,9})\b/g;
 
 export interface ChatPanelProps {
   /** the open chat, if any */
@@ -243,11 +245,14 @@ function Thread({ chatId, me, direct, unread }: { chatId: string; me?: string; d
 
   const messages = useMemo(() => (q.data ? q.data.pages.slice().reverse().flat() : []), [q.data]);
   const thread = useMemo(() => toThread(messages, { me, direct }), [messages, me, direct]);
-  const tickers = useMemo(() => {
-    const out: Record<string, { href: string }> = {};
-    for (const m of messages) for (const [, t] of (m.content ?? '').matchAll(TICKER)) out[t] = { href: `/wertpapier/${t}` };
-    return out;
-  }, [messages]);
+  // #ASIN / !ASIN (old: $ASIN) link the security; the name comes as tooltip (listings are cached for the session).
+  const asins = useMemo(() => [...new Set(messages.flatMap((m) => mentionedAsins(m.content)))], [messages]);
+  const listings = useListings(asins);
+  const tickers = useMemo(
+    () => Object.fromEntries(asins.map((a) => [a, { href: `/wertpapier/${a}`, name: listings[a]?.name }])),
+    [asins, listings],
+  );
+  const renderEmbed = useCallback((asin: string) => <AssetEmbed asin={asin} />, []);
 
   // Opening a chat (or a new message arriving while it is open) marks it read.
   const { mutate } = markRead;
@@ -300,7 +305,7 @@ function Thread({ chatId, me, direct, unread }: { chatId: string; me?: string; d
         ) : null}
       </div>
       {thread.length ? (
-        <DS.ChatThread messages={thread} tickers={tickers} showNames={!direct} />
+        <DS.ChatThread messages={thread} tickers={tickers} renderEmbed={renderEmbed} showNames={!direct} />
       ) : (
         <DS.EmptyState compact title="Noch keine Nachrichten" as="h3">
           Schreib die erste.
@@ -329,11 +334,24 @@ function Composer({
   const send = useSendMessage();
   // Keep a draft per chat while switching between conversations.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const value = drafts[chatId] ?? '';
+  const setValue = (v: string) => setDrafts((d) => ({ ...d, [chatId]: v }));
+  // #: search and link a security · !: the same, shown as a card in the chat
+  const input = useRef<HTMLTextAreaElement>(null);
+  const mentions = useMentions(value, setValue, input);
   return (
     <DS.ChatComposer
       key={chatId}
-      value={drafts[chatId] ?? ''}
-      onChange={(v) => setDrafts((d) => ({ ...d, [chatId]: v }))}
+      ref={input}
+      value={value}
+      onChange={(v) => {
+        mentions.onInput();
+        setValue(v);
+      }}
+      onKeyDown={mentions.onKeyDown}
+      popup={mentions.popup}
+      inputProps={mentions.inputProps}
+      hint={short ? '# Wertpapier · ! Karte' : '# verlinkt ein Wertpapier · ! zeigt es als Karte · Enter senden'}
       disabled={readonly || send.isPending}
       sendVariant={secondary ? 'secondary' : undefined}
       placeholder={

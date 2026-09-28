@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"Bankiersgruen","components":[{"name":"Button"},{"name":"Card"},{"name":"PriceChange"},{"name":"Sparkline"},{"name":"StockRow"},{"name":"Input"},{"name":"Select"},{"name":"SegmentedControl"},{"name":"DataTable"},{"name":"AppHeader"},{"name":"Tabs"},{"name":"PlayerMenu"},{"name":"RankBadge"},{"name":"ProgressBar"},{"name":"Achievement"},{"name":"Toast"},{"name":"Dialog"},{"name":"SummaryList"},{"name":"StockSearch"},{"name":"StatusLabel"},{"name":"Banner"},{"name":"StatTile"},{"name":"PageHeader"},{"name":"ChatThread"},{"name":"ChatComposer"},{"name":"ConversationList"},{"name":"ChatWindow"},{"name":"ForumCategoryList"},{"name":"ThreadList"},{"name":"ForumPost"},{"name":"ForumThread"},{"name":"ForumEditor"},{"name":"Pagination"},{"name":"OrderTicket"},{"name":"HighscoreTable"},{"name":"NewsFeed"},{"name":"Countdown"},{"name":"Amount"},{"name":"SecurityHeader"},{"name":"OrderBook"},{"name":"PollCard"},{"name":"PollList"},{"name":"CorporateActionForm"},{"name":"CompanyFoundingForm"},{"name":"Checkbox"},{"name":"Switch"},{"name":"RadioGroup"},{"name":"Tooltip"},{"name":"Term"},{"name":"Skeleton"},{"name":"Loading"},{"name":"EmptyState"},{"name":"DropdownMenu"},{"name":"Sheet"},{"name":"NotificationBell"},{"name":"NotificationList"},{"name":"ProfitLoss"},{"name":"PortfolioSummary"},{"name":"PositionTable"},{"name":"OrderList"},{"name":"TradeLog"},{"name":"TradeStats"},{"name":"SuggestionList"},{"name":"CompanyDevelopment"},{"name":"ShareList"},{"name":"BondFacts"},{"name":"BondList"},{"name":"IndexFacts"},{"name":"IndexMembers"},{"name":"WarrantList"},{"name":"MinerCard"},{"name":"SignedAmount"},{"name":"BalanceSheet"},{"name":"BankingPanel"},{"name":"TransferForm"},{"name":"AccountStatement"},{"name":"Icon"},{"name":"Emblem"},{"name":"Wordmark"},{"name":"AppFooter"},{"name":"ProfileHeader"},{"name":"EmploymentList"},{"name":"BottomNav"},{"name":"MobileTopBar"},{"name":"TradeBar"},{"name":"EtfFacts"},{"name":"EtfUnitsForm"},{"name":"RealEstateList"},{"name":"AllianceMembers"},{"name":"SettingsSection"},{"name":"SettingsRow"},{"name":"MarketPulse"},{"name":"MarketFilterBar"},{"name":"MarketResults"},{"name":"LiveTicker"},{"name":"BondIssueForm"},{"name":"IndexBuilder"},{"name":"EtfCreateForm"},{"name":"WarrantIssueForm"},{"name":"AchievementBoard"},{"name":"AuthForm"}]} */
+/* @ds-bundle: {"format":4,"namespace":"Bankiersgruen","components":[{"name":"Button"},{"name":"Card"},{"name":"PriceChange"},{"name":"Sparkline"},{"name":"StockRow"},{"name":"Input"},{"name":"Select"},{"name":"SegmentedControl"},{"name":"DataTable"},{"name":"AppHeader"},{"name":"Tabs"},{"name":"PlayerMenu"},{"name":"RankBadge"},{"name":"ProgressBar"},{"name":"Achievement"},{"name":"Toast"},{"name":"Dialog"},{"name":"SummaryList"},{"name":"StockSearch"},{"name":"StatusLabel"},{"name":"Banner"},{"name":"StatTile"},{"name":"PageHeader"},{"name":"ChatThread"},{"name":"ChatComposer"},{"name":"MentionMenu"},{"name":"AssetCard"},{"name":"ConversationList"},{"name":"ChatWindow"},{"name":"ForumCategoryList"},{"name":"ThreadList"},{"name":"ForumPost"},{"name":"ForumThread"},{"name":"ForumEditor"},{"name":"Pagination"},{"name":"OrderTicket"},{"name":"HighscoreTable"},{"name":"NewsFeed"},{"name":"Countdown"},{"name":"Amount"},{"name":"SecurityHeader"},{"name":"OrderBook"},{"name":"PollCard"},{"name":"PollList"},{"name":"CorporateActionForm"},{"name":"CompanyFoundingForm"},{"name":"Checkbox"},{"name":"Switch"},{"name":"RadioGroup"},{"name":"Tooltip"},{"name":"Term"},{"name":"Skeleton"},{"name":"Loading"},{"name":"EmptyState"},{"name":"DropdownMenu"},{"name":"Sheet"},{"name":"NotificationBell"},{"name":"NotificationList"},{"name":"ProfitLoss"},{"name":"PortfolioSummary"},{"name":"PositionTable"},{"name":"OrderList"},{"name":"TradeLog"},{"name":"TradeStats"},{"name":"SuggestionList"},{"name":"CompanyDevelopment"},{"name":"ShareList"},{"name":"BondFacts"},{"name":"BondList"},{"name":"IndexFacts"},{"name":"IndexMembers"},{"name":"WarrantList"},{"name":"MinerCard"},{"name":"SignedAmount"},{"name":"BalanceSheet"},{"name":"BankingPanel"},{"name":"TransferForm"},{"name":"AccountStatement"},{"name":"Icon"},{"name":"Emblem"},{"name":"Wordmark"},{"name":"AppFooter"},{"name":"ProfileHeader"},{"name":"EmploymentList"},{"name":"BottomNav"},{"name":"MobileTopBar"},{"name":"TradeBar"},{"name":"EtfFacts"},{"name":"EtfUnitsForm"},{"name":"RealEstateList"},{"name":"AllianceMembers"},{"name":"SettingsSection"},{"name":"SettingsRow"},{"name":"MarketPulse"},{"name":"MarketFilterBar"},{"name":"MarketResults"},{"name":"LiveTicker"},{"name":"BondIssueForm"},{"name":"IndexBuilder"},{"name":"EtfCreateForm"},{"name":"WarrantIssueForm"},{"name":"AchievementBoard"},{"name":"AuthForm"}]} */
 (function () {
   var React = window.React;
   var h = React.createElement;
@@ -1030,21 +1030,34 @@
       props.initials || initialsOf(props.name));
   }
 
-  /* TickerMention — „$HRD“ im Chattext: Ticker in Monospace, Messing-Punktlinie, optional Tagesveränderung. */
+  /* TickerMention — „#ACALPHCOIN“ im Chattext: ASIN in Monospace, Messing-Punktlinie, optional Tagesveränderung.
+     prefix: „#“ (Standard im Chat) oder „$“ (alte Nachrichten, Forum). */
   function TickerMention(props) {
     var info = props.info || {};
-    var content = [h('span', { key: 't', className: 'bnk-tick__sym' }, '$' + props.ticker)];
+    var content = [h('span', { key: 't', className: 'bnk-tick__sym' }, (props.prefix == null ? '$' : props.prefix) + props.ticker)];
     if (info.change != null) content.push(h(PriceChange, { key: 'c', value: info.change, size: 'sm' }));
     var p = { className: 'bnk-tick', title: info.name ? info.name : undefined };
     return info.href ? h('a', Object.assign(p, { href: info.href }), content) : h('span', p, content);
   }
+  /* Chat-Kürzel: #ASIN verlinkt, !ASIN hängt zusätzlich eine Karte an, $TICKER (alt) verlinkt.
+     # und ! brauchen die volle ASIN (10 Zeichen), davor kein Wortzeichen – „#1“, „#Top“ oder „Super!“ bleiben Text. */
+  var CHAT_TOKEN = /((?<![\w$#!])(?:\$[A-Z][A-Z0-9]{1,9}|[#!][A-Z][A-Z0-9]{9})\b)/g;
+  var CHAT_EMBED = /(?<![\w$#!])!([A-Z][A-Z0-9]{9})\b/g;
+  var CHAT_EMBED_EDGES = /^(?:\s*![A-Z][A-Z0-9]{9}\b)+|(?:(?<![\w$#!])![A-Z][A-Z0-9]{9}\b\s*)+$/g;
   function renderChatText(text, tickers) {
     if (typeof text !== 'string') return text;
-    var parts = text.split(/(\$[A-Z][A-Z0-9]{1,9}\b)/g);
-    return parts.map(function (p, i) {
-      if (/^\$[A-Z][A-Z0-9]{1,9}$/.test(p)) { var t = p.slice(1); return h(TickerMention, { key: i, ticker: t, info: tickers && tickers[t] }); }
-      return p;
+    return text.split(CHAT_TOKEN).map(function (p, i) {
+      if (i % 2 === 0) return p;
+      var t = p.slice(1);
+      return h(TickerMention, { key: i, ticker: t, prefix: p.charAt(0) === '$' ? '$' : '#', info: tickers && tickers[t] });
     });
+  }
+  /* ASINs der !-Karten einer Nachricht, ohne Doppelte, höchstens drei. */
+  function chatEmbeds(text) {
+    var out = [];
+    if (typeof text !== 'string') return out;
+    text.replace(CHAT_EMBED, function (m, a) { if (out.indexOf(a) < 0 && out.length < 3) out.push(a); return m; });
+    return out;
   }
 
   /* TradeShare — geteilter Trade als Anhang in einer Nachricht. */
@@ -1087,12 +1100,18 @@
       if (m.system) return h('div', { key: m.id || 's' + i, className: 'bnk-chat__sys' }, renderChatText(m.system, props.tickers));
       var first = !sameGroup(msgs[i - 1], m), last = !sameGroup(m, msgs[i + 1]);
       var a = m.author || {};
+      // !ASIN: Karte unter der Blase; besteht die Nachricht nur aus Karten, entfällt die Blase.
+      var embeds = props.renderEmbed ? chatEmbeds(m.text) : [];
+      // Karten am Anfang oder Ende stehen nicht noch einmal im Text; mitten im Satz bleiben sie Erwähnung.
+      var text = embeds.length ? m.text.replace(CHAT_EMBED_EDGES, '').trim() : m.text;
+      var bare = embeds.length > 0 && !text;
       return h('div', { key: m.id || i, className: cx('bnk-msg', m.own ? 'bnk-msg--own' : 'bnk-msg--other', first && 'is-first', last && 'is-last') },
         !m.own ? h('div', { className: 'bnk-msg__av' }, last ? h(Avatar, { name: a.name, initials: a.initials, size: 28 }) : null) : null,
         h('div', { className: 'bnk-msg__col' },
           first && (m.own || !showNames) ? h('span', { className: 'bnk-sr' }, m.own ? 'Du:' : (a.name || '') + ':') : null,
           !m.own && first && showNames ? h('div', { className: 'bnk-msg__name' }, h('span', null, a.name), a.badge || null) : null,
-          m.text != null ? h('div', { className: 'bnk-msg__bubble' }, renderChatText(m.text, props.tickers)) : null,
+          m.text != null && !bare ? h('div', { className: 'bnk-msg__bubble' }, renderChatText(text, props.tickers)) : null,
+          embeds.length ? h('div', { className: 'bnk-msg__att bnk-msg__embeds' }, embeds.map(function (a) { return h(React.Fragment, { key: a }, props.renderEmbed(a)); })) : null,
           m.trade ? h('div', { className: 'bnk-msg__att' }, h(TradeShare, m.trade)) : null,
           last ? h('div', { className: 'bnk-msg__meta' },
             h('time', null, m.time),
@@ -1126,19 +1145,95 @@
     }
     var left = max - val.length;
     return h('div', { className: cx('bnk-comp', props.disabled && 'is-disabled', props.className) },
+      props.popup ? h('div', { className: 'bnk-comp__pop' }, props.popup) : null,
       h('label', { htmlFor: id, className: 'bnk-sr' }, props.label || 'Nachricht schreiben'),
       h('div', { className: 'bnk-comp__box' },
         props.actions ? h('div', { className: 'bnk-comp__tools' }, props.actions) : null,
-        h('textarea', { ref: setTa, id: id, rows: 1, className: 'bnk-comp__ta', value: val, maxLength: max, disabled: props.disabled,
-          placeholder: props.placeholder || 'Nachricht … ($ für Aktien)', 'aria-describedby': id + '-hint',
+        h('textarea', Object.assign({ 'aria-describedby': id + '-hint' }, props.inputProps, { ref: setTa, id: id, rows: 1, className: 'bnk-comp__ta', value: val, maxLength: max, disabled: props.disabled,
+          placeholder: props.placeholder || 'Nachricht … (# Wertpapier, ! Karte)',
           onChange: function (e) { set(e.target.value); },
-          onKeyDown: function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } } }),
+          onKeyDown: function (e) {
+            // Erst der Aufrufer (z. B. Vorschlagsliste: Enter wählt aus) – verhindert er, sendet Enter nicht.
+            if (props.onKeyDown) props.onKeyDown(e);
+            if (e.defaultPrevented) return;
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); }
+          } })),
         h(Button, { variant: props.sendVariant || 'primary', size: 'sm', onClick: send, disabled: !val.trim() || props.disabled, className: 'bnk-comp__send' }, props.sendLabel || 'Senden')),
       h('div', { className: 'bnk-comp__hint', id: id + '-hint' },
         h('span', null, props.hint || 'Enter senden · Umschalt+Enter neue Zeile'),
         left <= 50 ? h('span', { className: cx('bnk-comp__count', left <= 0 && 'is-over') }, left) : null));
   });
   ChatComposer.displayName = 'ChatComposer';
+
+  /* MentionMenu — Vorschläge beim Tippen von #/! im ChatComposer: Wertpapiere mit Name, ASIN · Art und Kurs.
+     Steuert nichts selbst: active, onPick und onActive kommen vom Aufrufer (Pfeiltasten im Feld). */
+  function MentionMenu(props) {
+    var items = props.items || [];
+    var id = props.id || 'bnk-mention';
+    var cur = props.currency == null ? '€' : props.currency;
+    return h('div', { className: cx('bnk-mention', props.className) },
+      h('div', { className: 'bnk-mention__head' },
+        h('span', null, props.mode === 'embed' ? 'Karte anhängen' : 'Wertpapier verlinken'),
+        h('span', { className: 'bnk-mention__keys', 'aria-hidden': 'true' }, '↑↓ wählen · Enter · Esc')),
+      items.length ? h('ul', { id: id, className: 'bnk-mention__list', role: 'listbox', 'aria-label': props.mode === 'embed' ? 'Karte anhängen' : 'Wertpapier verlinken' },
+        items.map(function (it, i) {
+          return h('li', { key: it.asin, id: id + '-o' + i, role: 'option', 'aria-selected': i === props.active ? 'true' : 'false',
+              className: cx('bnk-mention__opt', i === props.active && 'is-active'),
+              // mousedown: das Feld behält den Fokus
+              onMouseDown: function (e) { e.preventDefault(); },
+              onMouseEnter: function () { if (props.onActive) props.onActive(i); },
+              onClick: function () { if (props.onPick) props.onPick(it); } },
+            h('span', { className: 'bnk-mention__id' },
+              h('span', { className: 'bnk-mention__name' }, it.name || it.asin),
+              h('span', { className: 'bnk-mention__meta' },
+                h('span', { className: 'bnk-mention__asin' }, it.asin),
+                it.listingType && LISTING_TYPES[it.listingType] ? h('span', null, LISTING_TYPES[it.listingType]) : it.meta ? h('span', null, it.meta) : null)),
+            it.price != null ? h('span', { className: 'bnk-mention__price' }, price(it.price, it.listingType, cur)) : null);
+        }))
+        : h('div', { className: 'bnk-mention__state', role: 'status' }, props.loading ? 'Suche …' : props.emptyText || 'Nichts gefunden.'));
+  }
+
+  /* AssetCard — Wertpapier als kleine Karte im Chat (!ASIN): Name, ASIN · Art, Kurs mit Veränderung,
+     Kursverlauf als Sparkline über die volle Breite, bis zu drei Eckdaten. */
+  function AssetCard(props) {
+    var cur = props.currency == null ? '€' : props.currency;
+    var type = props.listingType && LISTING_TYPES[props.listingType];
+    var cls = cx('bnk-acard', props.loading && 'is-loading', props.className);
+    if (props.error) {
+      return h('div', { className: cx(cls, 'is-error') },
+        h('div', { className: 'bnk-acard__head' },
+          h('span', { className: 'bnk-acard__id' }, h('span', { className: 'bnk-acard__asin' }, props.asin)),
+          h('span', { className: 'bnk-acard__note' }, props.error)));
+    }
+    if (props.loading) {
+      return h('div', { className: cls, 'aria-busy': 'true', 'aria-label': (props.asin || 'Wertpapier') + ' wird geladen' },
+        h('div', { className: 'bnk-acard__head' },
+          h('span', { className: 'bnk-acard__id' }, h(Skeleton, { variant: 'text', width: '70%' }), h('span', { className: 'bnk-acard__asin' }, props.asin)),
+          h(Skeleton, { variant: 'text', width: 72 })),
+        h(Skeleton, { variant: 'block', height: 56, className: 'bnk-acard__chart' }),
+        h('div', { className: 'bnk-acard__facts' }, h(Skeleton, { variant: 'text', width: '100%' })));
+    }
+    var spark = (props.spark || []).filter(function (v) { return v != null && !isNaN(v); });
+    var facts = (props.facts || []).slice(0, 3);
+    var inner = [
+      h('div', { key: 'h', className: 'bnk-acard__head' },
+        h('span', { className: 'bnk-acard__id' },
+          h('span', { className: 'bnk-acard__name' }, props.name || props.asin),
+          h('span', { className: 'bnk-acard__meta' }, h('span', { className: 'bnk-acard__asin' }, props.asin), type ? h('span', null, type) : null)),
+        h('span', { className: 'bnk-acard__px' },
+          h('span', { className: 'bnk-acard__price' }, props.price != null ? price(props.price, props.listingType, cur) : '–'),
+          props.change != null ? h(PriceChange, { value: props.change, size: 'sm', suffix: props.changeSuffix }) : null)),
+      h('div', { key: 'c', className: 'bnk-acard__chart' },
+        spark.length > 1
+          ? h(Sparkline, { data: spark, width: 320, height: 56, label: props.name, currency: props.listingType && /BOND|REPO/.test(props.listingType) ? '%' : cur })
+          : h('span', { className: 'bnk-acard__nochart' }, 'Kein Kursverlauf'),
+        props.period ? h('span', { className: 'bnk-acard__period' }, props.period) : null),
+      facts.length ? h('dl', { key: 'f', className: 'bnk-acard__facts' }, facts.map(function (f, i) {
+        return h('div', { key: i }, h('dt', null, f.label), h('dd', null, f.value));
+      })) : null
+    ];
+    return props.href ? h('a', { className: cls, href: props.href }, inner) : h('div', { className: cls }, inner);
+  }
 
   /* UserPicker — Spieler per Namen suchen und auswählen; gewählte als Chips mit ✕. Sucht nicht selbst: onSearch liefert den Text, results die Treffer. */
   function UserPicker(props) {
@@ -3781,6 +3876,8 @@
   window.Bankiersgruen.ForumEditor = ForumEditor;
   window.Bankiersgruen.Pagination = Pagination;
   window.Bankiersgruen.StockEmbed = StockEmbed;
+  window.Bankiersgruen.MentionMenu = MentionMenu;
+  window.Bankiersgruen.AssetCard = AssetCard;
   window.Bankiersgruen.HelpfulButton = HelpfulButton;
   window.Bankiersgruen.ForumText = ForumText;
   window.Bankiersgruen.OrderTicket = OrderTicket;
