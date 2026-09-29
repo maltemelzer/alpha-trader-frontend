@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DS } from '../ds';
 import { useComments, useCreateComment, useEditPost, useLikes, useMe, useNewsPost, usePostInterest, useReact } from '../api/queries';
-import { htmlToMarkup, markupToHtml, postText } from '../lib/html';
+import { htmlToMarkup, markupToHtml, postBody } from '../lib/html';
 import { useIsPhone } from '../lib/useMediaQuery';
 import { ReportDialog, type ReportTarget } from '../forum/ReportDialog';
 import { FollowControl } from './FollowControl';
@@ -99,7 +99,7 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
         </div>
       )}
       <div className="article__body">
-        <DS.ForumText text={postText(p.content)} />
+        <DS.ForumText {...postBody(p.content)} />
       </div>
       {tags.length > 0 && (
         <p className="article__tags">
@@ -131,7 +131,7 @@ export function Article({ postId, onClose }: { postId: string; onClose: () => vo
                 author={{ name: c.author?.username ?? '?', href: `/spieler/${encodeURIComponent(c.author?.username ?? '')}` }}
                 number={i + 1}
                 time={c.dateCreated ? DS.format.dateTime(c.dateCreated) : undefined}
-                text={postText(c.content)}
+                {...postBody(c.content)}
                 actions={
                   <DS.Button
                     variant="ghost"

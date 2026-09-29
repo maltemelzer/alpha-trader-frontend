@@ -10,6 +10,7 @@
 //   npm run shot -- / --whatsnew                      # with „Neu bei Alpha-Trader“ (hidden by default)
 //   npm run shot -- / --hover '.bnk-psum__bar'              # hover an element before the shot (tooltips)
 //   npm run shot -- /markt --click '.shell__title'          # click an element before the shot (menus, sheets)
+//   npm run shot -- / --type '.global-search input=BOXLWU96VV' # type into a field before the shot (search, chat)
 //
 // Read-only: it only navigates; it never clicks buy/sell.
 
@@ -54,6 +55,7 @@ const app = opt('--app', 'http://localhost:5173');
 const wait = Number(opt('--wait', 2500));
 const hover = opt('--hover');
 const click = opt('--click');
+const type = opt('--type');
 const local = args.flatMap((a, i) => (args[i - 1] === '--local' ? [a.split('=')] : []));
 // „Neu bei Alpha-Trader“ would cover every page: count everything as read, unless --whatsnew.
 if (!args.includes('--whatsnew')) local.unshift(['at.whatsnew', '{"engine":9e15,"ui":"9999"}']);
@@ -100,6 +102,16 @@ try {
         await (width < 720 ? el.tap() : el.click());
         await new Promise((r) => setTimeout(r, 600));
       } else console.log(`  click: no element matches ${click}`);
+    }
+    if (type) {
+      const at = type.indexOf('=');
+      const sel = type.slice(0, at);
+      const el = await page.$(sel);
+      if (el) {
+        await el.focus();
+        await page.keyboard.type(type.slice(at + 1), { delay: 30 });
+        await new Promise((r) => setTimeout(r, 3500));
+      } else console.log(`  type: no element matches ${sel}`);
     }
     if (hover) {
       const el = await page.$(hover);

@@ -28,6 +28,7 @@ import type {
 import { useEffect } from 'react';
 import type { ApiMessage } from '../lib/messages';
 import { mergeTrades } from '../app/tape';
+import { isAsin, mergeHits, searchTerm, type SecurityHit } from '../lib/securitySearch';
 import { NOTE_TYPE, referrerOf, type NoteRequest, type UserChange } from '../me/account';
 import type { AddOrderQuery } from '../orders/derive';
 import { SEEN_TYPE as FRONTEND_PREF_TYPE } from '../whatsnew/derive';
@@ -350,6 +351,50 @@ export function useSpreadSearch(search: string, size = 100) {
     queryKey: ['spreadsearch', q, size],
     enabled: q.length >= 2,
     queryFn: () => getPage<MarketRow>('/api/v2/pricespreads', { search: q, pageable: { page: 0, size } }),
+    placeholderData: (prev) => prev,
+    staleTime: LIVE,
+  });
+}
+
+const lastValue = (p: number | { value: number } | null | undefined) => (typeof p === 'number' ? p : (p?.value ?? undefined));
+
+/**
+ * Securities by name or ASIN, including bonds (which `pricespreads?search=` leaves out) and, for an
+ * exact ASIN, any listing at all (warrants, repos, matured bonds). See `lib/securitySearch`.
+ */
+export function useSecuritySearch(search: string, size = 8) {
+  const q = searchTerm(search);
+  return useQuery({
+    queryKey: ['securitysearch', q, size],
+    enabled: q.length >= 2,
+    queryFn: async (): Promise<SecurityHit[]> => {
+      const soft = <T>(p: Promise<T>) => p.catch(() => null);
+      const [spreads, bonds, exact] = await Promise.all([
+        soft(getPage<MarketRow>('/api/v2/pricespreads', { search: q, pageable: { page: 0, size } })),
+        soft(getPage<BondView>('/api/v2/bonds', { search: q, pageable: { page: 0, size } })),
+        isAsin(q) ? soft(listingQuery(q.toUpperCase()).queryFn()) : null,
+      ]);
+      return mergeHits(
+        {
+          exact: exact?.securityIdentifier
+            ? { asin: exact.securityIdentifier, name: exact.name ?? exact.securityIdentifier, type: exact.type ?? 'OTHER' }
+            : null,
+          spreads: (spreads?.content ?? []).map((r) => ({
+            asin: r.listing.securityIdentifier,
+            name: r.listing.name,
+            type: r.listing.type,
+            price: r.lastPrice?.value ?? undefined,
+          })),
+          bonds: (bonds?.content ?? []).map((b) => ({
+            asin: b.listing.securityIdentifier,
+            name: b.listing.name,
+            type: b.listing.type ?? 'BOND',
+            price: lastValue(b.priceSpread?.lastPrice),
+          })),
+        },
+        size,
+      );
+    },
     placeholderData: (prev) => prev,
     staleTime: LIVE,
   });

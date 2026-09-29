@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { DS } from '../ds';
-import { useSpreadSearch } from '../api/queries';
+import { useSecuritySearch } from '../api/queries';
 import { useDebounced } from '../lib/useDebounced';
+import { searchTerm } from '../lib/securitySearch';
 
 const typeLabel = (t: string) => (DS.LISTING_TYPES as Record<string, string>)[t] ?? t;
 
@@ -10,13 +11,13 @@ const typeLabel = (t: string) => (DS.LISTING_TYPES as Record<string, string>)[t]
 export function GlobalSearch() {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
-  const search = useSpreadSearch(useDebounced(q, 250), 8);
-  const results = (search.data?.content ?? []).map((r) => ({
-    id: r.listing.securityIdentifier,
-    name: r.listing.name,
-    ticker: r.listing.securityIdentifier,
-    meta: typeLabel(r.listing.type),
-    price: r.lastPrice?.value ?? undefined,
+  const search = useSecuritySearch(useDebounced(q, 250), 8);
+  const results = (search.data ?? []).map((r) => ({
+    id: r.asin,
+    name: r.name,
+    ticker: r.asin,
+    meta: typeLabel(r.type),
+    price: r.price,
   }));
   return (
     <div className="global-search">
@@ -28,9 +29,9 @@ export function GlobalSearch() {
         align="end"
         value={q}
         onChange={setQ}
-        results={q.trim().length >= 2 ? results : []}
+        results={searchTerm(q).length >= 2 ? results : []}
         loading={search.isFetching}
-        emptyText={q.trim().length < 2 ? 'Mindestens zwei Zeichen eingeben.' : 'Nichts gefunden.'}
+        emptyText={searchTerm(q).length < 2 ? 'Mindestens zwei Zeichen eingeben.' : 'Nichts gefunden.'}
         onSelect={(r) => {
           setQ('');
           if (r.id) navigate(`/wertpapier/${r.id}`);

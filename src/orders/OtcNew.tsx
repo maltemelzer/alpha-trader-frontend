@@ -7,10 +7,11 @@ import {
   useListings,
   useOtcCounterparties,
   usePriceSpread,
-  useSpreadSearch,
+  useSecuritySearch,
 } from '../api/queries';
 import { toSpread } from '../api/types';
 import { useDebounced } from '../lib/useDebounced';
+import { searchTerm } from '../lib/securitySearch';
 import { counterpartyLabel, otcOfferParams, rankCounterparties } from './derive';
 import type { MyAccount } from './Otc';
 
@@ -59,13 +60,13 @@ function CounterpartyPicker({
 /** Security search for the ticket when no ASIN is given yet. */
 function ListingPicker({ onPick }: { onPick: (asin: string) => void }) {
   const [q, setQ] = useState('');
-  const search = useSpreadSearch(useDebounced(q, 250), 8);
-  const results = (search.data?.content ?? []).map((r) => ({
-    id: r.listing.securityIdentifier,
-    name: r.listing.name,
-    ticker: r.listing.securityIdentifier,
-    meta: typeLabel(r.listing.type),
-    price: r.lastPrice?.value ?? undefined,
+  const search = useSecuritySearch(useDebounced(q, 250), 8);
+  const results = (search.data ?? []).map((r) => ({
+    id: r.asin,
+    name: r.name,
+    ticker: r.asin,
+    meta: typeLabel(r.type),
+    price: r.price,
   }));
   return (
     <DS.StockSearch
@@ -73,9 +74,9 @@ function ListingPicker({ onPick }: { onPick: (asin: string) => void }) {
       placeholder="Name oder ASIN"
       value={q}
       onChange={setQ}
-      results={q.trim().length >= 2 ? results : []}
+      results={searchTerm(q).length >= 2 ? results : []}
       loading={search.isFetching}
-      emptyText={q.trim().length < 2 ? 'Mindestens zwei Zeichen eingeben.' : 'Nichts gefunden.'}
+      emptyText={searchTerm(q).length < 2 ? 'Mindestens zwei Zeichen eingeben.' : 'Nichts gefunden.'}
       onSelect={(r) => r.id && onPick(r.id)}
     />
   );

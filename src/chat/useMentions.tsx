@@ -1,6 +1,6 @@
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { DS } from '../ds';
-import { useSpreadSearch } from '../api/queries';
+import { useSecuritySearch } from '../api/queries';
 import { useDebounced } from '../lib/useDebounced';
 import { activeTrigger, applyMention, type MentionTrigger } from './mentions';
 
@@ -24,15 +24,11 @@ export function useMentions(value: string, setValue: (v: string) => void, ref: R
   const active = marked.key === key ? marked.i : 0;
   const setActive = (i: number) => setMarked({ key, i });
   const query = useDebounced(open ? trigger.query : '', 200);
-  const search = useSpreadSearch(query, 8);
+  // Bonds too (the spread search alone has none), and any listing for a full ASIN.
+  const search = useSecuritySearch(query, 8);
   const items =
     open && query.length >= 2
-      ? (search.data?.content ?? []).map((r) => ({
-          asin: r.listing.securityIdentifier,
-          name: r.listing.name,
-          listingType: r.listing.type,
-          price: r.lastPrice?.value ?? undefined,
-        }))
+      ? (search.data ?? []).map((r) => ({ asin: r.asin, name: r.name, listingType: r.type, price: r.price }))
       : [];
 
   // After picking, the caret goes behind the inserted ASIN.

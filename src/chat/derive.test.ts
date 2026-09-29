@@ -69,6 +69,10 @@ describe('toThread', () => {
     const t = toThread([live], { me: 'Ich', now });
     expect(t[1]).toMatchObject({ own: false, author: { name: 'Frieda' } });
   });
+  it('shows links to a security in the game as #ASIN', () => {
+    const t = toThread([msg('1', 'Frieda', 'Guck mal https://alpha-trader.com/security/asin/BOXLWU96VV', at(24, 9))], { now });
+    expect(t[1].text).toBe('Guck mal #BOXLWU96VV');
+  });
   it('shows no read receipts in group chats', () => {
     const t = toThread([msg('1', 'Ich', 'Hallo', at(24, 9))], { direct: false, now });
     expect(t[1].status).toBeUndefined();

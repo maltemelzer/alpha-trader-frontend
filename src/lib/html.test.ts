@@ -1,4 +1,4 @@
-import { htmlToMarkup, htmlToText, markupToHtml, textToHtml } from './html';
+import { gameLinksToMentions, htmlToMarkup, postBody, htmlToText, markupToHtml, textToHtml } from './html';
 
 describe('htmlToText', () => {
   it('keeps paragraphs and line breaks, drops tags, decodes entities', () => {
@@ -67,5 +67,38 @@ describe('htmlToMarkup', () => {
   it('round-trips the editor markup', () => {
     const text = '## Kopf\n\nText mit **fett**, *kursiv* und [Link](https://a.de)\nzweite Zeile\n\n- a\n- b\n\n> Zitat';
     expect(htmlToMarkup(markupToHtml(text))).toBe(text);
+  });
+  it('shows bare links to a security as #ASIN', () => {
+    const html =
+      '<p>Schaut mal <a href="https://alpha-trader.com/security/asin/BOXLWU96VV">https://alpha-trader.com/security/asin/BOXLWU96VV</a>' +
+      ' und https://alpha-trader.com/security/asin/STSN3G03LB.</p>';
+    expect(htmlToMarkup(html, { localLinks: true })).toBe('Schaut mal #BOXLWU96VV und #STSN3G03LB.');
+  });
+  it('writes #ASIN as a link into the game and reads it back', () => {
+    const html = markupToHtml('Kauf #BOXLWU96VV, nicht Abc#BOXLWU96VV');
+    expect(html).toBe(
+      '<p>Kauf <a href="https://alpha-trader.com/security/asin/BOXLWU96VV">#BOXLWU96VV</a>, nicht Abc#BOXLWU96VV</p>',
+    );
+    expect(htmlToMarkup(html)).toBe('Kauf #BOXLWU96VV, nicht Abc#BOXLWU96VV');
+    expect(htmlToMarkup(html, { localLinks: true })).toBe('Kauf #BOXLWU96VV, nicht Abc#BOXLWU96VV');
+  });
+});
+
+describe('gameLinksToMentions', () => {
+  it('turns game security links into #ASIN and leaves the rest', () => {
+    expect(
+      gameLinksToMentions(
+        'https://alpha-trader.com/security/asin/boxlwu96vv, https://www.alpha-trader.com/v2/security/STSN3G03LB/ und https://alpha-trader.com/security/asin/STSN3G03LB/orders',
+      ),
+    ).toBe('#BOXLWU96VV, #STSN3G03LB und https://alpha-trader.com/security/asin/STSN3G03LB/orders');
+  });
+});
+
+describe('postBody', () => {
+  it('links every #ASIN of a post', () => {
+    expect(postBody('<p>Siehe https://alpha-trader.com/security/asin/BOXLWU96VV und #STSN3G03LB, nicht #Top</p>')).toEqual({
+      text: 'Siehe #BOXLWU96VV und #STSN3G03LB, nicht #Top',
+      tickers: { BOXLWU96VV: { href: '/wertpapier/BOXLWU96VV' }, STSN3G03LB: { href: '/wertpapier/STSN3G03LB' } },
+    });
   });
 });
