@@ -29,24 +29,26 @@ export function textToHtml(text: string): string {
 // ---------- Posts: editor markup ⇄ stored HTML ----------
 // The original game writes posts with TinyMCE and stores its HTML (<p>, <strong>, <h2>, lists,
 // links, images), one block per line. Our editor uses the DS forum markup instead:
-// **fett**, *kursiv*, ## Überschrift, > Zitat, - Liste, 1. Liste, [Text](https://…), ![Bild](https://…).
+// **fett**, *kursiv*, ## Überschrift, > Zitat, - Liste, 1. Liste, [Text](https://…), ![Bild](https://…), #ASIN.
 
 const SAFE_URL = /^https?:\/\/[^\s"'<>]+$/i;
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ESC[c]);
 // Earliest match wins; at the same position the first alternative does (image before link before URL).
 const INLINE =
-  /!\[([^\]]*)\]\(([^)\s]+)\)|\[([^\]]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s<]*[^\s<.,;:!?)"'»“])|\*\*([^*]+)\*\*|\*([^*\s][^*]*)\*/g;
+  /!\[([^\]]*)\]\(([^)\s]+)\)|\[([^\]]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s<]*[^\s<.,;:!?)"'»“])|\*\*([^*]+)\*\*|\*([^*\s][^*]*)\*|(?<![\w$#!])#([A-Z][A-Z0-9]{9})\b/g;
 
 function inlineHtml(text: string): string {
   let out = '';
   let last = 0;
   for (const m of text.matchAll(INLINE)) {
     out += esc(text.slice(last, m.index));
-    const [all, alt, src, label, href, url, bold, italic] = m;
+    const [all, alt, src, label, href, url, bold, italic, asin] = m;
     if (src !== undefined) out += SAFE_URL.test(src) ? `<img src="${esc(src)}" alt="${esc(alt)}" />` : esc(all);
     else if (href !== undefined)
       out += SAFE_URL.test(href) ? `<a href="${esc(href)}">${inlineHtml(label)}</a>` : esc(all);
     else if (url !== undefined) out += `<a href="${esc(url)}">${esc(url)}</a>`;
+    // #ASIN links to the security in the original game too (and reads back as #ASIN here).
+    else if (asin !== undefined) out += `<a href="https://alpha-trader.com/security/asin/${asin}">#${asin}</a>`;
     else if (bold !== undefined) out += `<strong>${inlineHtml(bold)}</strong>`;
     else out += `<em>${inlineHtml(italic)}</em>`;
     last = m.index + all.length;
@@ -114,6 +116,16 @@ const GAME_LINKS: [RegExp, string][] = [
   [/^https?:\/\/(?:www\.)?alpha-trader\.com\/(?:v2\/)?user\/([^/?#]+)\/?$/i, '/spieler/$1'],
 ];
 
+const SECURITY_LINK =
+  /https?:\/\/(?:www\.)?alpha-trader\.com\/(?:v2\/)?security\/(?:asin\/)?([A-Z][A-Z0-9]{9})\/?(?![\w/?#])/gi;
+
+/**
+ * Links to a security in the original game (https://alpha-trader.com/security/asin/X) → `#X`,
+ * which chat and posts render as a link into this app.
+ */
+export const gameLinksToMentions = (text: string) =>
+  text.replace(SECURITY_LINK, (_, asin: string) => `#${asin.toUpperCase()}`);
+
 function localHref(href: string): string {
   for (const [re, to] of GAME_LINKS) if (re.test(href)) return href.replace(re, to);
   try {
@@ -146,7 +158,10 @@ export function htmlToMarkup(html: string | null | undefined, opts: MarkupOption
   };
 
   const inline = (n: Node): string => {
-    if (n.nodeType === Node.TEXT_NODE) return (n.textContent ?? '').replace(/[ \t\r\n]+/g, ' ');
+    if (n.nodeType === Node.TEXT_NODE) {
+      const t = (n.textContent ?? '').replace(/[ \t\r\n]+/g, ' ');
+      return opts.localLinks ? gameLinksToMentions(t) : t;
+    }
     if (!(n instanceof Element)) return '';
     const tag = n.tagName.toLowerCase();
     if (tag === 'script' || tag === 'style') return '';
@@ -163,10 +178,15 @@ export function htmlToMarkup(html: string | null | undefined, opts: MarkupOption
     if (tag === 'strong' || tag === 'b') return wrap('**');
     if (tag === 'em' || tag === 'i') return wrap('*');
     if (tag === 'a') {
-      const h = href(n.getAttribute('href'));
+      const raw = n.getAttribute('href')?.trim() ?? '';
+      const h = href(raw);
       const label = inner.trim();
       if (!h) return inner;
-      return !label || label === n.getAttribute('href')?.trim() ? h : `[${label.replace(/[[\]]/g, '')}](${h})`;
+      // A bare link to a security reads as its mention, e.g. #STSN3G03LB (also when editing: that is how we write it).
+      const m = gameLinksToMentions(raw);
+      if (/^#[A-Z0-9]{10}$/.test(m) && (label === m || (opts.localLinks && (!label || label === raw || label === m.slice(1)))))
+        return m;
+      return !label || label === raw ? h : `[${label.replace(/[[\]]/g, '')}](${h})`;
     }
     return inner;
   };
@@ -219,3 +239,14 @@ function tidy(s: string): string {
 
 /** A stored post as `ForumText` shows it: markup with game links pointing into this app. */
 export const postText = (html: string | null | undefined) => htmlToMarkup(html, { localLinks: true });
+
+/**
+ * Props for DS.ForumPost/ForumText: the post as markup plus a link for every #ASIN in it
+ * (the design system only links mentions it gets an `href` for).
+ */
+export function postBody(html: string | null | undefined) {
+  const text = postText(html);
+  const tickers: Record<string, { href: string }> = {};
+  for (const [, asin] of text.matchAll(/(?<![\w$#!])#([A-Z][A-Z0-9]{9})\b/g)) tickers[asin] = { href: `/wertpapier/${asin}` };
+  return { text, tickers };
+}

@@ -15,6 +15,7 @@ import { chatKind, chatTitle, toConversations, toThread } from './derive';
 import { AssetEmbed } from './AssetEmbed';
 import { MembersSheet } from './MembersSheet';
 import { mentionedAsins } from './mentions';
+import { gameLinksToMentions } from '../lib/html';
 import { useMentions } from './useMentions';
 import { NewChatDialog } from './NewChatDialog';
 import './ChatPage.css';
@@ -246,7 +247,11 @@ function Thread({ chatId, me, direct, unread }: { chatId: string; me?: string; d
   const messages = useMemo(() => (q.data ? q.data.pages.slice().reverse().flat() : []), [q.data]);
   const thread = useMemo(() => toThread(messages, { me, direct }), [messages, me, direct]);
   // #ASIN / !ASIN (old: $ASIN) link the security; the name comes as tooltip (listings are cached for the session).
-  const asins = useMemo(() => [...new Set(messages.flatMap((m) => mentionedAsins(m.content)))], [messages]);
+  // Game links count too: toThread shows them as #ASIN.
+  const asins = useMemo(
+    () => [...new Set(messages.flatMap((m) => mentionedAsins(gameLinksToMentions(m.content ?? ''))))],
+    [messages],
+  );
   const listings = useListings(asins);
   const tickers = useMemo(
     () => Object.fromEntries(asins.map((a) => [a, { href: `/wertpapier/${a}`, name: listings[a]?.name }])),

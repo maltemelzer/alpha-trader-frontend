@@ -17,7 +17,7 @@ import {
   type BoardView,
 } from '../api/queries';
 import { ReportDialog, type ReportTarget } from './ReportDialog';
-import { htmlToText, markupToHtml, postText } from '../lib/html';
+import { htmlToText, markupToHtml, postBody } from '../lib/html';
 import { useHighlight } from '../lib/highlight';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone } from '../lib/useMediaQuery';
@@ -421,7 +421,7 @@ function Thread({ boardId, postId }: { boardId: string; postId: string }) {
             number={1}
             author={author(p.author)}
             time={p.dateCreated ? DS.format.dateTime(p.dateCreated) : undefined}
-            text={postText(p.content)}
+            {...postBody(p.content)}
             actions={reportButton(p.id, p.author, 1)}
           />
           {(comments.data ?? []).map((c, i) => (
@@ -430,7 +430,7 @@ function Thread({ boardId, postId }: { boardId: string; postId: string }) {
               number={i + 2}
               author={author(c.author)}
               time={c.dateCreated ? DS.format.dateTime(c.dateCreated) : undefined}
-              text={postText(c.content)}
+              {...postBody(c.content)}
               actions={reportButton(c.id, c.author, i + 2)}
             />
           ))}

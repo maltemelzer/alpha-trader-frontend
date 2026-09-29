@@ -1,6 +1,7 @@
 // Pure mapping from API chats/messages to the design system's chat props.
 import type { ChatMessage, Conversation } from '../../design-system/components';
 import type { ChatMembershipView, ChatRoomView, ChatView, MessageView } from '../api/types';
+import { gameLinksToMentions } from '../lib/html';
 
 const DAY = 86_400_000;
 const WEEKDAYS = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
@@ -91,7 +92,8 @@ export function toThread(
       id: m.id,
       own,
       author: own ? undefined : { name: m.sender?.username ?? '?' },
-      text: content,
+      // Links into the original game read as #ASIN and open here.
+      text: gameLinksToMentions(content),
       time: clock(date),
       // Read receipts only mean something between two people.
       status: lastOwn && opts.direct ? (m.read ? 'Gelesen' : 'Gesendet') : undefined,
@@ -105,8 +107,9 @@ function preview(c: ChatView, me?: string): string {
   if (!m?.content) return '';
   const sys = systemText(m.content);
   if (sys) return sys;
-  if (isOwn(m, me)) return `Du: ${m.content}`;
-  return chatKind(c) === 'direct' ? m.content : `${m.sender?.username}: ${m.content}`;
+  const text = gameLinksToMentions(m.content);
+  if (isOwn(m, me)) return `Du: ${text}`;
+  return chatKind(c) === 'direct' ? text : `${m.sender?.username}: ${text}`;
 }
 
 const lastActivity = (c: ChatView) => c.lastMessage?.dateSent ?? c.dateCreated;

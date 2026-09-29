@@ -32,6 +32,16 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-29',
+    title: 'Suche findet Anleihen, Spiel-Links als #ASIN',
+    items: [
+      { text: 'Die Suche oben findet jetzt auch Anleihen – per Name oder ASIN. Eine vollständige ASIN findet jedes Wertpapier, auch Optionsscheine und abgelaufene Anleihen.' },
+      { text: 'Auch die Vorschläge nach „#“ und „!“ im Chat finden jetzt Anleihen.', href: '/nachrichten' },
+      { text: '„#BOXLWU96VV“ ist jetzt auch in Zeitung und Forum ein Link aufs Wertpapier.' },
+      { text: 'Links ins Original-Spiel (alpha-trader.com/security/asin/…) erscheinen als #ASIN und öffnen das Wertpapier hier.' },
+    ],
+  },
+  {
     id: '2026-09-28-7',
     title: 'Order: Limit ist jetzt Standard',
     items: [

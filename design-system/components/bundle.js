@@ -1315,18 +1315,18 @@
   /* ---------- Forum ---------- */
 
   /* Einfaches Forum-Markup: **fett**, *kursiv*, ## Überschrift, > Zitat, - Liste, 1. Liste, [Text](https://…), https://…,
-     ![Bild](https://…), $TICKER. Absätze durch Leerzeile. Kein HTML – Links und Bilder nur mit http(s) bzw. „/…“ (intern). */
+     ![Bild](https://…), $TICKER, #ASIN. Absätze durch Leerzeile. Kein HTML – Links und Bilder nur mit http(s) bzw. „/…“ (intern). */
   function forumHref(u) { return /^https?:\/\/[^\s"'<>]+$/i.test(u) || /^\/(?!\/)[^\s"'<>]*$/.test(u) ? u : null; }
   function forumLink(href, children, key) {
     var ext = /^https?:/i.test(href);
     return h('a', { key: key, href: href, className: 'bnk-fbody__link', target: ext ? '_blank' : undefined, rel: ext ? 'noopener noreferrer' : undefined }, children);
   }
   function forumInline(text, tickers, keyBase) {
-    var out = [], re = /(!\[[^\]]*\]\([^)\s]+\)|\[[^\]]+\]\([^)\s]+\)|https?:\/\/[^\s<]*[^\s<.,;:!?)"'»“]|\*\*[^*]+\*\*|\*[^*\s][^*]*\*|\$[A-Z][A-Z0-9]{1,9}\b)/g, last = 0, m, k = 0;
+    var out = [], re = /(!\[[^\]]*\]\([^)\s]+\)|\[[^\]]+\]\([^)\s]+\)|https?:\/\/[^\s<]*[^\s<.,;:!?)"'»“]|\*\*[^*]+\*\*|\*[^*\s][^*]*\*|\$[A-Z][A-Z0-9]{1,9}\b|(?<![\w$#!])#[A-Z][A-Z0-9]{9}\b)/g, last = 0, m, k = 0;
     while ((m = re.exec(text))) {
       if (m.index > last) out.push(text.slice(last, m.index));
       var t = m[0], key = keyBase + '-' + (k++), lm, href;
-      if (t.charAt(0) === '$') out.push(h(TickerMention, { key: key, ticker: t.slice(1), info: tickers && tickers[t.slice(1)] }));
+      if (t.charAt(0) === '$' || t.charAt(0) === '#') out.push(h(TickerMention, { key: key, ticker: t.slice(1), prefix: t.charAt(0), info: tickers && tickers[t.slice(1)] }));
       else if ((lm = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(t))) {
         href = forumHref(lm[2]);
         out.push(href ? h('img', { key: key, src: href, alt: lm[1], loading: 'lazy', className: 'bnk-fbody__img' }) : t);

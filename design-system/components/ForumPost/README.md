@@ -3,7 +3,7 @@ Ein Beitrag im Zeitungsstil: Autorzeile oben, darunter der Text, dann Aktionen. 
 ## Aufbau
 - **Autorzeile:** Kreis mit Kürzel (36px), Name fett, Rang-Medaille (`RankBadge`), Kennzeichen „Themenstarter“ oder „Moderation“ als umrandetes Etikett. Darunter Allianz und Beitragszahl. Rechts Zeit und Beitragsnummer (#12) in Mono.
 - **Text:** 15px/24px, höchstens 72 Zeichen breit, eingerückt auf Höhe des Namens. Der erste Beitrag (`op`) etwas größer (16px/26px).
-- **Formatierung** (`text`): `**fett**`, `*kursiv*`, `> Zitat`, `- Liste`, Absätze durch Leerzeile, `$HRD` wird zur Ticker-Erwähnung mit Kursveränderung. Kein HTML.
+- **Formatierung** (`text`): `**fett**`, `*kursiv*`, `> Zitat`, `- Liste`, Absätze durch Leerzeile, `$HRD` wird zur Ticker-Erwähnung mit Kursveränderung, `#STSN3G03LB` (volle ASIN) ebenso – verlinkt, wenn `tickers` ein `href` dafür hat. Kein HTML.
 - **Zitat** (`quote`): 2px-Linie in `line-strong` links, Text in `text-secondary`, darüber „Name schrieb in #1:“.
 - **Einbettungen:** `stocks` als `StockEmbed` (Name, Ticker, Sparkline, Kurs, Veränderung), `trade` als `TradeShare` wie im Chat.
 - **Aktionen:** „Hilfreich“ mit Zähler, „Zitieren“, „Antworten“ als Ghost-Buttons. Bearbeitet-Hinweis in `text-muted`.
