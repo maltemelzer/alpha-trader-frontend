@@ -2494,6 +2494,39 @@
         : props.hint ? h('div', { id: name + '-msg', className: 'bnk-check__msg' }, props.hint) : null);
   }
 
+  /* RatingInput — Bewertung mit 1–5 Sternen. Native Radios (Pfeiltasten, Tab), jeder Stern 44 px Tippfläche,
+     Hover zeigt die Wahl vorab, rechts das Wort zur Zahl („gut“). Gefüllt in Messing, leer als Umriss. */
+  var RATING_WORDS = ['schlecht', 'geht so', 'okay', 'gut', 'sehr gut'];
+  function RatingInput(props) {
+    var name = useFieldId(props.name);
+    var max = props.max || 5;
+    var words = props.labels || (max === 5 ? RATING_WORDS : []);
+    var ctl = props.value !== undefined;
+    var st = React.useState(props.defaultValue != null ? props.defaultValue : null);
+    var hover = React.useState(null);
+    var value = ctl ? props.value : st[0];
+    var shown = hover[0] != null ? hover[0] : value;
+    var stars = [];
+    for (var i = 1; i <= max; i++) stars.push(i);
+    return h('fieldset', { className: cx('bnk-rating', props.size === 'lg' && 'is-lg', props.error && 'is-invalid', props.className), disabled: props.disabled,
+      'aria-describedby': props.error || props.hint ? name + '-msg' : undefined },
+      props.label ? h('legend', { className: 'bnk-field__label' }, props.label) : null,
+      h('div', { className: 'bnk-rating__row', onMouseLeave: function () { hover[1](null); } },
+        stars.map(function (n) {
+          var oid = name + '-' + n;
+          return h(React.Fragment, { key: n },
+            h('input', { type: 'radio', id: oid, name: name, value: String(n), checked: value === n, className: 'bnk-rating__input',
+              onChange: function () { if (!ctl) st[1](n); if (props.onChange) props.onChange(n); } }),
+            h('label', { htmlFor: oid, className: cx('bnk-rating__star', shown != null && n <= shown && 'is-on'), onMouseEnter: function () { hover[1](n); } },
+              h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false' },
+                h('path', { d: 'M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z' })),
+              h('span', { className: 'bnk-sr' }, n + ' von ' + max + (words[n - 1] ? ' – ' + words[n - 1] : ''))));
+        }),
+        h('span', { className: 'bnk-rating__word', 'aria-hidden': 'true' }, shown != null && words[shown - 1] ? words[shown - 1] : ' ')),
+      props.error ? h('div', { id: name + '-msg', className: 'bnk-check__msg is-error' }, h('span', { 'aria-hidden': 'true' }, '✕ '), props.error)
+        : props.hint ? h('div', { id: name + '-msg', className: 'bnk-check__msg' }, props.hint) : null);
+  }
+
   /* Tooltip — kurze Erklärung bei Hover, Fokus und Antippen, Escape schließt. Nur Text, nichts Anklickbares darin.
      Die Blase hängt per Portal an document.body und steht fest (position: fixed) am Auslöser – so schneiden
      scrollende Tabellen und Karten (overflow) sie nicht ab. Beim Scrollen oder Größenwechsel schließt sie. */
@@ -4041,4 +4074,5 @@
   window.Bankiersgruen.NewsFeed = NewsFeed;
   window.Bankiersgruen.NewsItem = NewsItem;
   window.Bankiersgruen.Countdown = Countdown;
+  window.Bankiersgruen.RatingInput = RatingInput;
 })();

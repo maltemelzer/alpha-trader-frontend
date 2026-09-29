@@ -1,0 +1,177 @@
+/* Floating „Test“ pill of a running experiment (bottom right; on the phone above the BottomNav). */
+.expbar {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 40;
+  display: flex;
+  align-items: stretch;
+  max-width: calc(100vw - 2 * var(--space-4));
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-primary);
+}
+
+.expbar__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  min-width: 0;
+  padding: 0 var(--space-2) 0 var(--space-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.expbar__main:focus-visible,
+.expbar__close:focus-visible,
+.expbar--mini:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: 2px;
+}
+
+.expbar__tag {
+  flex: none;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--brass);
+  border-radius: var(--radius-pill);
+  color: var(--brass);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.expbar__text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+
+.expbar__text strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.expbar__action {
+  flex: none;
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--border);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.expbar__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  background: none;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.expbar__main:hover .expbar__action,
+.expbar__close:hover {
+  color: var(--text-primary);
+}
+
+.expbar--mini {
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  color: var(--brass);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  .expbar__main,
+  .expbar__close,
+  .expbar--mini {
+    min-height: 44px;
+  }
+  .expbar__close {
+    width: 44px;
+  }
+}
+
+/* Phone: above the BottomNav (72 px incl. its room, see AppShell.css) */
+@media (max-width: 719.98px) {
+  .expbar {
+    right: var(--space-3);
+    bottom: calc(72px + env(safe-area-inset-bottom) + var(--space-2));
+  }
+  .expbar__count {
+    display: none;
+  }
+}
+
+/* The sheet */
+.expsheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.expsheet__intro,
+.expsheet__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.expsheet__note {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.expsheet__rate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.expsheet__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.expsheet__admin {
+  margin-right: auto;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Host of an experiment page */
+.exphost {
+  display: contents;
+}
+
+.exphost__wait {
+  place-items: center;
+}

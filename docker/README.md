@@ -33,6 +33,23 @@ Personal Access Token (classic) nur mit `read:packages` als Passwort.
 
 Ändert sich `compose.yaml` oder `docker/update.sh`, auf dem Pi `git pull` ausführen – der Cron-Job holt nur Images.
 
+## Feedback-Dienst (Experimente)
+
+Seit den Experimenten laufen zwei Container: `frontend` (nginx) und `feedback` (`feedback/`, Bewertungen und
+Kommentare zu Varianten, SQLite im Volume `feedback-data`). nginx leitet `/feedback-api/` weiter und startet auch,
+wenn `feedback` fehlt (dann antwortet nur `/feedback-api/` mit 502).
+
+Einmalig auf dem Pi:
+
+```sh
+cd ~/alpha-trader-frontend && git pull          # neue compose.yaml + update.sh
+echo "FEEDBACK_ADMINS=DeinSpielername" >> .env   # wer die Auswertung /experimente sehen darf
+./docker/update.sh
+```
+
+Das Paket `alpha-trader-feedback` in GHCR wie das Frontend auf **Public** stellen (oder `docker login ghcr.io`).
+Sicherung: `docker compose cp feedback:/data/feedback.db ./feedback-backup.db`. Details in `feedback/README.md`.
+
 ## Alten Runner entfernen (einmalig)
 
 Der frühere selbst gehostete Runner `pi-5` ist in GitHub bereits abgemeldet. Auf dem Pi den Dienst stoppen und löschen:

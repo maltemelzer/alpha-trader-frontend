@@ -61,3 +61,15 @@ jobs:
             -t "$IMAGE:latest" -t "$IMAGE:sha-${GITHUB_SHA::7}" \
             --push .
           echo "Pushed $IMAGE:latest (sha-${GITHUB_SHA::7})" >> "$GITHUB_STEP_SUMMARY"
+
+      # Feedback service (feedback/): plain files on a node image, also without emulation.
+      - name: Build and push feedback service (amd64 + arm64)
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/alpha-trader-feedback"
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --label org.opencontainers.image.source="https://github.com/${GITHUB_REPOSITORY}" \
+            --label org.opencontainers.image.revision="${GITHUB_SHA}" \
+            -t "$IMAGE:latest" -t "$IMAGE:sha-${GITHUB_SHA::7}" \
+            --push feedback
+          echo "Pushed $IMAGE:latest (sha-${GITHUB_SHA::7})" >> "$GITHUB_STEP_SUMMARY"

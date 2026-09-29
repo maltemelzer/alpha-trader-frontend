@@ -6,6 +6,7 @@ import { RequireAuth } from './auth/RequireAuth';
 import { AppShell } from './app/AppShell';
 import { LoginPage } from './pages/LoginPage';
 import { MarketPage } from './market/MarketPage';
+import { ExperimentsPage } from './experiments/ExperimentsPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SecurityPage } from './security/SecurityPage';
 import { ChatPage } from './chat/ChatPage';
@@ -54,6 +55,7 @@ export function App() {
             >
               <Route index element={<Navigate to="/markt" replace />} />
               <Route path="markt" element={<MarketPage />} />
+              <Route path="experimente" element={<ExperimentsPage />} />
               <Route path="wertpapier/:asin" element={<SecurityPage />} />
               <Route path="organisation" element={<OrganisationPage />} />
               <Route path="portfolio" element={<Navigate to="/organisation" replace />} />
