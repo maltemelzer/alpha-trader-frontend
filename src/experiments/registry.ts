@@ -1,5 +1,5 @@
-// Experiments: several variants of one page, each player gets one of them (fixed by name), can look at the
-// others and rates them. Ratings, comments and usage figures go to the feedback service (feedback/).
+// Experiments: several variants of one page. Players go through all of them (or get one, `mode: 'ab'`),
+// rate each and say which one should stay. Ratings, comments and usage figures go to the feedback service (feedback/).
 // A new experiment: add an entry here and render its page through `<ExperimentHost id pages={{ variant: Page }}>`.
 
 export interface Variant {
@@ -20,6 +20,11 @@ export interface Experiment {
   /** last day (inclusive, JJJJ-MM-TT); afterwards everyone sees `fallback` and the bar is gone */
   until: string;
   fallback: string;
+  /**
+   * compare (default): every player sees every variant in turn (own order), rates each and decides at the
+   * end – for few players. ab: each player gets one variant, the others only on request – for many players.
+   */
+  mode?: 'compare' | 'ab';
 }
 
 // No experiment running. Example (the variants' pages go to <ExperimentHost id="start" pages={…}>):

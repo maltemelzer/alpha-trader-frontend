@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { DS } from '../ds';
-import { FeedbackError, MAX_COMMENT, useMyFeedback, useSaveFavorite, useSaveRating } from './api';
-import { shouldPrompt } from './assign';
+import { FeedbackError, MAX_COMMENT, useMyFeedback, useSaveFavorite, useSaveRating, type MyFeedback } from './api';
+import { nextInTour, PROMPT_AFTER_MS, shouldPrompt } from './assign';
 import { updateLocal, type ExperimentState } from './useExperiment';
 import './ExperimentBar.css';
 
@@ -16,17 +16,28 @@ function readCollapsed(): boolean {
   }
 }
 
+/** Where the player stands: what the bar offers next. */
+function stepOf(x: ExperimentState, variant: string) {
+  const rated = x.rated.includes(variant);
+  const next = x.mode === 'compare' ? nextInTour(x.order, x.rated, variant) : undefined;
+  const allRated = x.exp.variants.every((v) => x.rated.includes(v.id));
+  if (!rated) return { action: 'Bewerten', next };
+  if (next) return { action: 'Weiter', next };
+  if (x.mode === 'compare' && allRated && !x.favorite) return { action: 'Entscheiden', next };
+  return { action: 'Ändern', next };
+}
+
 /**
- * Floating „Test“ pill of a running experiment: which variant you see, switch, rate. Asks once per
- * variant for a rating after a few minutes of visible time (toast, never a modal on its own).
+ * Floating „Test“ pill on every page with a running experiment: which variant you see, how far you are, rate.
+ * In a tour (mode compare) it leads from variant to variant; a toast asks once per variant for a rating.
  */
 export function ExperimentBar({ x }: { x: ExperimentState }) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const variant = x.choice?.variant;
   const mine = useMyFeedback(x.exp.id, x.running && !!variant);
-  const rated = !!mine.data?.ratings.some((r) => r.variant === variant);
-  const prompt = !!variant && mine.isSuccess && !open && shouldPrompt(x.local, variant, rated);
+  const afterMs = PROMPT_AFTER_MS[x.mode];
+  const prompt = !!variant && mine.isSuccess && !open && shouldPrompt(x.local, variant, x.rated.includes(variant), afterMs);
 
   const collapse = (v: boolean) => {
     setCollapsed(v);
@@ -40,9 +51,11 @@ export function ExperimentBar({ x }: { x: ExperimentState }) {
     if (variant) updateLocal(x.exp.id, (s) => (s.prompted.includes(variant) ? s : { ...s, prompted: [...s.prompted, variant] }));
   };
 
-  if (!x.running || !variant) return null;
+  if (!x.running || !variant || x.choice?.source === 'fallback') return null;
   const current = x.exp.variants.find((v) => v.id === variant);
-  const index = x.exp.variants.findIndex((v) => v.id === variant) + 1;
+  const pos = x.order.indexOf(variant) + 1;
+  const step = stepOf(x, variant);
+  const onMain = () => (step.action === 'Weiter' ? x.choose(null) : setOpen(true));
 
   return (
     <>
@@ -52,17 +65,22 @@ export function ExperimentBar({ x }: { x: ExperimentState }) {
         </button>
       ) : (
         <div className="expbar" role="region" aria-label={`${x.exp.title} im Test`}>
-          <button type="button" className="expbar__main" onClick={() => setOpen(true)}>
+          <button type="button" className="expbar__main" onClick={onMain}>
             <span className="expbar__tag">Test</span>
             <span className="expbar__text">
               {x.exp.title}: <strong>{current?.label}</strong>
               <span className="expbar__count">
                 {' '}
-                · {index}/{x.exp.variants.length}
+                · {pos}/{x.order.length}
               </span>
             </span>
-            <span className="expbar__action">{rated ? 'Ändern' : 'Bewerten'}</span>
+            <span className="expbar__action">{step.action}</span>
           </button>
+          {step.action === 'Weiter' && (
+            <button type="button" className="expbar__close" onClick={() => setOpen(true)} aria-label="Alle Varianten und deine Bewertungen">
+              <DS.Icon name="menue" size={16} />
+            </button>
+          )}
           <button type="button" className="expbar__close" onClick={() => collapse(true)} aria-label="Leiste einklappen">
             <DS.Icon name="schliessen" size={16} />
           </button>
@@ -87,7 +105,9 @@ export function ExperimentBar({ x }: { x: ExperimentState }) {
               </DS.Button>
             }
           >
-            Du nutzt „{current?.label}“ jetzt eine Weile. Wie gefällt sie dir?
+            {x.mode === 'compare'
+              ? `Wie gefällt dir „${current?.label}“? Bewerte sie – danach geht es mit der nächsten Variante weiter.`
+              : `Du nutzt „${current?.label}“ jetzt eine Weile. Wie gefällt sie dir?`}
           </DS.Toast>
         </DS.ToastRegion>
       )}
@@ -97,14 +117,57 @@ export function ExperimentBar({ x }: { x: ExperimentState }) {
   );
 }
 
+function Steps({ x, variant, ratings }: { x: ExperimentState; variant: string; ratings: MyFeedback['ratings'] }) {
+  return (
+    <ol className="expsteps" aria-label="Varianten">
+      {x.order.map((id, i) => {
+        const v = x.exp.variants.find((w) => w.id === id)!;
+        const stars = ratings.find((r) => r.variant === id)?.stars;
+        const now = id === variant;
+        const status = now ? 'jetzt' : stars ? '' : 'offen';
+        return (
+          <li key={id}>
+            <button
+              type="button"
+              className={`expsteps__item${now ? ' is-current' : ''}`}
+              aria-current={now ? 'page' : undefined}
+              onClick={() => x.choose(x.mode === 'ab' && id === x.assigned ? null : id)}
+            >
+              <span className="expsteps__num">{i + 1}</span>
+              <span className="expsteps__text">
+                <span className="expsteps__label">
+                  {v.label}
+                  {x.favorite === id && <span className="expsteps__fav"> · deine Wahl</span>}
+                  {x.mode === 'ab' && x.assigned === id && <span className="expsteps__fav"> · dir zugeteilt</span>}
+                </span>
+                <span className="expsteps__desc">{v.description}</span>
+              </span>
+              <span className="expsteps__status">
+                {stars ? (
+                  <span className="expsteps__stars" aria-label={`von dir ${stars} von 5 Sternen`}>
+                    {'★'.repeat(stars)}
+                  </span>
+                ) : (
+                  status
+                )}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function FeedbackSheet({ x, open, onClose }: { x: ExperimentState; open: boolean; onClose: () => void }) {
   const variant = x.choice!.variant;
   const mine = useMyFeedback(x.exp.id, open);
   const save = useSaveRating();
   const favorite = useSaveFavorite();
-  const saved = mine.data?.ratings.find((r) => r.variant === variant);
+  const ratings = mine.data?.ratings ?? [];
+  const saved = ratings.find((r) => r.variant === variant);
 
-  // The form follows the variant: its saved rating until the player changes something (draft per key).
+  // The forms follow the saved state until the player changes something (a draft per key).
   const key = `${variant}:${saved?.updated ?? 0}`;
   const [draft, setDraft] = useState<{ key: string; stars: number | null; comment: string } | null>(null);
   const [sentFor, setSentFor] = useState<string | null>(null);
@@ -115,22 +178,49 @@ function FeedbackSheet({ x, open, onClose }: { x: ExperimentState; open: boolean
   const sent = sentFor === variant && !own;
   const failed = save.error && save.variables?.variant === variant ? save.error : null;
 
+  const decisionKey = `${mine.data?.favorite ?? ''}:${mine.data?.favoriteNote ?? ''}`;
+  const [pick, setPick] = useState<{ key: string; variant: string | null; note: string } | null>(null);
+  const ownPick = pick?.key === decisionKey ? pick : null;
+  const pickVariant = ownPick ? ownPick.variant : (mine.data?.favorite ?? null);
+  const pickNote = ownPick ? ownPick.note : (mine.data?.favoriteNote ?? '');
+  const editPick = (patch: { variant?: string | null; note?: string }) => setPick({ key: decisionKey, variant: pickVariant, note: pickNote, ...patch });
+
   const current = x.exp.variants.find((v) => v.id === variant)!;
-  const seen = x.exp.variants.filter((v) => x.local.seen.includes(v.id) || v.id === variant);
   const offline = mine.error instanceof FeedbackError && mine.error.status !== 401 && mine.error.status !== 400;
-  const ratingOf = (id: string) => mine.data?.ratings.find((r) => r.variant === id)?.stars;
+  const next = x.mode === 'compare' ? nextInTour(x.order, x.rated, variant) : undefined;
+  const openCount = x.exp.variants.filter((v) => !x.rated.includes(v.id) && v.id !== variant).length + (saved ? 0 : 1);
+  const canDecide = x.mode === 'compare' ? x.exp.variants.every((v) => x.rated.includes(v.id)) : x.local.seen.length >= 2;
+  const decideFrom = x.mode === 'compare' ? x.exp.variants : x.exp.variants.filter((v) => x.local.seen.includes(v.id) || v.id === variant);
 
   const submit = () => {
     if (!stars) return;
-    save.mutate({ experiment: x.exp.id, variant, stars, comment }, { onSuccess: () => setSentFor(variant) });
+    save.mutate(
+      { experiment: x.exp.id, variant, stars, comment },
+      {
+        onSuccess: () => {
+          setSentFor(variant);
+          // In a tour: on to the next unrated variant (the automatic pick), the sheet closes.
+          if (next) {
+            x.choose(null);
+            onClose();
+          }
+        },
+      },
+    );
   };
+  const decide = () => {
+    if (!pickVariant) return;
+    favorite.mutate({ experiment: x.exp.id, variant: pickVariant, note: pickNote }, { onSuccess: () => x.choose(null) });
+  };
+
+  const primary = saved ? (next ? 'Ändern und weiter' : 'Bewertung ändern') : next ? 'Bewerten und weiter' : 'Bewertung senden';
 
   return (
     <DS.Sheet
       open={open}
       onClose={onClose}
       title={`${x.exp.title} im Test`}
-      width={440}
+      width={460}
       footer={
         <div className="expsheet__foot">
           {mine.data?.admin && (
@@ -142,28 +232,19 @@ function FeedbackSheet({ x, open, onClose }: { x: ExperimentState; open: boolean
             Schließen
           </DS.Button>
           <DS.Button variant="primary" onClick={submit} disabled={!stars || save.isPending || offline} loading={save.isPending}>
-            {saved ? 'Bewertung ändern' : 'Bewertung senden'}
+            {primary}
           </DS.Button>
         </div>
       }
     >
       <div className="expsheet">
         <p className="expsheet__intro">
-          Wir probieren {x.exp.variants.length} Varianten aus.{' '}
-          {x.choice!.chosen ? 'Du siehst gerade eine, die du selbst gewählt hast.' : 'Dir ist diese zugeteilt.'} Schau dir gern alle an und sag
-          uns, was dir gefällt und was fehlt.
+          {x.mode === 'compare'
+            ? `Wir probieren ${x.exp.variants.length} Varianten aus. Schau dir jede eine Weile an und bewerte sie – danach geht es mit der nächsten weiter. Am Ende sagst du, welche bleiben soll.`
+            : `Wir probieren ${x.exp.variants.length} Varianten aus. Dir ist eine zugeteilt; schau dir gern auch die anderen an und sag uns, was dir gefällt und was fehlt.`}
         </p>
 
-        <DS.RadioGroup
-          label="Variante"
-          value={variant}
-          onChange={(v) => x.choose(v === x.assigned ? null : v)}
-          options={x.exp.variants.map((v) => {
-            const s = ratingOf(v.id);
-            const notes = [v.id === x.assigned ? 'dir zugeteilt' : '', s ? `von dir: ${'★'.repeat(s)}` : ''].filter(Boolean).join(' · ');
-            return { value: v.id, label: notes ? `${v.label} (${notes})` : v.label, description: v.description };
-          })}
-        />
+        <Steps x={x} variant={variant} ratings={ratings} />
 
         {offline && <DS.Banner variant="info">Bewerten geht gerade nicht – der Feedback-Dienst ist nicht erreichbar.</DS.Banner>}
 
@@ -177,29 +258,53 @@ function FeedbackSheet({ x, open, onClose }: { x: ExperimentState; open: boolean
           />
           <DS.Textarea
             label="Was gefällt dir, was fehlt? (freiwillig)"
-            rows={4}
+            rows={3}
             maxLength={MAX_COMMENT}
             value={comment}
             onChange={(e) => edit({ comment: e.target.value })}
             disabled={offline}
           />
           <p className="expsheet__note">
-            Wird mit deinem Spielernamen gespeichert, damit wir nachfragen können. Du kannst deine Bewertung jederzeit ändern.
+            Wird mit deinem Spielernamen gespeichert, damit wir nachfragen können. Du kannst alles jederzeit ändern.
           </p>
           {failed && <DS.Banner variant="error">{failed.message}</DS.Banner>}
           {sent && !save.isPending && <DS.Banner variant="info">Danke! Deine Bewertung ist gespeichert.</DS.Banner>}
         </div>
 
-        {seen.length >= 2 && (
-          <DS.RadioGroup
-            label="Welche soll bleiben?"
-            inline
-            value={mine.data?.favorite ?? null}
-            onChange={(v) => favorite.mutate({ experiment: x.exp.id, variant: v })}
-            disabled={offline || favorite.isPending}
-            options={seen.map((v) => ({ value: v.id, label: v.label }))}
-            hint={favorite.error ? favorite.error.message : 'Nur unter denen, die du schon gesehen hast.'}
-          />
+        {canDecide ? (
+          <div className="expsheet__rate">
+            <DS.RadioGroup
+              label="Welche soll bleiben?"
+              inline
+              value={pickVariant}
+              onChange={(v) => editPick({ variant: v })}
+              disabled={offline || favorite.isPending}
+              options={decideFrom.map((v) => ({ value: v.id, label: v.label }))}
+            />
+            <DS.Textarea
+              label="Was sollte sie von den anderen übernehmen? (freiwillig)"
+              rows={3}
+              maxLength={MAX_COMMENT}
+              value={pickNote}
+              onChange={(e) => editPick({ note: e.target.value })}
+              disabled={offline}
+            />
+            <div className="expsheet__decide">
+              <DS.Button variant="secondary" onClick={decide} disabled={!pickVariant || !ownPick || favorite.isPending || offline} loading={favorite.isPending}>
+                {mine.data?.favorite ? 'Entscheidung ändern' : 'Entscheidung senden'}
+              </DS.Button>
+              {favorite.error && <span className="expsheet__err">{favorite.error.message}</span>}
+              {!ownPick && mine.data?.favorite && (
+                <span className="expsheet__note">Du siehst jetzt „{x.exp.variants.find((v) => v.id === mine.data!.favorite)?.label}“.</span>
+              )}
+            </div>
+          </div>
+        ) : (
+          x.mode === 'compare' && (
+            <p className="expsheet__note">
+              Noch {openCount} {openCount === 1 ? 'Variante' : 'Varianten'} zu bewerten – danach fragen wir, welche bleiben soll.
+            </p>
+          )
         )}
       </div>
     </DS.Sheet>

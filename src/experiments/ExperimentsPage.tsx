@@ -5,7 +5,7 @@ import { DS } from '../ds';
 import { PageNav, useFilters, usePageView, type PageFilter, type PageView } from '../app/pagenav';
 import { useIsPhone } from '../lib/useMediaQuery';
 import { useNow } from '../lib/useNow';
-import { FeedbackError, useExperimentResults, type ResultComment } from './api';
+import { FeedbackError, useExperimentResults, type ResultComment, type ResultNote } from './api';
 import { EXPERIMENTS, experimentOf } from './registry';
 import { formatDwell, formatStars, leader, resultRows, type ResultRow } from './results';
 import './ExperimentsPage.css';
@@ -76,8 +76,8 @@ function Row({ r, lead }: { r: ResultRow; lead: boolean }) {
   );
 }
 
-function Comments({ comments, labels, now }: { comments: ResultComment[]; labels: Record<string, string>; now: number }) {
-  if (!comments.length)
+function Comments({ comments, notes, labels, now }: { comments: ResultComment[]; notes: ResultNote[]; labels: Record<string, string>; now: number }) {
+  if (!comments.length && !notes.length)
     return (
       <DS.EmptyState compact as="h3" title="Noch keine Kommentare">
         Bewertungen mit Text erscheinen hier, neueste zuerst.
@@ -85,6 +85,18 @@ function Comments({ comments, labels, now }: { comments: ResultComment[]; labels
     );
   return (
     <ul className="xc">
+      {notes.map((n) => (
+        <li key={`note:${n.username}`} className="xc__item xc__item--note">
+          <div className="xc__meta">
+            <a href={`/spieler/${encodeURIComponent(n.username)}`}>{n.username}</a>
+            <span>
+              will <strong>{labels[n.variant] ?? n.variant}</strong> behalten und wünscht sich:
+            </span>
+            <span className="xc__when">{ago(now - n.updated)}</span>
+          </div>
+          <p className="xc__text">{n.note}</p>
+        </li>
+      ))}
       {comments.map((c) => (
         <li key={`${c.variant}:${c.username}`} className="xc__item">
           <div className="xc__meta">
@@ -124,6 +136,7 @@ function Evaluation() {
   const lead = leader(rows);
   const labels = Object.fromEntries(exp.variants.map((v) => [v.id, v.label]));
   const withText = (results.data?.comments ?? []).filter((c) => c.comment && (only === 'alle' || c.variant === only));
+  const notes = (results.data?.notes ?? []).filter((n) => only === 'alle' || n.variant === only);
   const totals = rows.reduce((s, r) => ({ people: s.people + r.people, ratings: s.ratings + r.ratings }), { people: 0, ratings: 0 });
 
   const denied = results.error instanceof FeedbackError ? results.error : undefined;
@@ -171,7 +184,7 @@ function Evaluation() {
       }
     >
       <div className="panel__fill scroll">
-        <Comments comments={withText} labels={labels} now={now} />
+        <Comments comments={withText} notes={notes} labels={labels} now={now} />
       </div>
     </DS.Card>
   );

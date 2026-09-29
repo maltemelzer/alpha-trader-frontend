@@ -102,9 +102,9 @@ describe('HTTP', () => {
   it('stores one rating per player and variant, updating it on the second send', async () => {
     await call('/rating', { method: 'PUT', body: { experiment: 'start', variant: 'puls', stars: 2, comment: 'zu voll' } });
     await call('/rating', { method: 'PUT', body: { experiment: 'start', variant: 'puls', stars: 4, comment: 'doch gut' } });
-    await call('/favorite', { method: 'PUT', body: { experiment: 'start', variant: 'titelseite' } });
+    await call('/favorite', { method: 'PUT', body: { experiment: 'start', variant: 'titelseite', note: ' Kurse aus Puls ' } });
     const me = await call('/me?experiment=start');
-    expect(me.body).toMatchObject({ username: 'Anna', admin: false, favorite: 'titelseite' });
+    expect(me.body).toMatchObject({ username: 'Anna', admin: false, favorite: 'titelseite', favoriteNote: 'Kurse aus Puls' });
     expect(me.body.ratings).toMatchObject([{ variant: 'puls', stars: 4, comment: 'doch gut' }]);
   });
 
@@ -117,6 +117,10 @@ describe('HTTP', () => {
     expect(r.body.variants.puls).toMatchObject({ people: 1, visits: 1, dwellMedianMs: 50_000, avgStars: 5 });
     expect(r.body.variants.puls.clicks).toEqual([{ target: '/markt', count: 1 }]);
     expect(r.body.comments[0]).toMatchObject({ username: 'Anna', comment: 'lebendig' });
+    await call('/favorite', { method: 'PUT', body: { experiment: 'start', variant: 'puls', note: 'mehr Farbe' } });
+    const r2 = await call('/results?experiment=start', { token: 'tok1' });
+    expect(r2.body.variants.puls.favorites).toBe(1);
+    expect(r2.body.notes).toMatchObject([{ username: 'Anna', variant: 'puls', note: 'mehr Farbe' }]);
     expect(JSON.stringify(r.body)).not.toContain('user_hash');
     expect((await call('/experiments', { token: 'tok1' })).body[0].experiment).toBe('start');
   });

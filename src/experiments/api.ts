@@ -50,6 +50,8 @@ export interface MyFeedback {
   admin: boolean;
   ratings: MyRating[];
   favorite: string | null;
+  /** what the favourite should take over from the others */
+  favoriteNote: string;
 }
 
 export interface VariantResult {
@@ -73,10 +75,19 @@ export interface ResultComment {
   updated: number;
 }
 
+/** A decision with a wish: „Puls should stay, with the headline of Titelseite“. */
+export interface ResultNote {
+  variant: string;
+  username: string;
+  note: string;
+  updated: number;
+}
+
 export interface ExperimentResults {
   experiment: string;
   variants: Record<string, VariantResult>;
   comments: ResultComment[];
+  notes: ResultNote[];
 }
 
 /** Own ratings + favourite in one experiment, and whether this player may see the evaluation. */
@@ -111,7 +122,7 @@ export function useSaveRating() {
 export function useSaveFavorite() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (f: { experiment: string; variant: string }) => call<{ ok: true }>('/favorite', { method: 'PUT', body: JSON.stringify(f) }),
+    mutationFn: (f: { experiment: string; variant: string; note: string }) => call<{ ok: true }>('/favorite', { method: 'PUT', body: JSON.stringify(f) }),
     onSuccess: (_, f) => qc.invalidateQueries({ queryKey: ['feedback', 'me', f.experiment] }),
   });
 }

@@ -18,11 +18,11 @@ Spieler mehrere Varianten einer Seite ausprobieren (`src/experiments/`). Node �
 | Methode + Pfad | Wer | Inhalt |
 | --- | --- | --- |
 | `GET /health` | alle | `{ ok: true }` |
-| `GET /me?experiment=` | Spieler | eigene Bewertungen, Favorit, `admin` |
+| `GET /me?experiment=` | Spieler | eigene Bewertungen, Favorit + Wunsch, `admin` (der Durchlauf liest daraus, was schon bewertet ist) |
 | `PUT /rating` | Spieler | `{ experiment, variant, stars: 1–5, comment }` – eine je Spieler und Variante |
-| `PUT /favorite` | Spieler | `{ experiment, variant }` – „Welche soll bleiben?“, eine je Spieler |
+| `PUT /favorite` | Spieler | `{ experiment, variant, note }` – „Welche soll bleiben?“ + was sie von den anderen übernehmen soll, eine je Spieler |
 | `POST /usage` | Spieler | `{ experiment, variant, visit, dwellMs, clicks: { "/wertpapier": 2 } }` |
-| `GET /results?experiment=` | Admins | je Variante Personen, Besuche, Median-Verweildauer je Besuch, Sterne, Favoriten, Klickziele + alle Kommentare mit Namen |
+| `GET /results?experiment=` | Admins | je Variante Personen, Besuche, Median-Verweildauer je Besuch, Sterne, Favoriten, Klickziele + alle Kommentare und Wünsche mit Namen |
 | `GET /experiments` | Admins | Experimente mit Daten |
 
 ## Daten

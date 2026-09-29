@@ -177,3 +177,12 @@
   font-size: 14px;
   line-height: 20px;
 }
+
+/* A decision with a wish – stands above the ratings */
+.xc__item--note {
+  box-shadow: inset 2px 0 0 var(--brass);
+}
+
+.xc__item--note strong {
+  color: var(--text-primary);
+}

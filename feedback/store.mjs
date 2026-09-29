@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS ratings (
   PRIMARY KEY (experiment, variant, username)
 );
 CREATE TABLE IF NOT EXISTS favorites (
-  experiment TEXT NOT NULL, username TEXT NOT NULL, variant TEXT NOT NULL, updated INTEGER NOT NULL,
+  experiment TEXT NOT NULL, username TEXT NOT NULL, variant TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', updated INTEGER NOT NULL,
   PRIMARY KEY (experiment, username)
 );
 CREATE TABLE IF NOT EXISTS exposures (
@@ -36,6 +36,10 @@ export function openStore(path) {
   const db = new DatabaseSync(path);
   db.exec('PRAGMA journal_mode = WAL;');
   db.exec(SCHEMA);
+  // Databases from before the note („what should the winner take over?“)
+  if (!db.prepare('PRAGMA table_info(favorites)').all().some((c) => c.name === 'note')) {
+    db.exec("ALTER TABLE favorites ADD COLUMN note TEXT NOT NULL DEFAULT ''");
+  }
 
   let salt = db.prepare("SELECT value FROM meta WHERE key = 'salt'").get()?.value;
   if (!salt) {
@@ -48,8 +52,8 @@ export function openStore(path) {
     rating: db.prepare(`INSERT INTO ratings (experiment, variant, username, stars, comment, created, updated)
       VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (experiment, variant, username) DO UPDATE SET stars = excluded.stars, comment = excluded.comment, updated = excluded.updated`),
-    favorite: db.prepare(`INSERT INTO favorites (experiment, username, variant, updated) VALUES (?, ?, ?, ?)
-      ON CONFLICT (experiment, username) DO UPDATE SET variant = excluded.variant, updated = excluded.updated`),
+    favorite: db.prepare(`INSERT INTO favorites (experiment, username, variant, note, updated) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT (experiment, username) DO UPDATE SET variant = excluded.variant, note = excluded.note, updated = excluded.updated`),
     exposure: db.prepare(`INSERT INTO exposures (experiment, variant, user_hash, visits, dwell_ms, first_seen, last_seen)
       VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (experiment, variant, user_hash) DO UPDATE SET visits = visits + excluded.visits,
@@ -57,9 +61,10 @@ export function openStore(path) {
     click: db.prepare(`INSERT INTO clicks (experiment, variant, target, count) VALUES (?, ?, ?, ?)
       ON CONFLICT (experiment, variant, target) DO UPDATE SET count = count + excluded.count`),
     myRatings: db.prepare('SELECT variant, stars, comment, updated FROM ratings WHERE experiment = ? AND username = ? COLLATE NOCASE'),
-    myFavorite: db.prepare('SELECT variant FROM favorites WHERE experiment = ? AND username = ? COLLATE NOCASE'),
+    myFavorite: db.prepare('SELECT variant, note FROM favorites WHERE experiment = ? AND username = ? COLLATE NOCASE'),
     allRatings: db.prepare('SELECT variant, username, stars, comment, created, updated FROM ratings WHERE experiment = ? ORDER BY updated DESC'),
     allFavorites: db.prepare('SELECT variant, COUNT(*) AS n FROM favorites WHERE experiment = ? GROUP BY variant'),
+    favoriteNotes: db.prepare("SELECT variant, username, note, updated FROM favorites WHERE experiment = ? AND note != '' ORDER BY updated DESC"),
     allExposures: db.prepare('SELECT variant, visits, dwell_ms FROM exposures WHERE experiment = ?'),
     allClicks: db.prepare('SELECT variant, target, count FROM clicks WHERE experiment = ? ORDER BY count DESC'),
     experiments: db.prepare(`SELECT experiment, MAX(t) AS last FROM (
@@ -74,8 +79,8 @@ export function openStore(path) {
       q.rating.run(experiment, variant, username, stars, comment, now, now);
     },
 
-    saveFavorite({ experiment, variant, username }, now) {
-      q.favorite.run(experiment, username, variant, now);
+    saveFavorite({ experiment, variant, username, note }, now) {
+      q.favorite.run(experiment, username, variant, note, now);
     },
 
     /** One batch of usage figures from a browser: a visit, visible seconds, clicks per target. */
@@ -92,9 +97,11 @@ export function openStore(path) {
     },
 
     mine(experiment, username) {
+      const fav = q.myFavorite.get(experiment, username);
       return {
         ratings: q.myRatings.all(experiment, username).map((r) => ({ ...r })),
-        favorite: q.myFavorite.get(experiment, username)?.variant ?? null,
+        favorite: fav?.variant ?? null,
+        favoriteNote: fav?.note ?? '',
       };
     },
 
@@ -103,6 +110,7 @@ export function openStore(path) {
       return {
         ratings: q.allRatings.all(experiment).map((r) => ({ ...r })),
         favorites: q.allFavorites.all(experiment).map((r) => ({ ...r })),
+        favoriteNotes: q.favoriteNotes.all(experiment).map((r) => ({ ...r })),
         exposures: q.allExposures.all(experiment).map((r) => ({ ...r })),
         clicks: q.allClicks.all(experiment).map((r) => ({ ...r })),
       };

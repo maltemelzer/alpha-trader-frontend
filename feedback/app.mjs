@@ -29,10 +29,14 @@ export function parseRating(body) {
   return { experiment, variant, stars, comment: text };
 }
 
+/** The decision at the end: which variant stays, and optionally what it should take over from the others. */
 export function parseFavorite(body) {
-  const { experiment, variant } = body ?? {};
+  const { experiment, variant, note = '' } = body ?? {};
   if (!isId(experiment) || !isId(variant)) throw new HttpError(400, 'experiment/variant ungültig');
-  return { experiment, variant };
+  if (typeof note !== 'string') throw new HttpError(400, 'note muss Text sein');
+  const text = note.trim();
+  if (text.length > MAX_COMMENT) throw new HttpError(400, `note höchstens ${MAX_COMMENT} Zeichen`);
+  return { experiment, variant, note: text };
 }
 
 /** Usage batch: `visit` (a new page view), `dwellMs` (visible time), `clicks` ({ target: n }). */
@@ -84,7 +88,7 @@ export function summarize(experiment, rows) {
     v.avgStars = v.ratings ? sum / v.ratings : null;
     v.clicks = v.clicks.slice(0, 12);
   }
-  return { experiment, variants, comments: rows.ratings };
+  return { experiment, variants, comments: rows.ratings, notes: rows.favoriteNotes ?? [] };
 }
 
 /** Fixed-window limit per key (player): `max` requests per `windowMs`. */

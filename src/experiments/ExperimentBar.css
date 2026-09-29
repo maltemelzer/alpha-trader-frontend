@@ -175,3 +175,105 @@
 .exphost__wait {
   place-items: center;
 }
+
+/* Steps of the tour in the sheet */
+.expsteps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.expsteps li + li {
+  border-top: 1px solid var(--border);
+}
+
+.expsteps__item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: 0;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.expsteps__item:hover {
+  background: var(--bg-raised);
+}
+
+.expsteps__item:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: -2px;
+}
+
+.expsteps__item.is-current {
+  box-shadow: inset 2px 0 0 var(--brass);
+}
+
+.expsteps__num {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.expsteps__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.expsteps__label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.expsteps__fav {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.expsteps__desc {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.expsteps__status {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.expsteps__item.is-current .expsteps__status {
+  color: var(--brass);
+  font-weight: 600;
+}
+
+.expsteps__stars {
+  color: var(--brass);
+  letter-spacing: 1px;
+}
+
+.expsheet__decide {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.expsheet__err {
+  color: var(--loss);
+  font-size: 13px;
+}

@@ -1,10 +1,10 @@
 // Which variant this player sees, the browser's memory of the experiment, and the usage figures.
-import { useCallback, useEffect, useRef, useSyncExternalStore, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type RefObject } from 'react';
 import { useSearchParams } from 'react-router';
 import { useMe } from '../api/queries';
 import { useNow } from '../lib/useNow';
-import { sendUsage } from './api';
-import { assignedVariant, clickTarget, isRunning, localDay, parseLocal, pickVariant, type Choice, type LocalState } from './assign';
+import { sendUsage, useMyFeedback } from './api';
+import { assignedVariant, clickTarget, isRunning, localDay, parseLocal, pickVariant, tourOrder, type Choice, type LocalState } from './assign';
 import { experimentOf, type Experiment } from './registry';
 
 // ---------- local memory (localStorage `at.exp.<id>`, shared by all hooks of the tab) ----------
@@ -54,13 +54,19 @@ function useLocal(id: string): LocalState {
 
 export interface ExperimentState {
   exp: Experiment;
-  /** undefined while the player's name loads */
+  mode: 'compare' | 'ab';
+  /** undefined while name or own ratings load (and nothing was shown before) */
   choice?: Choice;
-  /** variant the player was assigned to */
+  /** compare: this player's order of the variants · ab: the registry order */
+  order: string[];
+  /** variants this player has rated (server; empty while it cannot be reached) */
+  rated: string[];
+  favorite: string | null;
+  /** ab: the variant fixed by name */
   assigned?: string;
   running: boolean;
   local: LocalState;
-  /** show another variant (null = back to the assigned one) */
+  /** show another variant (null = back to the automatic one: next in the tour, favourite, assignment) */
   choose: (variant: string | null) => void;
 }
 
@@ -71,10 +77,13 @@ export interface ExperimentState {
 export function useExperiment(id: string, { url = true }: { url?: boolean } = {}): ExperimentState {
   const exp = experimentOf(id);
   if (!exp) throw new Error(`unknown experiment ${id}`);
+  const mode = exp.mode ?? 'compare';
   const me = useMe();
   const username = me.data?.username;
   const day = localDay(useNow(10 * 60_000));
+  const running = isRunning(exp, day);
   const local = useLocal(id);
+  const mine = useMyFeedback(id, running);
   const [params, setParams] = useSearchParams();
   // Only the page of the experiment reads `?variante=` – the shell must not strip it on other pages.
   const fromUrl = url ? params.get('variante') : null;
@@ -91,21 +100,30 @@ export function useExperiment(id: string, { url = true }: { url?: boolean } = {}
     );
   }, [fromUrl, exp, id, setParams]);
 
-  // Remember the assignment, so the next load knows the variant before the name arrives (no layout jump).
-  const assigned = username ? assignedVariant(exp, username) : undefined;
+  // Without the service the tour cannot know what was rated – it starts at the first variant then.
+  const rated = useMemo(() => mine.data?.ratings.map((r) => r.variant) ?? (mine.isError ? [] : undefined), [mine.data, mine.isError]);
+  const favorite = mine.data?.favorite ?? null;
+  const choice = pickVariant(exp, username, { override: fromUrl ?? local.choice, day, cached: local.last, rated, favorite });
+
+  // Remember what was picked automatically, so the next load shows it before name and ratings arrive.
+  const auto = choice && choice.source !== 'chosen' && choice.source !== 'fallback' && username && rated ? choice.variant : undefined;
   useEffect(() => {
-    if (assigned && local.assigned !== assigned) updateLocal(id, (s) => ({ ...s, assigned }));
-  }, [assigned, local.assigned, id]);
+    if (auto && local.last !== auto) updateLocal(id, (s) => ({ ...s, last: auto }));
+  }, [auto, local.last, id]);
 
   const choose = useCallback((variant: string | null) => updateLocal(id, (s) => ({ ...s, choice: variant ?? undefined })), [id]);
-  const running = isRunning(exp, day);
+  const order = useMemo(() => (username && mode === 'compare' ? tourOrder(exp, username) : exp.variants.map((v) => v.id)), [exp, username, mode]);
   return {
     exp,
+    mode,
     running,
     local,
     choose,
-    assigned: assigned ?? local.assigned,
-    choice: pickVariant(exp, username, { override: fromUrl ?? local.choice, day, cached: local.assigned }),
+    order,
+    rated: rated ?? [],
+    favorite,
+    choice,
+    assigned: username && mode === 'ab' ? assignedVariant(exp, username) : undefined,
   };
 }
 

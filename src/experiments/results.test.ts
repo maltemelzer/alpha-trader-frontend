@@ -32,6 +32,7 @@ describe('resultRows', () => {
     const rows = resultRows(exp, {
       experiment: 'start',
       comments: [],
+      notes: [],
       variants: { b: variant({ ratings: 4, stars: [0, 0, 1, 1, 2], avgStars: 4.25, favorites: 3 }), a: variant({ favorites: 1 }) },
     });
     expect(rows.map((r) => r.id)).toEqual(['a', 'b']);
@@ -46,12 +47,14 @@ describe('leader', () => {
     const rows = resultRows(exp, {
       experiment: 'start',
       comments: [],
+      notes: [],
       variants: { a: variant({ favorites: 2 }), b: variant({ favorites: 1, ratings: 5, avgStars: 5 }) },
     });
     expect(leader(rows)).toBe('a');
     const tie = resultRows(exp, {
       experiment: 'start',
       comments: [],
+      notes: [],
       variants: { a: variant({ ratings: 3, avgStars: 3 }), b: variant({ ratings: 2, avgStars: 5 }) },
     });
     expect(leader(tie)).toBe('a');
