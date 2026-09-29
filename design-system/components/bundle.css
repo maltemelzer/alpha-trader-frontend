@@ -782,6 +782,9 @@ a.bnk-tick:focus-visible { outline: var(--rule) solid var(--brass); outline-offs
 /* Ecke zur Person hin fast eckig – zeigt, wer spricht */
 .bnk-msg--other.is-last .bnk-msg__bubble { border-bottom-left-radius: var(--radius-sm); }
 .bnk-msg--own.is-last .bnk-msg__bubble { border-bottom-right-radius: var(--radius-sm); }
+.bnk-chat__link { color: inherit; text-decoration: underline; text-decoration-color: var(--brass); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.bnk-chat__link:hover { text-decoration-thickness: 2px; }
+.bnk-chat__link:focus-visible { outline: var(--rule) solid var(--brass); outline-offset: 2px; border-radius: var(--radius-sm); }
 .bnk-msg__att { max-width: 100%; }
 .bnk-msg__embeds { display: flex; flex-direction: column; gap: var(--space-1); margin-top: 2px; width: 340px; max-width: 100%; }
 /* Karten brauchen mehr Breite als Blasen (Sparkline, drei Eckdaten) */

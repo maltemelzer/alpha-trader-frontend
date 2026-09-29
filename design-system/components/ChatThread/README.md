@@ -17,7 +17,7 @@ Der Verlauf zeigt Nachrichten als Sprechblasen: fremde links auf `bg-raised`, ei
 1. **Keine farbigen Blasen.** Eigene Nachrichten sind nicht Messing und nicht grün, sie unterscheiden sich durch Seite und Rahmen.
 2. **Farbe nur für Kurse** (Regel 2): Die einzigen farbigen Stellen im Verlauf sind Kursveränderungen.
 3. **Namen im Gruppenchat ja, in Direktnachrichten nein** (`showNames={false}`).
-4. **Links und Ticker** öffnen das Wertpapier; kein Vorschau-Popup im Verlauf – wer mehr zeigen will, hängt mit `!` eine Karte an.
+4. **Ticker** öffnen das Wertpapier, Adressen (`http(s)://…`, ohne Satzzeichen am Ende) werden zu Links in einem neuen Tab; kein Vorschau-Popup im Verlauf – wer mehr zeigen will, hängt mit `!` eine Karte an.
 
 ## Verwendung
 
