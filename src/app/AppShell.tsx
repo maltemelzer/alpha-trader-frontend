@@ -147,6 +147,9 @@ export function AppShell() {
         { label: 'Neuigkeiten', onClick: () => setNewsManual(true), badge: whatsNew.count || undefined },
         { label: 'Einstellungen', href: '/einstellungen' },
         { divider: true },
+        { label: 'Impressum', href: '/impressum' },
+        { label: 'Datenschutz', href: '/datenschutz' },
+        { divider: true },
         { label: 'Abmelden', onClick: logout },
       ]}
       onNavigate={(item, e) => {

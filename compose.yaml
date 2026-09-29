@@ -14,6 +14,19 @@ services:
         VITE_API_BASE: ${VITE_API_BASE:-https://stable.alpha-trader.com}
     ports:
       - "${PORT:-9010}:80"
+    # Operator for /impressum and /datenschutz – only in the .env on the Pi, never in the repo or image.
+    environment:
+      LEGAL_NAME: ${LEGAL_NAME:-}
+      LEGAL_STREET: ${LEGAL_STREET:-}
+      LEGAL_CITY: ${LEGAL_CITY:-}
+      LEGAL_COUNTRY: ${LEGAL_COUNTRY:-Deutschland}
+      LEGAL_EMAIL: ${LEGAL_EMAIL:-}
+      LEGAL_PHONE: ${LEGAL_PHONE:-}
+      LEGAL_HOSTING: ${LEGAL_HOSTING:-}
+      LEGAL_CDN: ${LEGAL_CDN:-}
+    logging: &logging
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     restart: unless-stopped
 
   # Experiments: ratings and comments of players (feedback/README.md). Reached only through nginx
@@ -27,6 +40,7 @@ services:
       API_BASE: ${VITE_API_BASE:-https://stable.alpha-trader.com}
     volumes:
       - feedback-data:/data
+    logging: *logging
     restart: unless-stopped
 
 volumes:

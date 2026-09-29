@@ -28,7 +28,7 @@ Spieler mehrere Varianten einer Seite ausprobieren (`src/experiments/`). Node �
 ## Daten
 
 SQLite in `/data/feedback.db` (Volume `feedback-data`). Bewertungen und Favoriten **mit Spielernamen** (steht so
-im Dialog). Nutzungszahlen nur mit einem gesalzenen Hash des Namens – zählbar, aber keine Liste, wer wann wo war.
+im Dialog). Nutzungszahlen nur, wenn der Spieler „Nutzung mitzählen“ einschaltet, und nur mit einem gesalzenen Hash des Namens – zählbar, aber keine Liste, wer wann wo war.
 Klickziele sind grob (erstes Pfadsegment eines Links oder `data-track`).
 
 Sicherung auf dem Pi: `docker compose cp feedback:/data/feedback.db ./feedback-backup.db`.
@@ -41,5 +41,6 @@ Sicherung auf dem Pi: `docker compose cp feedback:/data/feedback.db ./feedback-b
 | `API_BASE` | `https://stable.alpha-trader.com` | Spielserver für die Anmeldung |
 | `FEEDBACK_DB` | `/data/feedback.db` | |
 | `PORT` | `8787` | |
+| `FEEDBACK_RETENTION_DAYS` | `365` | Einträge, die so lange nicht geändert wurden, löscht der Dienst (beim Start und täglich) – so steht es in der Datenschutzerklärung |
 
 Tests: `feedback/app.test.mjs` (läuft mit `npm test`, SQLite im Speicher).

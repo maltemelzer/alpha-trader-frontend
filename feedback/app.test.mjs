@@ -65,6 +65,20 @@ describe('rateLimiter / cachedVerifier', () => {
   });
 });
 
+describe('store.purge', () => {
+  it('deletes what was not touched within the retention time, keeps the rest', () => {
+    const store = openStore(':memory:');
+    store.saveRating({ experiment: 'start', variant: 'puls', username: 'Alt', stars: 3, comment: '' }, 1_000);
+    store.saveFavorite({ experiment: 'start', variant: 'puls', username: 'Alt', note: '' }, 1_000);
+    store.saveUsage({ experiment: 'start', variant: 'puls', username: 'Alt', visits: 1, dwellMs: 5, clicks: { '/markt': 1 } }, 1_000);
+    store.saveRating({ experiment: 'start', variant: 'puls', username: 'Neu', stars: 5, comment: '' }, 9_000);
+    expect(store.purge(5_000)).toBe(4);
+    expect(store.rows('start').ratings.map((r) => r.username)).toEqual(['Neu']);
+    expect(store.rows('start').clicks).toEqual([]);
+    store.close();
+  });
+});
+
 describe('HTTP', () => {
   let store;
   let server;

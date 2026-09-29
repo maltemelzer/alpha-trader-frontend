@@ -127,14 +127,39 @@ export function useExperiment(id: string, { url = true }: { url?: boolean } = {}
   };
 }
 
-// ---------- usage figures ----------
+// ---------- usage figures (only with consent) ----------
+
+const CONSENT_KEY = 'at.exp.usage';
+
+/** Did the player agree to count usage (visits, visible time, click targets)? Off until they switch it on. */
+export function usageConsent(): boolean {
+  try {
+    return localStorage.getItem(CONSENT_KEY) === 'ja';
+  } catch {
+    return false;
+  }
+}
+
+export function setUsageConsent(on: boolean) {
+  try {
+    localStorage.setItem(CONSENT_KEY, on ? 'ja' : 'nein');
+  } catch {
+    /* storage unavailable – stays off */
+  }
+  window.dispatchEvent(new Event(CHANGED));
+}
+
+export function useUsageConsent(): boolean {
+  return useSyncExternalStore(subscribe, usageConsent);
+}
 
 const FLUSH_MS = 60_000;
 const LOCAL_TICK_MS = 15_000;
 
 /**
  * Counts, per variant: a visit, the time the page was visible, clicks on links/`data-track` inside `ref`.
- * Sent every minute and when the tab is hidden; the visible time also goes to local memory (rating prompt).
+ * Sent every minute and when the tab is hidden – only if the player agreed (`usageConsent`). The visible
+ * time also goes to local memory, where it only decides when to ask for a rating.
  */
 export function useExperimentUsage(x: ExperimentState, ref: RefObject<HTMLElement | null>) {
   const variant = x.running ? x.choice?.variant : undefined;
@@ -160,9 +185,11 @@ export function useExperimentUsage(x: ExperimentState, ref: RefObject<HTMLElemen
     const flush = () => {
       collect();
       const p = pending.current;
+      pending.current = { visit: false, dwellMs: 0, clicks: {} };
+      // Without consent nothing leaves the browser; the visible time above only drives the rating prompt.
+      if (!usageConsent()) return;
       if (!p.visit && p.dwellMs < 1000 && !Object.keys(p.clicks).length) return;
       sendUsage({ experiment: expId, variant, ...p });
-      pending.current = { visit: false, dwellMs: 0, clicks: {} };
     };
     const onVisibility = () => {
       if (document.visibilityState === 'visible') since.current = Date.now();

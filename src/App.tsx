@@ -5,6 +5,8 @@ import { AuthProvider } from './auth/AuthProvider';
 import { RequireAuth } from './auth/RequireAuth';
 import { AppShell } from './app/AppShell';
 import { LoginPage } from './pages/LoginPage';
+import { ImpressumPage } from './legal/ImpressumPage';
+import { DatenschutzPage } from './legal/DatenschutzPage';
 import { MarketPage } from './market/MarketPage';
 import { ExperimentsPage } from './experiments/ExperimentsPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
@@ -46,6 +48,9 @@ export function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/anmelden" element={<LoginPage />} />
+            {/* reachable without login */}
+            <Route path="/impressum" element={<ImpressumPage />} />
+            <Route path="/datenschutz" element={<DatenschutzPage />} />
             <Route
               element={
                 <RequireAuth>
