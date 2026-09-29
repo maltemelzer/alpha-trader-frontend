@@ -24,7 +24,7 @@
     "by": "Malte",
     "at": "2026-09-29T08:30:00Z",
     "via": "Claude Code (alpha-trader-frontend)",
-    "note": "Version 60: ChatThread messageAction (Aktion je Person neben der letzten fremden Blase, z. B. Blockieren); neues Icon blockieren (⃠)."
+    "note": "Version 60: ChatThread authorMenu (Menü am Kreis fremder Absender: Hover, Klick/Tippen, Tastatur – z. B. Direktnachricht, Profil, Blockieren); neues Icon blockieren (⃠)."
   },
   "layout": "files",
   "libraries": [

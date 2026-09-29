@@ -40,7 +40,7 @@ export function BlockedSheet({ open, onClose }: { open: boolean; onClose: () => 
         </ul>
       ) : (
         <DS.EmptyState compact title="Niemand blockiert" as="h3">
-          Über das Verbotszeichen neben einer Nachricht blendest du alle Nachrichten dieses Spielers aus.
+          Tipp im Chat auf den Kreis eines Spielers (oder fahr mit der Maus darüber) und wähle „Blockieren …“.
         </DS.EmptyState>
       )}
       {unblock.isError && <DS.Banner variant="error">Nicht entsperrt: {unblock.error.message}</DS.Banner>}

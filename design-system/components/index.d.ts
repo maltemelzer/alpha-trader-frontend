@@ -633,6 +633,15 @@ export interface ChatMessage {
   /** Systemzeile statt Nachricht, z. B. „Anleger Paul ist der Liga beigetreten.“ */
   system?: string;
 }
+export interface AuthorMenuItem {
+  label?: React.ReactNode;
+  description?: React.ReactNode;
+  href?: string;
+  onSelect?: (e: React.MouseEvent) => void;
+  danger?: boolean;
+  disabled?: boolean;
+  divider?: boolean;
+}
 export interface ChatThreadProps {
   messages: ChatMessage[];
   /** Infos zu Tickern für #/$-Erwähnungen: { HRD: { name, change, href } } */
@@ -641,8 +650,8 @@ export interface ChatThreadProps {
   renderEmbed?: (asin: string) => React.ReactNode;
   /** Namen über fremden Nachrichten (Standard true; in Direktnachrichten false) */
   showNames?: boolean;
-  /** Aktion je Person neben der letzten Blase jeder fremden Gruppe, z. B. ein Knopf „Blockieren“ (Icon `blockieren`); auf Touch immer sichtbar, sonst bei Hover/Fokus */
-  messageAction?: (m: ChatMessage) => React.ReactNode;
+  /** Menü am Kreis fremder Absender (Hover, Klick/Tippen, Enter): Einträge wie bei DropdownMenu, z. B. Direktnachricht, Profil, Blockieren; leere Liste/null = nur Kreis */
+  authorMenu?: (m: ChatMessage) => AuthorMenuItem[] | null | undefined;
   /** z. B. „Frieda schreibt …“ */
   typing?: React.ReactNode;
   /** beim Hinzufügen neuer Nachrichten nach unten scrollen (Standard true) */

@@ -26,44 +26,11 @@
   border-bottom: var(--hairline) solid var(--line);
 }
 
-/* Blocked players: icon button in the list tools, ⃠ next to messages of others */
+/* Blocked players: icon button in the list tools */
 .chat-blocked-btn {
   flex: none;
   gap: var(--space-1);
   color: var(--text-secondary);
-}
-
-.chat-block {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.chat-block:hover {
-  background: var(--bg-raised);
-  color: var(--text-primary);
-}
-
-.chat-block:focus-visible {
-  outline: var(--rule) solid var(--brass);
-  outline-offset: 0;
-}
-
-/* touch: 44 px tap area around the small icon */
-@media (pointer: coarse) {
-  .chat-block::before {
-    content: '';
-    position: absolute;
-    inset: -8px;
-  }
 }
 
 .chat-older {

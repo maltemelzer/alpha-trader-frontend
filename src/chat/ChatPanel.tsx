@@ -5,6 +5,7 @@ import {
   useChatBlocks,
   useChatMessages,
   useChatRooms,
+  useCreateChat,
   useJoinChat,
   useLeaveChat,
   useListings,
@@ -23,7 +24,8 @@ import { mentionedAsins } from './mentions';
 import { gameLinksToMentions } from '../lib/html';
 import { useMentions } from './useMentions';
 import { NewChatDialog } from './NewChatDialog';
-import type { ChatMessage } from '../../design-system/components';
+import type { AuthorMenuItem, ChatMessage } from '../../design-system/components';
+import type { UsernameView } from '../api/types';
 import './ChatPage.css';
 
 export interface ChatPanelProps {
@@ -64,6 +66,7 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
   const [error, setError] = useState<string | null>(null);
   const blocks = useChatBlocks();
   const { block } = useChatBlock();
+  const createChat = useCreateChat();
   const blocked = useMemo(() => blockedNames(blocks.data), [blocks.data]);
 
   const groups = useMemo(
@@ -120,6 +123,20 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
       )}
     </div>
   );
+
+  // Direct message from the menu at a sender: the existing direct chat, else a new one – opened here
+  // (in the sidebar too, instead of jumping to the full chat page).
+  const openDirect = (user: UsernameView) => {
+    const existing = chats.data?.find(
+      (c) => !c.groupChat && !c.publicChat && c.participants.some((p) => p.id === user.id || p.username === user.username),
+    );
+    if (existing) return onSelect(existing.id);
+    if (!user.id) return;
+    createChat.mutate(
+      { userIds: [user.id] },
+      { onSuccess: (id) => onSelect(id), onError: (e) => setError(`Unterhaltung nicht begonnen: ${e.message}`) },
+    );
+  };
 
   const leaveChat = () =>
     chat &&
@@ -234,6 +251,7 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
               block.reset();
               setBlockTarget(name);
             }}
+            onDirect={openDirect}
           />
         ) : (
           <DS.EmptyState title="Keine Unterhaltung gewählt">Links eine Unterhaltung wählen oder eine neue beginnen.</DS.EmptyState>
@@ -293,6 +311,7 @@ function Thread({
   unread,
   blocked,
   onBlock,
+  onDirect,
 }: {
   chatId: string;
   me?: string;
@@ -300,8 +319,10 @@ function Thread({
   unread: number;
   /** names of blocked players: their messages are left out */
   blocked: ReadonlySet<string>;
-  /** ask to block a player (the ⃠ next to their messages) */
+  /** ask to block a player (menu at the sender's avatar) */
   onBlock: (username: string) => void;
+  /** open the direct chat with a sender */
+  onDirect: (user: UsernameView) => void;
 }) {
   const q = useChatMessages(chatId);
   const markRead = useMarkChatRead();
@@ -322,18 +343,21 @@ function Thread({
     [asins, listings],
   );
   const renderEmbed = useCallback((asin: string) => <AssetEmbed asin={asin} />, []);
-  // ⃠ next to the last message of each group from someone else: block this player.
-  const blockAction = useCallback(
-    (m: ChatMessage) => {
+  // Menu at the avatar of other senders (hover, tap, Enter): direct message, profile, block.
+  const senders = useMemo(() => new Map(messages.map((m) => [m.sender?.username ?? '', m.sender])), [messages]);
+  const authorMenu = useCallback(
+    (m: ChatMessage): AuthorMenuItem[] | null => {
       const name = m.author?.name;
-      if (!name || name === '?') return null;
-      return (
-        <button type="button" className="chat-block" aria-label={`${name} blockieren`} title={`${name} blockieren`} onClick={() => onBlock(name)}>
-          <DS.Icon name="blockieren" size={16} />
-        </button>
-      );
+      const user = name ? senders.get(name) : undefined;
+      if (!name || !user) return null;
+      return [
+        ...(direct ? [] : [{ label: 'Direktnachricht', onSelect: () => onDirect(user) }]),
+        { label: 'Profil', href: `/spieler/${encodeURIComponent(name)}` },
+        { divider: true },
+        { label: 'Blockieren …', danger: true, onSelect: () => onBlock(name) },
+      ];
     },
-    [onBlock],
+    [senders, direct, onDirect, onBlock],
   );
 
   // Opening a chat (or a new message arriving while it is open) marks it read.
@@ -392,7 +416,7 @@ function Thread({
           tickers={tickers}
           renderEmbed={renderEmbed}
           showNames={!direct}
-          messageAction={blockAction}
+          authorMenu={authorMenu}
         />
       ) : (
         <DS.EmptyState compact title="Noch keine Nachrichten" as="h3">
