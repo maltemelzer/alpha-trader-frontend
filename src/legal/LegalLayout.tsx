@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router';
 import { DS } from '../ds';
 import { useAuth } from '../auth/AuthProvider';
@@ -11,6 +11,7 @@ import './legal.css';
  */
 export function LegalLayout({ title, children }: { title: string; children: ReactNode }) {
   const { loggedIn } = useAuth();
+  useNoIndex();
   return (
     <div className="legal">
       <header className="legal__head">
@@ -27,6 +28,20 @@ export function LegalLayout({ title, children }: { title: string; children: Reac
       </main>
     </div>
   );
+}
+
+/**
+ * Keeps search engines from listing these pages (name and address). nginx also sends `X-Robots-Tag`
+ * for them – this meta tag covers crawlers that render the app and the dev server.
+ */
+function useNoIndex() {
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    return () => meta.remove();
+  }, []);
 }
 
 /** Name and address block, or a notice while LEGAL_* are not set. */
