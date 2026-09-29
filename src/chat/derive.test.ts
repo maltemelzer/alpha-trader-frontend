@@ -73,6 +73,14 @@ describe('toThread', () => {
     const t = toThread([msg('1', 'Frieda', 'Guck mal https://alpha-trader.com/security/asin/BOXLWU96VV', at(24, 9))], { now });
     expect(t[1].text).toBe('Guck mal #BOXLWU96VV');
   });
+  it('leaves out messages of blocked players', () => {
+    const t = toThread([msg('1', 'Troll', 'Kauf!', at(24, 9)), msg('2', 'Frieda', 'Moin', at(24, 9, 1))], {
+      now,
+      me: 'Ich',
+      blocked: new Set(['Troll']),
+    });
+    expect(t.map((m) => m.day ?? m.text)).toEqual(['Heute', 'Moin']);
+  });
   it('shows no read receipts in group chats', () => {
     const t = toThread([msg('1', 'Ich', 'Hallo', at(24, 9))], { direct: false, now });
     expect(t[1].status).toBeUndefined();
@@ -112,6 +120,11 @@ describe('toConversations', () => {
     const rooms = g.find((x) => x.label === 'Öffentliche Räume')!;
     expect(rooms.items.map((c) => c.id)).toEqual(['big', 'small']);
     expect(rooms.items[0].preview).toBe('9.463 Mitglieder · beitreten');
+  });
+  it('hides the preview of a blocked player\'s last message', () => {
+    const g = toConversations(chats, { now, me: 'Ich', blocked: new Set(['Paul']) });
+    expect(g[0].items.find((c) => c.id === 'lobby')?.preview).toBe('');
+    expect(g[0].items.find((c) => c.id === 'old')?.preview).toBe('Du: Bis dann');
   });
   it('filters by name', () => {
     expect(toConversations(chats, { filter: 'frie', now })[0].items.map((c) => c.id)).toEqual(['old']);

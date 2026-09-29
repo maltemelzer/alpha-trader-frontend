@@ -791,6 +791,13 @@ a.bnk-tick:focus-visible { outline: var(--rule) solid var(--brass); outline-offs
 .bnk-msg__col:has(> .bnk-msg__embeds) { max-width: min(92%, 560px); }
 .bnk-msg--own .bnk-msg__embeds { align-self: flex-end; }
 .bnk-msg__meta { margin: 2px var(--space-1) 0; font-family: var(--font-mono); font-size: 11px; line-height: 14px; color: var(--text-secondary); }
+/* Kreis als Knopf fürs Absender-Menü (authorMenu) */
+.bnk-msg__avbtn { position: relative; display: block; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.bnk-msg__avbtn:hover .bnk-av, .bnk-msg__avbtn[aria-expanded="true"] .bnk-av { border-color: var(--brass); }
+.bnk-msg__avbtn:focus-visible { outline: var(--rule) solid var(--brass); outline-offset: 2px; }
+@media (pointer: coarse) { .bnk-msg__avbtn::before { content: ""; position: absolute; inset: -8px; } }
+.bnk-msg__menu { position: fixed; top: 0; left: 0; z-index: 60; min-width: 200px; }
+@media (pointer: coarse) { .bnk-msg__menu .bnk-menu__item { min-height: 44px; align-items: center; } }
 .bnk-chat__day { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-4) 0 var(--space-1); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
 .bnk-chat__day::before, .bnk-chat__day::after { content: ""; flex: 1; border-top: var(--hairline) solid var(--line); }
 .bnk-chat__sys { align-self: center; margin: var(--space-3) 0 0; max-width: 80%; text-align: center; font-size: 13px; line-height: 18px; color: var(--text-secondary); }

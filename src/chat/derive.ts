@@ -2,6 +2,7 @@
 import type { ChatMessage, Conversation } from '../../design-system/components';
 import type { ChatMembershipView, ChatRoomView, ChatView, MessageView } from '../api/types';
 import { gameLinksToMentions } from '../lib/html';
+import { isBlockedMessage, withoutBlocked } from './blocks';
 
 const DAY = 86_400_000;
 const WEEKDAYS = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
@@ -68,12 +69,13 @@ const isMe = (u: { myUser?: boolean; username?: string } | undefined, me?: strin
   me ? u?.username === me : !!u?.myUser;
 const isOwn = (m: MessageView, me?: string) => isMe(m.sender, me);
 
-/** Messages (oldest first) → ChatThread items with day separators and system lines. */
+/** Messages (oldest first) → ChatThread items with day separators and system lines; blocked players' messages are left out. */
 export function toThread(
-  messages: MessageView[],
-  opts: { me?: string; direct?: boolean; now?: number } = {},
+  all: MessageView[],
+  opts: { me?: string; direct?: boolean; now?: number; blocked?: ReadonlySet<string> } = {},
 ): ChatMessage[] {
   const now = opts.now ?? Date.now();
+  const messages = opts.blocked ? withoutBlocked(all, opts.blocked, opts.me) : all;
   const out: ChatMessage[] = [];
   let lastDay = -1;
   messages.forEach((m, i) => {
@@ -102,9 +104,9 @@ export function toThread(
   return out;
 }
 
-function preview(c: ChatView, me?: string): string {
+function preview(c: ChatView, me?: string, blocked?: ReadonlySet<string>): string {
   const m = c.lastMessage;
-  if (!m?.content) return '';
+  if (!m?.content || (blocked && isBlockedMessage(m, blocked, me))) return '';
   const sys = systemText(m.content);
   if (sys) return sys;
   const text = gameLinksToMentions(m.content);
@@ -117,7 +119,7 @@ const lastActivity = (c: ChatView) => c.lastMessage?.dateSent ?? c.dateCreated;
 /** Joined chats of every kind in one list, newest message first; then public rooms not joined yet. */
 export function toConversations(
   chats: ChatView[],
-  opts: { me?: string; activeId?: string; filter?: string; now?: number; rooms?: ChatRoomView[] } = {},
+  opts: { me?: string; activeId?: string; filter?: string; now?: number; rooms?: ChatRoomView[]; blocked?: ReadonlySet<string> } = {},
 ): { label: string; items: Conversation[] }[] {
   const q = opts.filter?.trim().toLowerCase();
   const sorted = [...chats]
@@ -127,7 +129,7 @@ export function toConversations(
     id: c.id,
     kind: chatKind(c),
     name: chatTitle(c, opts.me),
-    preview: preview(c, opts.me),
+    preview: preview(c, opts.me, opts.blocked),
     time: c.lastMessage?.dateSent ? listTime(c.lastMessage.dateSent, opts.now) : undefined,
     unread: c.numOfUnreadMessages || undefined,
     active: c.id === opts.activeId,

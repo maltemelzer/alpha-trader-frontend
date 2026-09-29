@@ -26,6 +26,13 @@
   border-bottom: var(--hairline) solid var(--line);
 }
 
+/* Blocked players: icon button in the list tools */
+.chat-blocked-btn {
+  flex: none;
+  gap: var(--space-1);
+  color: var(--text-secondary);
+}
+
 .chat-older {
   display: flex;
   justify-content: center;

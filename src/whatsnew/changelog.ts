@@ -32,6 +32,17 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-29-3',
+    title: 'Spieler im Chat blockieren',
+    items: [
+      {
+        text: 'Fahr im Chat mit der Maus über den Kreis eines Spielers (oder tipp darauf): Ein kleines Menü bietet Direktnachricht, Profil und „Blockieren …“. Nach dem Bestätigen siehst du die Chatnachrichten des Spielers nicht mehr – weder alte noch neue, in Lobbys wie in privaten Chats –, und sie zählen nicht mehr als ungelesen. Der Spieler erfährt davon nichts.',
+        href: '/nachrichten',
+      },
+      { text: 'Das Verbotszeichen (⃠) oben in der Chatliste öffnet „Blockierte Spieler“. Entsperrst du dort jemanden, erscheinen seine Nachrichten wieder.', href: '/nachrichten' },
+    ],
+  },
+  {
     id: '2026-09-29-2',
     title: 'Links im Chat anklickbar',
     items: [

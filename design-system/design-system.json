@@ -22,9 +22,9 @@
   ],
   "lastChange": {
     "by": "Malte",
-    "at": "2026-09-28T19:45:00Z",
+    "at": "2026-09-29T08:30:00Z",
     "via": "Claude Code (alpha-trader-frontend)",
-    "note": "Version 59: Chat – #ASIN verlinkt, !ASIN hängt eine Karte an (ChatThread renderEmbed); neue Komponenten MentionMenu (Vorschläge beim Tippen) und AssetCard (Wertpapier-Karte mit Sparkline); ChatComposer mit onKeyDown, popup, inputProps."
+    "note": "Version 60: ChatThread authorMenu (Menü am Kreis fremder Absender: Hover, Klick/Tippen, Tastatur – z. B. Direktnachricht, Profil, Blockieren); neues Icon blockieren (⃠)."
   },
   "layout": "files",
   "libraries": [

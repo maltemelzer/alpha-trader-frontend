@@ -1081,6 +1081,75 @@
   function sameGroup(a, b) {
     return a && b && !a.system && !b.system && !a.day && !b.day && a.own === b.own && (a.own || (a.author && b.author && a.author.name === b.author.name));
   }
+  /* Kreis mit Kürzel vor fremden Nachrichten; mit authorMenu ein Knopf, der ein kleines Menü öffnet. */
+  function authorAvatar(m, a, menu) {
+    var av = h(Avatar, { name: a.name, initials: a.initials, size: 28 });
+    var items = menu ? menu(m) : null;
+    return items && items.length ? h(AuthorMenu, { name: a.name, items: items }, av) : av;
+  }
+
+  /* AuthorMenu — Menü am Kreis eines Absenders: öffnet bei Hover (kurz verzögert), Klick/Tippen oder Enter/Pfeil runter.
+     Liegt per Portal fest über der Seite, damit scrollende Verläufe es nicht abschneiden. */
+  function AuthorMenu(props) {
+    var id = useFieldId();
+    var st = React.useState(false), open = st[0];
+    var btn = React.useRef(null), list = React.useRef(null), timer = React.useRef(null), itemsRef = React.useRef([]), mouse = React.useRef(false);
+    function set(v, delay) { clearTimeout(timer.current); if (delay) timer.current = setTimeout(function () { st[1](v); }, delay); else st[1](v); }
+    function focusAt(i) { var els = itemsRef.current.filter(Boolean); if (!els.length) return; els[(i + els.length) % els.length].focus(); }
+    function close(focusBtn) { set(false); if (focusBtn && btn.current) btn.current.focus(); }
+    React.useEffect(function () { return function () { clearTimeout(timer.current); }; }, []);
+    React.useLayoutEffect(function () {
+      var b = btn.current, l = list.current;
+      if (!open || !b || !l) return;
+      var r = b.getBoundingClientRect(), gap = 6, vw = document.documentElement.clientWidth, lh = l.offsetHeight, lw = l.offsetWidth;
+      var top = r.top - lh - gap >= gap ? r.top - lh - gap : Math.min(r.bottom + gap, window.innerHeight - lh - gap);
+      l.style.top = Math.max(gap, top) + 'px';
+      l.style.left = Math.max(gap, Math.min(r.left, vw - lw - gap)) + 'px';
+    }, [open]);
+    React.useEffect(function () {
+      if (!open) return;
+      function down(e) { if (btn.current && !btn.current.contains(e.target) && list.current && !list.current.contains(e.target)) close(false); }
+      function scroll(e) { if (!list.current || !list.current.contains(e.target)) close(false); }
+      document.addEventListener('pointerdown', down);
+      window.addEventListener('scroll', scroll, true);
+      window.addEventListener('resize', scroll);
+      return function () { document.removeEventListener('pointerdown', down); window.removeEventListener('scroll', scroll, true); window.removeEventListener('resize', scroll); };
+    }, [open]);
+    function onKey(e) {
+      var els = itemsRef.current.filter(Boolean), i = els.indexOf(document.activeElement);
+      if (e.key === 'Escape') { e.preventDefault(); close(true); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); focusAt(i + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); focusAt(i - 1); }
+      else if (e.key === 'Tab') close(false);
+    }
+    // Hover: Maus auf Kreis oder Menü hält es offen, beim Verlassen schließt es nach einer kurzen Gnadenfrist.
+    // Nur Maus/Stift: auf Touch öffnet das Antippen (sonst öffnete das nachgeahmte Hover und der Klick schlösse gleich wieder).
+    var hover = { onPointerEnter: function (e) { if (e.pointerType !== 'touch') set(true, open ? 0 : 150); }, onPointerLeave: function (e) { if (e.pointerType !== 'touch') set(false, 250); } };
+    itemsRef.current = [];
+    var k = 0;
+    var menu = h('div', Object.assign({ ref: list, id: id, role: 'menu', className: 'bnk-msg__menu bnk-menu__list', hidden: !open, 'aria-label': props.name, onKeyDown: onKey }, hover),
+      h('div', { className: 'bnk-menu__heading', role: 'presentation' }, props.name),
+      props.items.map(function (it, i) {
+        if (it.divider) return h('div', { key: 'd' + i, role: 'separator', className: 'bnk-menu__sep' });
+        var idx = k++;
+        var p = { key: i, role: 'menuitem', tabIndex: -1, className: cx('bnk-menu__item', it.danger && 'is-danger'), 'aria-disabled': it.disabled ? 'true' : undefined,
+          ref: function (el) { itemsRef.current[idx] = el; },
+          onClick: function (e) { if (it.disabled) { e.preventDefault(); return; } close(!it.href); if (it.onSelect) it.onSelect(e); } };
+        var inner = [h('span', { key: 'l', className: 'bnk-menu__label' }, it.label), it.description ? h('span', { key: 'd', className: 'bnk-menu__desc' }, it.description) : null];
+        return it.href && !it.disabled ? h('a', Object.assign(p, { href: it.href }), inner) : h('button', Object.assign(p, { type: 'button' }), inner);
+      }));
+    var portal = window.ReactDOM && window.ReactDOM.createPortal && typeof document !== 'undefined';
+    return h(React.Fragment, null,
+      h('button', Object.assign({ ref: btn, type: 'button', className: 'bnk-msg__avbtn', 'aria-haspopup': 'menu', 'aria-expanded': open ? 'true' : 'false', 'aria-controls': id,
+          'aria-label': (props.name || '') + ': Aktionen',
+          // Maus: Hover hat es meist schon geöffnet – der Klick hält es offen; Touch und Tastatur schalten um.
+          onPointerDown: function (e) { mouse.current = e.pointerType === 'mouse'; },
+          onClick: function () { var next = mouse.current || !open; mouse.current = false; set(next); if (next) setTimeout(function () { focusAt(0); }, 0); },
+          onKeyDown: function (e) { if (e.key === 'ArrowDown' && !open) { e.preventDefault(); set(true); setTimeout(function () { focusAt(0); }, 0); } else if (open) onKey(e); } }, hover),
+        props.children),
+      portal ? window.ReactDOM.createPortal(menu, document.body) : menu);
+  }
+
   var ChatThread = React.forwardRef(function ChatThread(props, ref) {
     var msgs = props.messages || [];
     var endRef = React.useRef(null);
@@ -1111,7 +1180,7 @@
       var text = embeds.length ? m.text.replace(CHAT_EMBED_EDGES, '').trim() : m.text;
       var bare = embeds.length > 0 && !text;
       return h('div', { key: m.id || i, className: cx('bnk-msg', m.own ? 'bnk-msg--own' : 'bnk-msg--other', first && 'is-first', last && 'is-last') },
-        !m.own ? h('div', { className: 'bnk-msg__av' }, last ? h(Avatar, { name: a.name, initials: a.initials, size: 28 }) : null) : null,
+        !m.own ? h('div', { className: 'bnk-msg__av' }, last ? authorAvatar(m, a, props.authorMenu) : null) : null,
         h('div', { className: 'bnk-msg__col' },
           first && (m.own || !showNames) ? h('span', { className: 'bnk-sr' }, m.own ? 'Du:' : (a.name || '') + ':') : null,
           !m.own && first && showNames ? h('div', { className: 'bnk-msg__name' }, h('span', null, a.name), a.badge || null) : null,
@@ -3318,12 +3387,13 @@
     info: 'M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0zM10 9v5M10 6.5v.01',
     warnung: 'M10 3l8 14H2zM10 8v4M10 14.5v.01',
     ueberweisung: 'M4 7h11M12 4l3 3-3 3M16 13H5M8 10l-3 3 3 3',
-    menue: 'M3 6h14M3 10h14M3 14h14'
+    menue: 'M3 6h14M3 10h14M3 14h14',
+    blockieren: 'M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0zM5.05 5.05l9.9 9.9'
   };
   var ICON_LABELS = { markt: 'Markt', organisation: 'Organisation', orders: 'Orders', highscores: 'Highscores', community: 'Community', zeitung: 'Zeitung', chat: 'Chat', glocke: 'Benachrichtigungen',
     suche: 'Suche', portfolio: 'Portfolio', bank: 'Bank', coin: 'AlphaCoins', anleihe: 'Anleihe', index: 'Index', miner: 'Miner', erfolg: 'Erfolge', spieler: 'Spieler', allianz: 'Allianz',
     einstellungen: 'Einstellungen', abmelden: 'Abmelden', plus: 'Hinzufügen', schliessen: 'Schließen', haken: 'Erledigt', extern: 'Externer Link', uhr: 'Zeit', kalender: 'Datum',
-    merken: 'Merken', filter: 'Filter', aktualisieren: 'Aktualisieren', info: 'Hinweis', warnung: 'Warnung', ueberweisung: 'Überweisung', menue: 'Menü' };
+    merken: 'Merken', filter: 'Filter', aktualisieren: 'Aktualisieren', info: 'Hinweis', warnung: 'Warnung', ueberweisung: 'Überweisung', menue: 'Menü', blockieren: 'Blockieren' };
   function Icon(props) {
     var d = ICONS[props.name];
     var size = props.size || 20;

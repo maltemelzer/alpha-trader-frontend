@@ -1622,6 +1622,8 @@ const chatKeys = {
   list: ['chats'] as const,
   messages: (chatId: string) => ['chats', 'messages', chatId] as const,
   members: (chatId: string) => ['chats', 'members', chatId] as const,
+  /** outside the 'chats' prefix: invalidating the list does not reload the blocks */
+  blocks: ['chatblocks'] as const,
 };
 /** The API answers with 50 messages per call, newest first. */
 const MESSAGE_PAGE = 50;
@@ -1662,7 +1664,7 @@ export function useUnreadChats() {
 export function useChatMessages(chatId: string | undefined) {
   const qc = useQueryClient();
   useTopic<MessageView>(chatId ? `/user/topic/chatmessages/${chatId}` : null, (m) => {
-    if (!chatId || m.chatId !== chatId) return;
+    if (!chatId || m.chatId !== chatId || isBlockedMessage(m, cachedBlocks(qc))) return;
     qc.setQueryData<MessagePages>(chatKeys.messages(chatId), (old) => (old ? upsertMessage(old, m) : old));
     qc.setQueryData<ChatView[]>(chatKeys.list, (old) => old?.map((c) => (c.id === chatId ? { ...c, lastMessage: m } : c)));
   });
@@ -1792,6 +1794,52 @@ export function useLeaveChat() {
     onSuccess: (_, chatId) =>
       qc.setQueryData<ChatView[]>(chatKeys.list, (old) => old?.filter((c) => c.id !== chatId)),
   });
+}
+
+// ---------- Blocked players ----------
+
+/** Names of the blocked players as the cache knows them (for live messages, outside React). */
+const cachedBlocks = (qc: ReturnType<typeof useQueryClient>) => blockedNames(qc.getQueryData<UsernameView[]>(chatKeys.blocks));
+
+/** Players I blocked in the chat: `GET /api/v2/chat-blocks`. */
+export function useChatBlocks() {
+  return useQuery({
+    queryKey: chatKeys.blocks,
+    queryFn: () => unwrap<UsernameView[]>(api.GET('/api/v2/chat-blocks')),
+    staleTime: SLOW,
+  });
+}
+
+/**
+ * Block (`PUT`) or unblock (`DELETE /api/v2/chat-blocks/{username}`). The list changes at once; afterwards
+ * the chats and all loaded messages are fetched again – the server filters them and the unread counts.
+ */
+export function useChatBlock() {
+  const qc = useQueryClient();
+  const after = () => {
+    void qc.invalidateQueries({ queryKey: chatKeys.blocks });
+    void qc.invalidateQueries({ queryKey: ['chats'] });
+  };
+  return {
+    block: useMutation({
+      mutationFn: (user: UsernameView) =>
+        unwrap(api.PUT('/api/v2/chat-blocks/{username}', { params: { path: { username: user.username ?? '' } } })),
+      onSuccess: (_, user) => {
+        qc.setQueryData<UsernameView[]>(chatKeys.blocks, (old) =>
+          old?.some((u) => u.username === user.username) ? old : [...(old ?? []), user],
+        );
+        after();
+      },
+    }),
+    unblock: useMutation({
+      mutationFn: (username: string) =>
+        unwrap(api.DELETE('/api/v2/chat-blocks/{username}', { params: { path: { username } } })),
+      onSuccess: (_, username) => {
+        qc.setQueryData<UsernameView[]>(chatKeys.blocks, (old) => old?.filter((u) => u.username !== username));
+        after();
+      },
+    }),
+  };
 }
 
 export function useUserSearch(query: string) {
@@ -2839,6 +2887,7 @@ export function useHelpComment(identifier: string, enabled = true) {
 // ---------- Chat: unread messages everywhere (header, tab title, sidebar) ----------
 // (import kept here with the hooks that use it – this file is only appended to)
 import { applyIncoming, unreadSummary } from '../chat/unread';
+import { blockedNames, isBlockedMessage } from '../chat/blocks';
 
 /** Unread direct and group messages (`messages`) and chats with any (`chats` = `/my/chats/unread/count`). */
 export function useChatUnread() {
@@ -2857,10 +2906,11 @@ export function useChatInboxTopic(chatId: string, me: string, onFresh?: (m: Mess
     let fresh = false;
     qc.setQueryData<ChatView[]>(chatKeys.list, (old) => {
       if (!old) return old;
-      const r = applyIncoming(old, m, me);
+      const r = applyIncoming(old, m, me, cachedBlocks(qc));
       fresh = r.fresh;
       return r.chats;
     });
+    if (isBlockedMessage(m, cachedBlocks(qc), me)) return;
     qc.setQueryData<MessagePages>(chatKeys.messages(chatId), (old) => (old ? upsertMessage(old, m) : old));
     if (fresh) onFresh?.(m);
   });

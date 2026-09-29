@@ -633,6 +633,15 @@ export interface ChatMessage {
   /** Systemzeile statt Nachricht, z. B. „Anleger Paul ist der Liga beigetreten.“ */
   system?: string;
 }
+export interface AuthorMenuItem {
+  label?: React.ReactNode;
+  description?: React.ReactNode;
+  href?: string;
+  onSelect?: (e: React.MouseEvent) => void;
+  danger?: boolean;
+  disabled?: boolean;
+  divider?: boolean;
+}
 export interface ChatThreadProps {
   messages: ChatMessage[];
   /** Infos zu Tickern für #/$-Erwähnungen: { HRD: { name, change, href } } */
@@ -641,6 +650,8 @@ export interface ChatThreadProps {
   renderEmbed?: (asin: string) => React.ReactNode;
   /** Namen über fremden Nachrichten (Standard true; in Direktnachrichten false) */
   showNames?: boolean;
+  /** Menü am Kreis fremder Absender (Hover, Klick/Tippen, Enter): Einträge wie bei DropdownMenu, z. B. Direktnachricht, Profil, Blockieren; leere Liste/null = nur Kreis */
+  authorMenu?: (m: ChatMessage) => AuthorMenuItem[] | null | undefined;
   /** z. B. „Frieda schreibt …“ */
   typing?: React.ReactNode;
   /** beim Hinzufügen neuer Nachrichten nach unten scrollen (Standard true) */
@@ -1541,7 +1552,7 @@ export interface CashTransferLogEntry { id: string; date: number; amount: number
 export declare function AccountStatement(props: { entries: CashTransferLogEntry[]; bankAccountId: string; currency?: string; density?: 'sm' | 'md'; empty?: React.ReactNode; className?: string }): React.ReactElement;
 
 /* ---------- Rahmen ---------- */
-export type IconName = 'markt' | 'organisation' | 'orders' | 'highscores' | 'community' | 'zeitung' | 'chat' | 'glocke' | 'suche' | 'portfolio' | 'bank' | 'coin' | 'anleihe' | 'index' | 'miner' | 'erfolg' | 'spieler' | 'allianz' | 'einstellungen' | 'abmelden' | 'plus' | 'schliessen' | 'haken' | 'extern' | 'uhr' | 'kalender' | 'merken' | 'filter' | 'aktualisieren' | 'info' | 'warnung' | 'ueberweisung' | 'menue';
+export type IconName = 'markt' | 'organisation' | 'orders' | 'highscores' | 'community' | 'zeitung' | 'chat' | 'glocke' | 'suche' | 'portfolio' | 'bank' | 'coin' | 'anleihe' | 'index' | 'miner' | 'erfolg' | 'spieler' | 'allianz' | 'einstellungen' | 'abmelden' | 'plus' | 'schliessen' | 'haken' | 'extern' | 'uhr' | 'kalender' | 'merken' | 'filter' | 'aktualisieren' | 'info' | 'warnung' | 'ueberweisung' | 'menue' | 'blockieren';
 /** SVG-Pfade je Icon (viewBox 0 0 20 20) */
 export declare const ICONS: Record<IconName, string>;
 export declare const ICON_LABELS: Record<IconName, string>;

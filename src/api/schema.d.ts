@@ -576,6 +576,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/chat-blocks/{username}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Blocks a player: his chat messages are no longer shown to the logged in user */
+        put: operations["block"];
+        post?: never;
+        /** Unblocks a player */
+        delete: operations["unblock"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/centralbankreserves/{reservesId}": {
         parameters: {
             query?: never;
@@ -1429,7 +1447,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Returns all active ETFs */
+        get: operations["getActiveEtfs"];
         put?: never;
         /** Creates a player-operated fund (ETF) on an existing index */
         post: operations["createEtf"];
@@ -1639,6 +1658,40 @@ export interface paths {
         put?: never;
         /** Initiate capital increase poll */
         post: operations["initiateCapitalIncreasePoll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/angel-offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Creates an angel offer, committing cash per founder onto an escrow account */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/angel-offers/{offerId}/acceptances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepts an open angel offer, founding a new company from the offer's escrow */
+        post: operations["accept"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3592,6 +3645,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/my/angel-offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the caller's own issued angel offers */
+        get: operations["myOffers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/my/alliancemembership": {
         parameters: {
             query?: never;
@@ -4333,6 +4403,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/chat-blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the players the logged in user has blocked */
+        get: operations["getBlockedPlayers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/cashtransferlogs/{bankAccountId}": {
         parameters: {
             query?: never;
@@ -4538,6 +4625,24 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/angel-offers/{offerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reads an angel offer - visible to the issuer's CEO and, if exclusive, the exclusive user only */
+        get: operations["get"];
+        put?: never;
+        post?: never;
+        /** Cancels an open angel offer, returning the remaining escrow to the issuer */
+        delete: operations["cancel"];
         options?: never;
         head?: never;
         patch?: never;
@@ -6090,23 +6195,23 @@ export interface components {
             id?: string;
             /** Format: int64 */
             version?: number;
-            securityIdentifier?: string;
+            ceo?: components["schemas"]["UsernameView"];
             /** Format: uuid */
             securitiesAccountId?: string;
-            ceo?: components["schemas"]["UsernameView"];
-            logoUrl?: string;
-            /** @enum {string} */
-            marketMakerPolicy?: "OPEN" | "CLOSED";
             /** Format: int64 */
             achievementCount?: number;
+            /** @enum {string} */
+            marketMakerPolicy?: "OPEN" | "CLOSED";
+            logoUrl?: string;
+            securityIdentifier?: string;
             /** Format: int64 */
             achievementTotal?: number;
         };
         CompanyAchievementView: {
             /** @enum {string} */
             type?: "FIVE_TRADES_A_DAY" | "HUNDRED_TRADES_A_WEEK" | "FIRST_THOUSAND_TRADES" | "TOP_HALF_COMPANY_HIGHSCORE" | "TOP_TEN_PERCENT_COMPANY_HIGHSCORE" | "BEST_IN_COMPANY_HIGHSCORE" | "ATSX_MEMBER" | "BANK_LICENSE" | "BUILDING_OWNER";
-            description?: string;
             company?: components["schemas"]["CompactCompanyView"];
+            description?: string;
             /** Format: uuid */
             id?: string;
             /** Format: int64 */
@@ -6146,8 +6251,8 @@ export interface components {
             id?: string;
             /** Format: int64 */
             version?: number;
-            username?: string;
             userCapabilities?: components["schemas"]["UserCapabilitiesView"];
+            username?: string;
             /** Format: int64 */
             registrationDate?: number;
             refId?: string;
@@ -6181,10 +6286,10 @@ export interface components {
             version?: number;
             /** Format: uuid */
             chatId?: string;
-            description?: string;
-            logoUrl?: string;
             /** Format: int64 */
             achievementCount?: number;
+            logoUrl?: string;
+            description?: string;
             /** Format: uuid */
             messageBoard?: string;
             /** Format: int64 */
@@ -6275,11 +6380,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PageableObject: {
@@ -6300,11 +6405,11 @@ export interface components {
             date?: number;
             /** Format: int64 */
             version?: number;
-            securityIdentifier?: string;
+            volume?: number;
             /** Format: int64 */
             numberOfShares?: number;
-            volume?: number;
             price?: number;
+            securityIdentifier?: string;
             /** Format: uuid */
             buyerSecuritiesAccount?: string;
             /** Format: uuid */
@@ -6315,8 +6420,8 @@ export interface components {
         };
         SecurityOrderLogEntryWithPriceDiffView: {
             listing?: components["schemas"]["ListingView"];
-            priceChangeRelInPercent?: number;
             priceChangeAbs?: number;
+            priceChangeRelInPercent?: number;
             log?: components["schemas"]["SecurityOrderLogEntryView"];
         };
         SortObject: {
@@ -6376,11 +6481,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PostView: {
@@ -6401,8 +6506,8 @@ export interface components {
             /** Format: int64 */
             version?: number;
             title?: string;
-            listing?: components["schemas"]["ListingView"];
             company?: components["schemas"]["CompactCompanyView"];
+            listing?: components["schemas"]["ListingView"];
             alliance?: components["schemas"]["AllianceView"];
             messageBoard?: components["schemas"]["MessageBoardView"];
             news?: boolean;
@@ -6484,11 +6589,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         IndexComparisonView: {
@@ -6507,22 +6612,22 @@ export interface components {
             cash?: number;
         };
         CompanyView: {
-            listing?: components["schemas"]["ListingView"];
-            bankAccount?: components["schemas"]["BankAccountView"];
             ceo?: components["schemas"]["UsernameView"];
+            bankAccount?: components["schemas"]["BankAccountView"];
+            listing?: components["schemas"]["ListingView"];
             name?: string;
             /** Format: uuid */
             id?: string;
             /** Format: int64 */
             version?: number;
-            securityIdentifier?: string;
             /** Format: uuid */
             securitiesAccountId?: string;
-            logoUrl?: string;
-            /** @enum {string} */
-            marketMakerPolicy?: "OPEN" | "CLOSED";
             /** Format: int64 */
             achievementCount?: number;
+            /** @enum {string} */
+            marketMakerPolicy?: "OPEN" | "CLOSED";
+            logoUrl?: string;
+            securityIdentifier?: string;
             /** Format: int64 */
             achievementTotal?: number;
         };
@@ -6537,11 +6642,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         WarrantView: {
@@ -6552,9 +6657,9 @@ export interface components {
             /** Format: int64 */
             version?: number;
             underlyingCapValue?: number;
-            listing?: components["schemas"]["ListingView"];
             company?: components["schemas"]["CompanyView"];
             underlying?: components["schemas"]["ListingView"];
+            listing?: components["schemas"]["ListingView"];
             /** Format: int64 */
             subscriptionPeriodDate?: number;
             ratio?: number;
@@ -6571,11 +6676,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PageUserPreferenceView: {
@@ -6589,11 +6694,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         UserPreferenceView: {
@@ -6616,11 +6721,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         UserHighscoreEntryView: {
@@ -6629,10 +6734,10 @@ export interface components {
             /** Format: date-time */
             date?: string;
             /** Format: int64 */
+            historyDate?: number;
+            /** Format: int64 */
             historyPosition?: number;
             historyValue?: number;
-            /** Format: int64 */
-            historyDate?: number;
         };
         UserAchievementProgressView: {
             progressInPercent?: number;
@@ -6661,11 +6766,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         TradeWinView: {
@@ -6706,11 +6811,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         Suggestion: {
@@ -6731,11 +6836,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         SponsorView: {
@@ -6758,11 +6863,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         SponsoredGoldHoursView: {
@@ -6784,9 +6889,9 @@ export interface components {
             id?: string;
             /** Format: int64 */
             version?: number;
-            description?: string;
             /** Format: int64 */
             endDate?: number;
+            description?: string;
             /** Format: int64 */
             neededGoldHours?: number;
         };
@@ -6803,12 +6908,12 @@ export interface components {
             id?: string;
             /** Format: int64 */
             version?: number;
-            securitiesAccount?: components["schemas"]["SecuritiesAccountCompactView"];
-            lastPrice?: number;
+            averageBuyingPrice?: number;
             /** Format: int64 */
             numberOfShares?: number;
+            securitiesAccount?: components["schemas"]["SecuritiesAccountCompactView"];
+            lastPrice?: number;
             listing?: components["schemas"]["ListingView"];
-            averageBuyingPrice?: number;
             /** Format: int64 */
             lastPriceUpdate?: number;
         };
@@ -6823,23 +6928,23 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PriceSpreadView: {
             /** Format: int64 */
             date?: number;
-            lastPrice?: components["schemas"]["SecurityPriceView"];
             minAskPrice?: number;
             /** Format: int64 */
             bidSize?: number;
             maxBidPrice?: number;
             askPrice?: number;
             bidPrice?: number;
+            lastPrice?: components["schemas"]["SecurityPriceView"];
             /** Format: int64 */
             askSize?: number;
             spreadAbs?: number;
@@ -6873,12 +6978,12 @@ export interface components {
             owner: string;
             /** Format: int64 */
             version?: number;
-            securityIdentifier: string;
+            committedCash?: number;
             /** Format: int64 */
             numberOfShares: number;
             listing?: components["schemas"]["ListingView"];
-            committedCash?: number;
             price?: number;
+            securityIdentifier: string;
             /** Format: uuid */
             counterParty?: string;
             hourlyChange?: number;
@@ -6905,11 +7010,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PageListingWithPriceChangeView: {
@@ -6923,11 +7028,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         SecuritiesAccountDetailsView: {
@@ -6951,11 +7056,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PriceSpreadListingView: {
@@ -6991,11 +7096,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PremiumOrderEventView: {
@@ -7020,8 +7125,8 @@ export interface components {
             date?: number;
             /** Format: int64 */
             version?: number;
-            subject?: components["schemas"]["MessagePrototype"];
             receiver?: components["schemas"]["UsernameView"];
+            subject?: components["schemas"]["MessagePrototype"];
             readByReceiver?: boolean;
         };
         PageNotificationView: {
@@ -7035,11 +7140,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         ListingShareView: {
@@ -7057,11 +7162,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         SecuritiesAccountView: {
@@ -7112,11 +7217,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         VoiceNumberView: {
@@ -7127,9 +7232,9 @@ export interface components {
         VoteView: {
             /** @enum {string} */
             type?: "YES" | "NO";
+            voter?: components["schemas"]["UsernameView"];
             /** Format: int64 */
             voices?: number;
-            voter?: components["schemas"]["UsernameView"];
         };
         OnlineTrackingView: {
             /** Format: int64 */
@@ -7184,26 +7289,26 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         IndexMemberValuesView: {
-            priceAdjustmentFactor?: number;
-            baseCapitalisation?: number;
-            /** Format: int64 */
-            lastAdjustmentDate?: number;
             listing?: components["schemas"]["ListingView"];
             price?: number;
-            capitalisation?: number;
             /** Format: int64 */
             shares?: number;
             basePrice?: number;
             /** Format: int64 */
             baseShares?: number;
+            capitalisation?: number;
+            priceAdjustmentFactor?: number;
+            baseCapitalisation?: number;
+            /** Format: int64 */
+            lastAdjustmentDate?: number;
         };
         IndexRuleView: {
             /** @enum {string} */
@@ -7263,20 +7368,20 @@ export interface components {
             owner?: components["schemas"]["UsernameView"];
             /** Format: int64 */
             version?: number;
-            trackingDifferenceMonth?: string;
+            baseIndexAsin?: string;
             managementFeeFrozen?: boolean;
             trackingDifferencePercent?: number;
-            baseIndexAsin?: string;
+            trackingDifferenceMonth?: string;
             /** Format: uuid */
             operatorCompanyId?: string;
             listing?: components["schemas"]["Listing"];
             /** Format: date-time */
             frozenAt?: string;
             baseIndexName?: string;
-            baseIndexEnded?: boolean;
             managementFeePercent?: number;
             /** Format: date-time */
             nextFeeChangeAt?: string;
+            baseIndexEnded?: boolean;
         };
         EmploymentAgreementSalaryPaymentCompactCompanyView: {
             lastPayment?: components["schemas"]["SalaryPaymentView"];
@@ -7301,11 +7406,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         SalaryPaymentView: {
@@ -7327,7 +7432,6 @@ export interface components {
             bookValueHistogram?: components["schemas"]["HistogramView"];
             cashFlowHistogram?: components["schemas"]["HistogramView"];
             cashHistogram?: components["schemas"]["HistogramView"];
-            centralBankReservesHistogram?: components["schemas"]["HistogramView"];
             closePriceHistogram?: components["schemas"]["HistogramView"];
             netCashHistogram?: components["schemas"]["HistogramView"];
             outstandingSharesHistogram?: components["schemas"]["HistogramView"];
@@ -7336,6 +7440,7 @@ export interface components {
             sharesInSellsHistogram?: components["schemas"]["HistogramView"];
             systemReposVolumeHistogram?: components["schemas"]["HistogramView"];
             tradeVolumeHistogram?: components["schemas"]["HistogramView"];
+            centralBankReservesHistogram?: components["schemas"]["HistogramView"];
         };
         HistogramView: {
             highlightValue?: number;
@@ -7357,11 +7462,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         RangeViewBigDecimal: {
@@ -7393,11 +7498,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PageCompanyView: {
@@ -7411,11 +7516,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         ChatView: {
@@ -7448,8 +7553,8 @@ export interface components {
             version?: number;
             /** Format: uuid */
             chatId?: string;
-            sender?: components["schemas"]["UsernameView"];
             read?: boolean;
+            sender?: components["schemas"]["UsernameView"];
             /** Format: int64 */
             dateSent?: number;
         };
@@ -7464,6 +7569,35 @@ export interface components {
             publicChat?: boolean;
             readonly?: boolean;
             chatName?: string;
+        };
+        AngelOfferView: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int64 */
+            version?: number;
+            /** Format: uuid */
+            issuerId?: string;
+            issuerName?: string;
+            cashPerFounder?: number;
+            /** Format: int32 */
+            angelSharePercent?: number;
+            /** Format: int32 */
+            founderSlots?: number;
+            /** Format: int32 */
+            remainingFounderSlots?: number;
+            /** @enum {string} */
+            offerType?: "PUBLIC" | "PRIVATE";
+            exclusiveUsername?: string;
+            /** @enum {string} */
+            status?: "OPEN" | "EXHAUSTED" | "EXPIRED" | "CANCELLED";
+            /** @enum {string} */
+            closeReason?: "EXHAUSTED" | "EXPIRED" | "CANCELLED_BY_ANGEL" | "ISSUER_LIQUIDATED" | "EXCLUSIVE_USER_LEFT";
+            /** Format: date-time */
+            creationDate?: string;
+            /** Format: date-time */
+            expiryDate?: string;
+            escrowCash?: number;
+            openingPricePerShare?: number;
         };
         ListingWithTradingCountView: {
             listing?: components["schemas"]["ListingView"];
@@ -7500,11 +7634,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         MessageBoardMembershipView: {
@@ -7521,10 +7655,10 @@ export interface components {
         MergerView: {
             /** Format: uuid */
             id?: string;
-            maximalCashVolume?: number;
             company?: components["schemas"]["CompactCompanyView"];
             /** Format: int64 */
             startDate?: number;
+            maximalCashVolume?: number;
             acquiringCompany?: components["schemas"]["CompactCompanyView"];
         };
         PageMergerView: {
@@ -7538,11 +7672,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         MainInterestRateView: {
@@ -7566,11 +7700,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PageListingView: {
@@ -7584,11 +7718,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         InterestTenderView: {
@@ -7632,18 +7766,18 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         HistoryEntryView: {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            type?: "ALLIANCE_MEMBERSHIP_START" | "ALLIANCE_MEMBERSHIP_END" | "ALLIANCE_CREATED" | "ALLIANCE_MEMBERSHIP_CHANGE" | "ALLIANCE_LOGO_CHANGED" | "ALLIANCE_NAME_CHANGED" | "USERNAME_CHANGED" | "USER_CREATED" | "COMPANY_LOGO_CHANGED" | "COMPANY_CREATED" | "COMPANY_NAME_CHANGED" | "COMPANY_CEO_CHANGED" | "BANK_LICENSE_GRANTED" | "ETF_LAUNCHED" | "COMPANY_BOND_STOCKS_ISSUED" | "COMPANY_CASH_OUT_STARTED" | "COMPANY_LIQUIDATED" | "COMPANY_CAPITAL_INCREASE" | "COMPANY_CAPITAL_REDUCTION" | "COMPANY_DIVIDEND_PAYMENT" | "COMPANY_MERGER" | "ETF_UNITS_SUBSCRIBED" | "ETF_REDEMPTION_REQUESTED" | "ETF_REDEMPTION_SERVED" | "ETF_MANAGEMENT_FEE_CHANGED" | "ETF_MANAGEMENT_FEE_CHARGED" | "ETF_FROZEN" | "ETF_BASE_INDEX_CHANGED";
+            type?: "ALLIANCE_MEMBERSHIP_START" | "ALLIANCE_MEMBERSHIP_END" | "ALLIANCE_CREATED" | "ALLIANCE_MEMBERSHIP_CHANGE" | "ALLIANCE_LOGO_CHANGED" | "ALLIANCE_NAME_CHANGED" | "USERNAME_CHANGED" | "USER_CREATED" | "COMPANY_LOGO_CHANGED" | "COMPANY_CREATED" | "COMPANY_NAME_CHANGED" | "COMPANY_CEO_CHANGED" | "BANK_LICENSE_GRANTED" | "ETF_LAUNCHED" | "COMPANY_BOND_STOCKS_ISSUED" | "COMPANY_CASH_OUT_STARTED" | "COMPANY_LIQUIDATED" | "COMPANY_CAPITAL_INCREASE" | "COMPANY_CAPITAL_REDUCTION" | "COMPANY_DIVIDEND_PAYMENT" | "COMPANY_MERGER" | "ETF_UNITS_SUBSCRIBED" | "ETF_REDEMPTION_REQUESTED" | "ETF_REDEMPTION_SERVED" | "ETF_MANAGEMENT_FEE_CHANGED" | "ETF_MANAGEMENT_FEE_CHARGED" | "ETF_FROZEN" | "ETF_BASE_INDEX_CHANGED" | "ANGEL_OFFER_CREATED" | "ANGEL_OFFER_ACCEPTED" | "ANGEL_OFFER_CLOSED";
             content?: components["schemas"]["MessagePrototype"];
             /** Format: int64 */
             date?: number;
@@ -7661,11 +7795,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         HistorizedListingDataView: {
@@ -7675,12 +7809,12 @@ export interface components {
             date?: string;
             /** Format: int64 */
             version?: number;
-            /** Format: int64 */
-            outstandingShares?: number;
             askPrice?: number;
             bidPrice?: number;
             openPrice?: number;
             closePrice?: number;
+            /** Format: int64 */
+            outstandingShares?: number;
             highPrice?: number;
             lowPrice?: number;
             /** Format: int64 */
@@ -7700,11 +7834,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         HistorizedCompanyDataView: {
@@ -7714,9 +7848,9 @@ export interface components {
             date?: string;
             /** Format: int64 */
             version?: number;
-            cash?: number;
-            fairValuePerShare?: number;
             netCash?: number;
+            fairValuePerShare?: number;
+            cash?: number;
             bookValue?: number;
             cashFlow?: number;
             centralBankReserves?: number;
@@ -7738,11 +7872,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         HighscoreHistoryEntryView: {
@@ -7767,11 +7901,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         HelpComment: {
@@ -7779,21 +7913,21 @@ export interface components {
         };
         FilterDefinition: {
             fieldName?: string;
-            /** @enum {string} */
-            defaultFilterOperator?: "WHERE" | "AND" | "NOT";
-            filterOperators?: ("WHERE" | "AND" | "NOT")[];
             allowedValues?: string[];
             defaultParameters?: string[];
             predicateOperators?: ("EQUAL" | "IS_NULL" | "IS_NOT_NULL" | "LESS_THAN" | "LESS_THAN_OR_EQUAL" | "CONTAINS" | "CONTAINS_NOT" | "GREATER_THAN" | "GREATER_THAN_OR_EQUAL")[];
+            /** @enum {string} */
+            defaultFilterOperator?: "WHERE" | "AND" | "NOT";
+            filterOperators?: ("WHERE" | "AND" | "NOT")[];
             description?: components["schemas"]["MessagePrototype"];
             parameterType?: string;
         };
         ListingFilterDefinition: {
             fieldName?: string;
+            nextFilterDefinitions?: components["schemas"]["FilterDefinition"][];
             /** @enum {string} */
             defaultFilterOperator?: "WHERE" | "AND" | "NOT";
             filterOperators?: ("WHERE" | "AND" | "NOT")[];
-            nextFilterDefinitions?: components["schemas"]["FilterDefinition"][];
             description?: components["schemas"]["MessagePrototype"];
             allowedValues?: string[];
             defaultParameters?: string[];
@@ -7807,10 +7941,10 @@ export interface components {
         };
         SpreadFilterDefinition: {
             fieldName?: string;
+            nextFilterDefinitions?: components["schemas"]["FilterDefinition"][];
             /** @enum {string} */
             defaultFilterOperator?: "WHERE" | "AND" | "NOT";
             filterOperators?: ("WHERE" | "AND" | "NOT")[];
-            nextFilterDefinitions?: components["schemas"]["FilterDefinition"][];
             description?: components["schemas"]["MessagePrototype"];
             allowedValues?: string[];
             defaultParameters?: string[];
@@ -7828,11 +7962,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PersistentFilterView: {
@@ -7847,10 +7981,10 @@ export interface components {
         DividendPaymentView: {
             /** Format: uuid */
             id?: string;
-            maximalCashVolume?: number;
             company?: components["schemas"]["CompactCompanyView"];
             /** Format: int64 */
             startDate?: number;
+            maximalCashVolume?: number;
         };
         PageDividendPaymentView: {
             /** Format: int64 */
@@ -7863,11 +7997,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         CompanyHighscoreEntryView: {
@@ -7876,10 +8010,10 @@ export interface components {
             /** Format: date-time */
             date?: string;
             /** Format: int64 */
+            historyDate?: number;
+            /** Format: int64 */
             historyPosition?: number;
             historyValue?: number;
-            /** Format: int64 */
-            historyDate?: number;
         };
         PageCompanyHighscoreEntryView: {
             /** Format: int64 */
@@ -7892,11 +8026,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         CompanyAchievementProgressView: {
@@ -7908,28 +8042,28 @@ export interface components {
             coinReward?: number;
         };
         CompanyListView: {
-            fairValuePerShare?: number;
             netCash?: number;
+            fairValuePerShare?: number;
             bookValue?: number;
             bondsVolume?: number;
             reposVolume?: number;
             systemReposVolume?: number;
-            listing?: components["schemas"]["ListingView"];
-            bankAccount?: components["schemas"]["BankAccountView"];
             ceo?: components["schemas"]["UsernameView"];
+            bankAccount?: components["schemas"]["BankAccountView"];
+            listing?: components["schemas"]["ListingView"];
             name?: string;
             /** Format: uuid */
             id?: string;
             /** Format: int64 */
             version?: number;
-            securityIdentifier?: string;
             /** Format: uuid */
             securitiesAccountId?: string;
-            logoUrl?: string;
-            /** @enum {string} */
-            marketMakerPolicy?: "OPEN" | "CLOSED";
             /** Format: int64 */
             achievementCount?: number;
+            /** @enum {string} */
+            marketMakerPolicy?: "OPEN" | "CLOSED";
+            logoUrl?: string;
+            securityIdentifier?: string;
             /** Format: int64 */
             achievementTotal?: number;
         };
@@ -7944,23 +8078,23 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         CapitalReductionView: {
             /** Format: uuid */
             id?: string;
-            /** Format: int64 */
-            numberOfShares?: number;
             company?: components["schemas"]["CompactCompanyView"];
             /** Format: int64 */
             startDate?: number;
             /** Format: int64 */
             endDate?: number;
+            /** Format: int64 */
+            numberOfShares?: number;
             price?: number;
             cashVolume?: number;
         };
@@ -7969,13 +8103,13 @@ export interface components {
             type?: "WITH_SUBSCRIPTION_RIGHTS" | "WITHOUT_SUBSCRIPTION_RIGHTS";
             /** Format: uuid */
             id?: string;
-            /** Format: int64 */
-            numberOfShares?: number;
             company?: components["schemas"]["CompactCompanyView"];
             /** Format: int64 */
             startDate?: number;
             /** Format: int64 */
             endDate?: number;
+            /** Format: int64 */
+            numberOfShares?: number;
             price?: number;
             cashVolume?: number;
         };
@@ -7988,11 +8122,11 @@ export interface components {
             date?: number;
             /** Format: int64 */
             version?: number;
+            /** Format: uuid */
+            receiverBankAccount?: string;
             amount?: number;
             /** Format: uuid */
             senderBankAccount?: string;
-            /** Format: uuid */
-            receiverBankAccount?: string;
         };
         PageCashTransferLogEntryView: {
             /** Format: int64 */
@@ -8005,11 +8139,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PageCapitalReductionView: {
@@ -8023,11 +8157,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PageCapitalIncreaseView: {
@@ -8041,11 +8175,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         BondView: {
@@ -8056,7 +8190,6 @@ export interface components {
             id?: string;
             /** Format: int64 */
             version?: number;
-            listing?: components["schemas"]["ListingView"];
             /** Format: int64 */
             maturityDate?: number;
             volume?: number;
@@ -8064,6 +8197,7 @@ export interface components {
             /** Format: int64 */
             issueDate?: number;
             interestRate?: number;
+            listing?: components["schemas"]["ListingView"];
             repurchaseListing?: components["schemas"]["ListingView"];
         };
         CompanyNameView: {
@@ -8072,8 +8206,8 @@ export interface components {
             id?: string;
             /** Format: int64 */
             version?: number;
-            securityIdentifier?: string;
             listing?: components["schemas"]["ListingView"];
+            securityIdentifier?: string;
         };
         PageBondView: {
             /** Format: int64 */
@@ -8086,11 +8220,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         PageAllianceView: {
@@ -8104,11 +8238,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         AllianceWithDetailsView: {
@@ -8123,10 +8257,10 @@ export interface components {
             version?: number;
             /** Format: uuid */
             chatId?: string;
-            description?: string;
-            logoUrl?: string;
             /** Format: int64 */
             achievementCount?: number;
+            logoUrl?: string;
+            description?: string;
             /** Format: uuid */
             messageBoard?: string;
             /** Format: int64 */
@@ -8145,11 +8279,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         AllianceMembershipView: {
@@ -8171,10 +8305,10 @@ export interface components {
             /** Format: date-time */
             date?: string;
             /** Format: int64 */
+            historyDate?: number;
+            /** Format: int64 */
             historyPosition?: number;
             historyValue?: number;
-            /** Format: int64 */
-            historyDate?: number;
         };
         PageAllianceHighscoreEntryView: {
             /** Format: int64 */
@@ -8187,11 +8321,11 @@ export interface components {
             /** Format: int32 */
             number?: number;
             pageable?: components["schemas"]["PageableObject"];
+            first?: boolean;
+            last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
             sort?: components["schemas"]["SortObject"];
-            first?: boolean;
-            last?: boolean;
             empty?: boolean;
         };
         AllianceAchievementProgressView: {
@@ -8250,7 +8384,6 @@ export interface components {
             id?: string;
             /** Format: int64 */
             version?: number;
-            listing?: components["schemas"]["ListingView"];
             /** Format: int64 */
             maturityDate?: number;
             volume?: number;
@@ -8258,6 +8391,7 @@ export interface components {
             /** Format: int64 */
             issueDate?: number;
             interestRate?: number;
+            listing?: components["schemas"]["ListingView"];
             repurchaseListing?: components["schemas"]["ListingView"];
         };
         ShareholderView: {
@@ -8285,7 +8419,7 @@ export interface components {
             date?: number;
             realms?: string[];
             /** @enum {string} */
-            type?: "NEW_USER" | "NEW_SECURITY" | "NEW_COMPANY" | "NEW_BOND" | "COMPANY_LIQUIDATED" | "SECURITY_TRADED" | "ORDER_ACCEPTED" | "ORDER_DELETED" | "ORDER_FILLED" | "LIQUIDATION_POLL_INITIATED" | "CASH_OUT_POLL_INITIATED" | "EMPLOY_CEO_POLL_INITIATED" | "COMPANY_NAME_CHANGE_POLL_INITIATED" | "SALARY_PAYMENT" | "CEO_DISMISSED" | "CEO_RESIGNED" | "SYSTEM_STARTED" | "FIXED_INCOME_REPAID" | "CAPITAL_INCREASE_POLL_INITIATED" | "CAPITAL_REDUCTION_POLL_INITIATED" | "DIVIDEND_PAYMENT_POLL_INITIATED" | "MERGER_POLL_INITIATED" | "ETF_UNITS_SUBSCRIBED" | "ETF_MANAGEMENT_FEE_CHANGED" | "ETF_FROZEN" | "ETF_BASE_INDEX_CHANGED";
+            type?: "NEW_USER" | "NEW_SECURITY" | "NEW_COMPANY" | "NEW_BOND" | "COMPANY_LIQUIDATED" | "SECURITY_TRADED" | "ORDER_ACCEPTED" | "ORDER_DELETED" | "ORDER_FILLED" | "LIQUIDATION_POLL_INITIATED" | "CASH_OUT_POLL_INITIATED" | "EMPLOY_CEO_POLL_INITIATED" | "COMPANY_NAME_CHANGE_POLL_INITIATED" | "SALARY_PAYMENT" | "CEO_DISMISSED" | "CEO_RESIGNED" | "SYSTEM_STARTED" | "FIXED_INCOME_REPAID" | "CAPITAL_INCREASE_POLL_INITIATED" | "CAPITAL_REDUCTION_POLL_INITIATED" | "DIVIDEND_PAYMENT_POLL_INITIATED" | "MERGER_POLL_INITIATED" | "ETF_UNITS_SUBSCRIBED" | "ETF_MANAGEMENT_FEE_CHANGED" | "ETF_FROZEN" | "ETF_BASE_INDEX_CHANGED" | "ANGEL_OFFER_CREATED" | "ANGEL_OFFER_ACCEPTED" | "ANGEL_OFFER_CLOSED";
         };
         FixedIncomeSecurityView: {
             priceSpread?: components["schemas"]["PriceSpreadView"];
@@ -8294,7 +8428,6 @@ export interface components {
             id?: string;
             /** Format: int64 */
             version?: number;
-            listing?: components["schemas"]["ListingView"];
             /** Format: int64 */
             maturityDate?: number;
             volume?: number;
@@ -8302,6 +8435,7 @@ export interface components {
             /** Format: int64 */
             issueDate?: number;
             interestRate?: number;
+            listing?: components["schemas"]["ListingView"];
             repurchaseListing?: components["schemas"]["ListingView"];
         };
         SearchResult: {
@@ -9840,6 +9974,52 @@ export interface operations {
             path: {
                 /** @description Membership id */
                 membershipId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    block: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Username of the player to block */
+                username: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    unblock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Username of the player to unblock */
+                username: string;
             };
             cookie?: never;
         };
@@ -11531,6 +11711,26 @@ export interface operations {
             };
         };
     };
+    getActiveEtfs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EtfView"][];
+                };
+            };
+        };
+    };
     createEtf: {
         parameters: {
             query: {
@@ -11900,6 +12100,65 @@ export interface operations {
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query: {
+                /** @description Issuing company id */
+                companyId: string;
+                /** @description Cash committed per founder */
+                cashPerFounder: string;
+                /** @description Angel share in percent (25-50) */
+                angelSharePercent: number;
+                /** @description Number of founder slots */
+                founders: number;
+                /** @description PUBLIC or PRIVATE */
+                offerType: string;
+                /** @description Username the offer is exclusively reserved for */
+                exclusiveUsername?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    accept: {
+        parameters: {
+            query: {
+                /** @description Name of the company to found */
+                companyName: string;
+            };
+            header?: never;
+            path: {
+                /** @description Offer id */
+                offerId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -14743,6 +15002,26 @@ export interface operations {
             };
         };
     };
+    myOffers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AngelOfferView"][];
+                };
+            };
+        };
+    };
     getMyAllianceMembership: {
         parameters: {
             query?: never;
@@ -15204,7 +15483,7 @@ export interface operations {
                 /** @description Entity ID */
                 entityId: string;
                 /** @description History Entry Type */
-                historyType?: "ALLIANCE_MEMBERSHIP_START" | "ALLIANCE_MEMBERSHIP_END" | "ALLIANCE_CREATED" | "ALLIANCE_MEMBERSHIP_CHANGE" | "ALLIANCE_LOGO_CHANGED" | "ALLIANCE_NAME_CHANGED" | "USERNAME_CHANGED" | "USER_CREATED" | "COMPANY_LOGO_CHANGED" | "COMPANY_CREATED" | "COMPANY_NAME_CHANGED" | "COMPANY_CEO_CHANGED" | "BANK_LICENSE_GRANTED" | "ETF_LAUNCHED" | "COMPANY_BOND_STOCKS_ISSUED" | "COMPANY_CASH_OUT_STARTED" | "COMPANY_LIQUIDATED" | "COMPANY_CAPITAL_INCREASE" | "COMPANY_CAPITAL_REDUCTION" | "COMPANY_DIVIDEND_PAYMENT" | "COMPANY_MERGER" | "ETF_UNITS_SUBSCRIBED" | "ETF_REDEMPTION_REQUESTED" | "ETF_REDEMPTION_SERVED" | "ETF_MANAGEMENT_FEE_CHANGED" | "ETF_MANAGEMENT_FEE_CHARGED" | "ETF_FROZEN" | "ETF_BASE_INDEX_CHANGED";
+                historyType?: "ALLIANCE_MEMBERSHIP_START" | "ALLIANCE_MEMBERSHIP_END" | "ALLIANCE_CREATED" | "ALLIANCE_MEMBERSHIP_CHANGE" | "ALLIANCE_LOGO_CHANGED" | "ALLIANCE_NAME_CHANGED" | "USERNAME_CHANGED" | "USER_CREATED" | "COMPANY_LOGO_CHANGED" | "COMPANY_CREATED" | "COMPANY_NAME_CHANGED" | "COMPANY_CEO_CHANGED" | "BANK_LICENSE_GRANTED" | "ETF_LAUNCHED" | "COMPANY_BOND_STOCKS_ISSUED" | "COMPANY_CASH_OUT_STARTED" | "COMPANY_LIQUIDATED" | "COMPANY_CAPITAL_INCREASE" | "COMPANY_CAPITAL_REDUCTION" | "COMPANY_DIVIDEND_PAYMENT" | "COMPANY_MERGER" | "ETF_UNITS_SUBSCRIBED" | "ETF_REDEMPTION_REQUESTED" | "ETF_REDEMPTION_SERVED" | "ETF_MANAGEMENT_FEE_CHANGED" | "ETF_MANAGEMENT_FEE_CHARGED" | "ETF_FROZEN" | "ETF_BASE_INDEX_CHANGED" | "ANGEL_OFFER_CREATED" | "ANGEL_OFFER_ACCEPTED" | "ANGEL_OFFER_CLOSED";
                 pageable: components["schemas"]["Pageable"];
             };
             header?: never;
@@ -15817,6 +16096,26 @@ export interface operations {
             };
         };
     };
+    getBlockedPlayers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UsernameView"][];
+                };
+            };
+        };
+    };
     listLogs: {
         parameters: {
             query: {
@@ -16091,6 +16390,52 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PagePostView"];
+                };
+            };
+        };
+    };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Offer id */
+                offerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Offer id */
+                offerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
                 };
             };
         };
@@ -16727,7 +17072,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description Event type */
-                eventType: "NEW_USER" | "NEW_SECURITY" | "NEW_COMPANY" | "NEW_BOND" | "COMPANY_LIQUIDATED" | "SECURITY_TRADED" | "ORDER_ACCEPTED" | "ORDER_DELETED" | "ORDER_FILLED" | "LIQUIDATION_POLL_INITIATED" | "CASH_OUT_POLL_INITIATED" | "EMPLOY_CEO_POLL_INITIATED" | "COMPANY_NAME_CHANGE_POLL_INITIATED" | "SALARY_PAYMENT" | "CEO_DISMISSED" | "CEO_RESIGNED" | "SYSTEM_STARTED" | "FIXED_INCOME_REPAID" | "CAPITAL_INCREASE_POLL_INITIATED" | "CAPITAL_REDUCTION_POLL_INITIATED" | "DIVIDEND_PAYMENT_POLL_INITIATED" | "MERGER_POLL_INITIATED" | "ETF_UNITS_SUBSCRIBED" | "ETF_MANAGEMENT_FEE_CHANGED" | "ETF_FROZEN" | "ETF_BASE_INDEX_CHANGED";
+                eventType: "NEW_USER" | "NEW_SECURITY" | "NEW_COMPANY" | "NEW_BOND" | "COMPANY_LIQUIDATED" | "SECURITY_TRADED" | "ORDER_ACCEPTED" | "ORDER_DELETED" | "ORDER_FILLED" | "LIQUIDATION_POLL_INITIATED" | "CASH_OUT_POLL_INITIATED" | "EMPLOY_CEO_POLL_INITIATED" | "COMPANY_NAME_CHANGE_POLL_INITIATED" | "SALARY_PAYMENT" | "CEO_DISMISSED" | "CEO_RESIGNED" | "SYSTEM_STARTED" | "FIXED_INCOME_REPAID" | "CAPITAL_INCREASE_POLL_INITIATED" | "CAPITAL_REDUCTION_POLL_INITIATED" | "DIVIDEND_PAYMENT_POLL_INITIATED" | "MERGER_POLL_INITIATED" | "ETF_UNITS_SUBSCRIBED" | "ETF_MANAGEMENT_FEE_CHANGED" | "ETF_FROZEN" | "ETF_BASE_INDEX_CHANGED" | "ANGEL_OFFER_CREATED" | "ANGEL_OFFER_ACCEPTED" | "ANGEL_OFFER_CLOSED";
             };
             cookie?: never;
         };

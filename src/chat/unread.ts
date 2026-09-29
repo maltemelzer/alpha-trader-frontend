@@ -1,5 +1,6 @@
 // Unread messages: counting, the tab title and live messages arriving for chats that are not open.
 import type { ChatView, MessageView } from '../api/types';
+import { isBlockedMessage } from './blocks';
 
 /**
  * Lobbies (public chats) never carry an unread count on the server; only direct and group chats count.
@@ -27,11 +28,17 @@ export function titleWithUnread(base: string, unread: number): string {
  * A live message for a chat of the list: becomes its `lastMessage`; a message from someone else that
  * is newer than what the list knows raises the unread count by one. Returns the same array when nothing
  * changes (a message seen twice – it also comes with the chat update – counts once).
- * `me` is the own name: live messages carry the sender's view of `myUser`.
+ * `me` is the own name: live messages carry the sender's view of `myUser`. Messages of blocked players
+ * change nothing.
  */
-export function applyIncoming(chats: ChatView[], m: MessageView, me: string | undefined): { chats: ChatView[]; fresh: boolean } {
+export function applyIncoming(
+  chats: ChatView[],
+  m: MessageView,
+  me: string | undefined,
+  blocked: ReadonlySet<string> = new Set(),
+): { chats: ChatView[]; fresh: boolean } {
   const i = chats.findIndex((c) => c.id === m.chatId);
-  if (i < 0 || m.status === 'DELETED') return { chats, fresh: false };
+  if (i < 0 || m.status === 'DELETED' || isBlockedMessage(m, blocked, me)) return { chats, fresh: false };
   const c = chats[i];
   const last = c.lastMessage;
   if (last?.id === m.id || (last?.dateSent ?? 0) > (m.dateSent ?? 0)) return { chats, fresh: false };

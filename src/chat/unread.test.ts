@@ -55,6 +55,12 @@ describe('applyIncoming', () => {
     expect(r.chats[0].lastMessage?.id).toBe('m2');
   });
 
+  it('ignores messages of blocked players', () => {
+    const r = applyIncoming(list, msg('m2', 'a', 'troll', 200), 'ich', new Set(['troll']));
+    expect(r.fresh).toBe(false);
+    expect(r.chats).toBe(list);
+  });
+
   it('counts a message only once and never an older one', () => {
     const once = applyIncoming(list, msg('m2', 'a', 'frieda', 200), 'ich').chats;
     const twice = applyIncoming(once, msg('m2', 'a', 'frieda', 200), 'ich');

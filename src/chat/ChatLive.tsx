@@ -1,14 +1,16 @@
-import { useChatInboxTopic, useChatListSync, useMyChats } from '../api/queries';
+import { useChatBlocks, useChatInboxTopic, useChatListSync, useMyChats } from '../api/queries';
 import type { ChatView, MessageView } from '../api/types';
 
 /**
  * Listens for new messages in every joined direct and group chat (lobbies are too busy and never
  * count as unread), so the unread count in the header rises the moment a message arrives – not only
- * with the next poll of the chat list. Renders nothing.
+ * with the next poll of the chat list. Messages of blocked players are skipped (the block list is loaded
+ * here, so it is in the cache). Renders nothing.
  */
 export function ChatLive({ me, onFresh }: { me: string; onFresh?: (chat: ChatView, m: MessageView) => void }) {
   const chats = useMyChats();
   useChatListSync();
+  useChatBlocks();
   return (
     <>
       {(chats.data ?? [])
