@@ -17,6 +17,7 @@ function legalConfig(env) {
       email: env.LEGAL_EMAIL ?? '',
       phone: env.LEGAL_PHONE ?? '',
       hosting: env.LEGAL_HOSTING ?? '',
+      cdn: env.LEGAL_CDN ?? '',
     });
   // Returns nothing on purpose: a function returned from configureServer would run as a post hook.
   /** @param {import('vite').ViteDevServer | import('vite').PreviewServer} server */

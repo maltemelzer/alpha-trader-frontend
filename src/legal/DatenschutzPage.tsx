@@ -10,13 +10,14 @@ const AS_OF = '29. September 2026';
 export function DatenschutzPage() {
   const { data } = useLegalConfig();
   const apiHost = API_BASE.replace(/^https?:\/\//, '');
+  const cloudflare = data?.cdn === 'cloudflare';
   return (
     <LegalLayout title="Datenschutzerklärung">
       <p className="legal__lead">
         Kurz: Diese Seite zeigt dir das Spiel Alpha-Trader. Deine Spieldaten gehen direkt von deinem Browser zum Spielserver. Wir setzen
         keine Cookies, keine Werbung und keine Tracker ein und laden weder Schriften noch Skripte von Google oder anderen Diensten
         (Ausnahme: Bilder, die Spieler einbinden, siehe 6). Speichern tun wir nur, was du uns bei einem Test von Varianten ausdrücklich
-        schickst.
+        schickst.{cloudflare && ' Vor unserem Server steht Cloudflare, das die Aufrufe weiterleitet (siehe 2).'}
       </p>
 
       <section>
@@ -28,14 +29,40 @@ export function DatenschutzPage() {
         <h2>2. Aufruf der Seite</h2>
         <p>
           Die Seite läuft {data?.hosting ? data.hosting.replace(/\.$/, '') : 'auf einem eigenen Server des Anbieters'}. Beim Aufruf
-          speichert der Webserver ein Protokoll: <strong>gekürzte IP-Adresse</strong> (bei IPv4 ohne die letzte Stelle, z. B. 192.168.1.0),
-          Zeitpunkt, aufgerufene Adresse, Statuscode, übertragene Datenmenge und Browserkennung. Die vollständige IP-Adresse wird nicht
-          gespeichert. Das Protokoll wird fortlaufend überschrieben (höchstens rund 30 MB, je nach Andrang wenige Tage bis Wochen).
+          speichert unser Webserver ein Protokoll: {cloudflare ? 'Adresse des Absenders' : <strong>gekürzte IP-Adresse</strong>} (bei IPv4
+          ohne die letzte Stelle, z. B. 192.168.1.0), Zeitpunkt, aufgerufene Adresse, Statuscode, übertragene Datenmenge und Browserkennung.
+          Die vollständige IP-Adresse wird nicht gespeichert.{' '}
+          {cloudflare && 'Weil alle Aufrufe über Cloudflare laufen (siehe unten), ist der Absender dabei ein Server von Cloudflare, nicht dein Anschluss. '}
+          Das Protokoll wird fortlaufend überschrieben (höchstens rund 30 MB, je nach Andrang wenige Tage bis Wochen).
         </p>
         <p>
           Zweck: die Seite ausliefern, Fehler finden, Angriffe erkennen. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse
           am sicheren Betrieb).
         </p>
+        {cloudflare && (
+          <>
+            <h3 id="cloudflare">Cloudflare</h3>
+            <p>
+              Zwischen deinem Browser und unserem Server steht Cloudflare (Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA).
+              Cloudflare leitet jeden Aufruf an unseren Server weiter, verschlüsselt die Verbindung und wehrt Angriffe ab. Dafür verarbeitet
+              Cloudflare deine <strong>vollständige IP-Adresse</strong>, die aufgerufene Adresse, Zeitpunkt, Browserkennung und technische
+              Merkmale der Verbindung und führt eigene Protokolle. Auch die Anfragen an unseren Feedback-Dienst (siehe 5) laufen über Cloudflare; die
+              Spieldaten nicht – sie gehen direkt vom Browser zum Spielserver (siehe 3).
+            </p>
+            <p>
+              Cloudflare arbeitet für uns als Auftragsverarbeiter; der Vertrag dazu (Data Processing Addendum) ist Teil der Nutzungsbedingungen
+              von Cloudflare. Dabei können Daten in die USA übermittelt werden; Cloudflare ist nach dem EU-US Data Privacy Framework
+              zertifiziert (Art. 45 DSGVO). Zur Abwehr von Bots kann Cloudflare technisch notwendige Cookies setzen (etwa{' '}
+              <code>__cf_bm</code> oder <code>cf_clearance</code>, höchstens für Stunden bzw. Tage) – das sind die einzigen Cookies auf dieser Seite.
+              Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer sicheren, erreichbaren Seite) und § 25 Abs. 2 Nr. 2 TDDDG.
+              Mehr in der{' '}
+              <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noreferrer">
+                Datenschutzerklärung von Cloudflare
+              </a>
+              .
+            </p>
+          </>
+        )}
       </section>
 
       <section>
@@ -54,7 +81,7 @@ export function DatenschutzPage() {
       <section>
         <h2>4. Speicher in deinem Browser</h2>
         <p>
-          Wir setzen <strong>keine Cookies</strong>. Damit die Seite funktioniert und sich deine Einstellungen merkt, legt sie einige Einträge im
+          Wir setzen <strong>keine Cookies</strong>{cloudflare && ' (nur Cloudflare kann zur Bot-Abwehr welche setzen, siehe 2)'}. Damit die Seite funktioniert und sich deine Einstellungen merkt, legt sie einige Einträge im
           Speicher deines Browsers ab (sessionStorage/localStorage). Sie verlassen deinen Browser nicht – mit Ausnahme des Zugangstokens, das
           bei jeder Anfrage an den Spielserver (und bei Tests an unseren Feedback-Dienst, siehe 5) mitgeht. Rechtsgrundlage: § 25 Abs. 2 Nr. 2
           TDDDG (für den von dir gewünschten Dienst unbedingt erforderlich). Du kannst sie jederzeit in den Einstellungen deines Browsers löschen.

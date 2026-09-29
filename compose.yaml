@@ -23,6 +23,7 @@ services:
       LEGAL_EMAIL: ${LEGAL_EMAIL:-}
       LEGAL_PHONE: ${LEGAL_PHONE:-}
       LEGAL_HOSTING: ${LEGAL_HOSTING:-}
+      LEGAL_CDN: ${LEGAL_CDN:-}
     logging: &logging
       driver: json-file
       options: { max-size: "10m", max-file: "3" }

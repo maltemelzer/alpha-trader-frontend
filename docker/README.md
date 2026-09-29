@@ -63,8 +63,12 @@ ENV
 docker compose up -d frontend   # übernimmt die neuen Werte
 ```
 
-`LEGAL_HOSTING` ist ein Satz für die Datenschutzerklärung – steht etwas davor (Cloudflare Tunnel, Reverse Proxy
-eines Anbieters), gehört es hier hinein. Ohne die Angaben zeigen `/impressum` und `/datenschutz` einen Hinweis.
+`LEGAL_HOSTING` ist ein Satz für die Datenschutzerklärung über den Server selbst („Die Seite läuft …“).
+Steht **Cloudflare** davor (Tunnel oder Proxy mit oranger Wolke), zusätzlich `LEGAL_CDN=cloudflare` setzen – dann
+bekommt die Datenschutzerklärung einen eigenen Abschnitt (volle IP bei Cloudflare, Auftragsverarbeitung, USA/Data
+Privacy Framework, mögliche Bot-Cookies `__cf_bm`/`cf_clearance`). Dann bei Cloudflare **keine** Zusatzdienste
+einschalten, die die Erklärung nicht nennt: Web Analytics/Browser Insights, Zaraz, Rocket Loader, E-Mail-Verschleierung
+(die fügen Skripte in die Seite ein). Ohne die Angaben zeigen `/impressum` und `/datenschutz` einen Hinweis.
 nginx protokolliert nur gekürzte IP-Adressen; Docker hält höchstens 3 × 10 MB Log je Container.
 
 Das Paket `alpha-trader-feedback` in GHCR wie das Frontend auf **Public** stellen (oder `docker login ghcr.io`).

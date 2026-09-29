@@ -69,6 +69,18 @@
   font-weight: 600;
 }
 
+.legal__main h3 {
+  margin: var(--space-6) 0 var(--space-2);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.legal__main code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
 .legal__main section:first-of-type h2 {
   margin-top: 0;
 }

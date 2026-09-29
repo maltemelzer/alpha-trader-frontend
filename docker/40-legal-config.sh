@@ -15,7 +15,8 @@ cat > /usr/share/nginx/html/legal.json <<JSON
   "country": "$(json "${LEGAL_COUNTRY:-Deutschland}")",
   "email": "$(json "${LEGAL_EMAIL:-}")",
   "phone": "$(json "${LEGAL_PHONE:-}")",
-  "hosting": "$(json "${LEGAL_HOSTING:-}")"
+  "hosting": "$(json "${LEGAL_HOSTING:-}")",
+  "cdn": "$(json "${LEGAL_CDN:-}")"
 }
 JSON
 [ -n "${LEGAL_NAME:-}" ] || echo "40-legal-config: LEGAL_NAME is empty – Impressum and Datenschutz show a notice instead of the operator" >&2

@@ -9,17 +9,28 @@ export interface LegalConfig {
   country: string;
   email: string;
   phone: string;
-  /** one sentence where the site runs (host, tunnel/proxy in front) */
+  /** one sentence where the site runs (the server itself) */
   hosting: string;
+  /** service in front of the server; only 'cloudflare' has a section in the privacy policy */
+  cdn: '' | 'cloudflare';
 }
 
-const EMPTY: LegalConfig = { name: '', street: '', city: '', country: '', email: '', phone: '', hosting: '' };
+const EMPTY: LegalConfig = { name: '', street: '', city: '', country: '', email: '', phone: '', hosting: '', cdn: '' };
 
 /** Cleans whatever /legal.json holds: only strings, trimmed, missing fields empty. */
 export function parseLegal(raw: unknown): LegalConfig {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const text = (k: keyof LegalConfig) => (typeof o[k] === 'string' ? (o[k] as string).trim() : '');
-  return { name: text('name'), street: text('street'), city: text('city'), country: text('country'), email: text('email'), phone: text('phone'), hosting: text('hosting') };
+  return {
+    name: text('name'),
+    street: text('street'),
+    city: text('city'),
+    country: text('country'),
+    email: text('email'),
+    phone: text('phone'),
+    hosting: text('hosting'),
+    cdn: text('cdn').toLowerCase() === 'cloudflare' ? 'cloudflare' : '',
+  };
 }
 
 /** Name, address and e-mail are all there – without them the pages show a notice instead. */
