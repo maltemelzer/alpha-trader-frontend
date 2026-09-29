@@ -6,6 +6,7 @@ import {
   changeSince,
   classRows,
   closes,
+  heatRows,
   clusterLog,
   etfPair,
   indexBars,
@@ -15,9 +16,10 @@ import {
   ratePerDay,
   repoDots,
   sumVolume,
+  topMovers,
   topShare,
 } from './overview';
-import { bondChart, classChart, coinChart, etfChart, indexChart, moversChart, repoChart } from './overviewCharts';
+import { bondChart, coinChart, etfChart, indexChart, repoChart } from './overviewCharts';
 import type { ScreenRow } from './screener';
 
 const NOW = 1_790_000_000_000;
@@ -59,7 +61,7 @@ const hist = (points: [number, number, number?][]): HistorizedListingDataView[] 
 type Fig = { data: any[]; layout: any };
 const fig = (f: unknown) => f as Fig;
 
-const theme = { tokens: (n: string) => n, layout: { xaxis: {}, yaxis: {}, legend: {} } } as unknown as Parameters<typeof moversChart>[0];
+const theme = { tokens: (n: string) => n, layout: { xaxis: {}, yaxis: {}, legend: {} } } as unknown as Parameters<typeof bondChart>[0];
 
 describe('overviewKind', () => {
   it('gives each single class its overview, several classes the mixed one', () => {
@@ -97,13 +99,20 @@ describe('shares', () => {
     expect(topShare(rows, 1)).toBeCloseTo(1000 / 1065);
     expect(topShare([row('X')], 3)).toBeUndefined();
   });
-  it('the chart clips far moves to triangles and colours by direction', () => {
-    const f = fig(moversChart(theme, 800, moverDots([...rows, row('F', { volume: 100, change: 300 })])));
-    const up = f.data.find((d) => d.name === 'Gestiegen')!;
-    expect(up.marker.color).toBe('gain');
-    expect(Math.max(...up.y)).toBe(50);
-    expect(up.marker.symbol).toContain('triangle-up');
-    expect(f.data.find((d) => d.name === 'Gefallen')!.marker.color).toBe('loss');
+  it('movers: biggest gains and losses with real turnover only', () => {
+    const dots = moverDots([
+      row('U1', { volume: 50_000, change: 12 }),
+      row('U2', { volume: 20_000, change: 40 }),
+      row('U3', { volume: 20_000, change: 3 }),
+      row('TINY', { volume: 900, change: 300 }),
+      row('D1', { volume: 1e6, change: -8 }),
+      row('D2', { volume: 1e6, change: -1 }),
+      row('F', { volume: 1e6, change: 0 }),
+    ]);
+    const m = topMovers(dots, 2, 10_000);
+    expect(m.up.map((d) => d.asin)).toEqual(['U2', 'U1']);
+    expect(m.down.map((d) => d.asin)).toEqual(['D1', 'D2']);
+    expect(m.candidates).toBe(6);
   });
 });
 
@@ -234,8 +243,17 @@ describe('several classes', () => {
       ['BOND', 1, 0, 0, 0, 0, false, false],
       ['COIN', 1, 1, 0, 0, 5, true, true],
     ]);
-    const f = fig(classChart(theme, 800, c));
-    expect(f.data[0].x).toEqual([-0, -0, -1]);
-    expect(f.layout.annotations.some((a: { text: string }) => a.text === 'Umsatz nicht erfasst')).toBe(true);
+  });
+  it('heatmap tiles: traded rows with a known change, biggest turnover first', () => {
+    const tiles = heatRows([
+      row('A', { volume: 10, change: 1, last: 5 }),
+      row('B', { volume: 99, change: -3 }),
+      row('C', { volume: 0, change: 2 }),
+      row('D', { volume: 50, change: null }),
+    ]);
+    expect(tiles).toEqual([
+      { asin: 'B', name: 'Name B', last: 0, change: -3, volume: 99 },
+      { asin: 'A', name: 'Name A', last: 5, change: 1, volume: 10 },
+    ]);
   });
 });

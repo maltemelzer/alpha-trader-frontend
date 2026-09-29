@@ -1,10 +1,8 @@
 import {
   displayName,
   heatShare,
-  heatTiles,
   tickerItems,
   tileArea,
-  volumeRows,
   wrapLabel,
 } from './derive';
 
@@ -48,16 +46,6 @@ describe('market overview', () => {
     expect(wrapLabel('GYPHzZqDFpRToeCwQZtn Inc.', 12)).toBe('GYPHzZqDFpR…<br>Inc.');
   });
 
-  it('builds heat tiles with the 24 h change, largest volume first', () => {
-    const tiles = heatTiles([
-      { securityIdentifier: 'STA', name: 'A', lastPrice: 110, previousPrice: 100, volume24h: 5 },
-      { securityIdentifier: 'STB', name: 'B', lastPrice: 2, previousPrice: 0, volume24h: 50 },
-      { securityIdentifier: 'STC', name: 'C', lastPrice: 1, previousPrice: 1, volume24h: 0 },
-    ]);
-    expect(tiles.map((t) => t.asin)).toEqual(['STB', 'STA']);
-    expect(tiles[0].change).toBeNull();
-    expect(tiles[1].change).toBeCloseTo(10);
-  });
 
   it('keeps the order of volumes but compresses the area', () => {
     expect(tileArea(10_000)).toBe(10);
@@ -73,15 +61,5 @@ describe('market overview', () => {
     expect(heatShare(300)).toBe(0.42);
   });
 
-  it('turns biggest traded securities into bar rows', () => {
-    const rows = volumeRows([
-      { listing: { securityIdentifier: 'STA', name: 'A', type: 'STOCK' }, volume: 10 },
-      { listing: { securityIdentifier: 'BDB', name: 'Building 500 01/10/2026', type: 'BUILDING' }, volume: 30 },
-      { listing: { securityIdentifier: 'STZ', name: 'Z', type: 'STOCK' }, volume: 0 },
-    ]);
-    expect(rows).toEqual([
-      { asin: 'BDB', name: 'Gebäude 500 (01.10.)', type: 'BUILDING', volume: 30 },
-      { asin: 'STA', name: 'A', type: 'STOCK', volume: 10 },
-    ]);
-  });
+
 });
