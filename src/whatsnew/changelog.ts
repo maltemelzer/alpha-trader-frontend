@@ -32,6 +32,13 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-29-2',
+    title: 'Links im Chat anklickbar',
+    items: [
+      { text: 'Adressen wie https://… in Chatnachrichten sind jetzt Links und öffnen in einem neuen Tab.', href: '/nachrichten' },
+    ],
+  },
+  {
     id: '2026-09-29',
     title: 'Suche findet Anleihen, Spiel-Links als #ASIN',
     items: [

@@ -1044,12 +1044,17 @@
   var CHAT_TOKEN = /((?<![\w$#!])(?:\$[A-Z][A-Z0-9]{1,9}|[#!][A-Z][A-Z0-9]{9})\b)/g;
   var CHAT_EMBED = /(?<![\w$#!])!([A-Z][A-Z0-9]{9})\b/g;
   var CHAT_EMBED_EDGES = /^(?:\s*![A-Z][A-Z0-9]{9}\b)+|(?:(?<![\w$#!])![A-Z][A-Z0-9]{9}\b\s*)+$/g;
+  /* Links im Chattext: nur http(s), Satzzeichen am Ende gehören nicht dazu; öffnen in neuem Tab. */
+  var CHAT_URL = /(https?:\/\/[^\s<]*[^\s<.,;:!?)"'»“])/i;
   function renderChatText(text, tickers) {
     if (typeof text !== 'string') return text;
-    return text.split(CHAT_TOKEN).map(function (p, i) {
-      if (i % 2 === 0) return p;
-      var t = p.slice(1);
-      return h(TickerMention, { key: i, ticker: t, prefix: p.charAt(0) === '$' ? '$' : '#', info: tickers && tickers[t] });
+    return text.split(CHAT_URL).map(function (u, j) {
+      if (j % 2) return h('a', { key: 'u' + j, href: u, className: 'bnk-chat__link', target: '_blank', rel: 'noopener noreferrer nofollow' }, u);
+      return u.split(CHAT_TOKEN).map(function (p, i) {
+        if (i % 2 === 0) return p;
+        var t = p.slice(1);
+        return h(TickerMention, { key: j + '-' + i, ticker: t, prefix: p.charAt(0) === '$' ? '$' : '#', info: tickers && tickers[t] });
+      });
     });
   }
   /* ASINs der !-Karten einer Nachricht, ohne Doppelte, höchstens drei. */
