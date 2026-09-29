@@ -22,9 +22,9 @@
   ],
   "lastChange": {
     "by": "Malte",
-    "at": "2026-09-29T08:30:00Z",
+    "at": "2026-09-29T11:00:00Z",
     "via": "Claude Code (alpha-trader-frontend)",
-    "note": "Version 60: ChatThread authorMenu (Menü am Kreis fremder Absender: Hover, Klick/Tippen, Tastatur – z. B. Direktnachricht, Profil, Blockieren); neues Icon blockieren (⃠)."
+    "note": "Version 61: RatingInput (Bewertung mit 1–5 Sternen, Wort zur Stufe, 44-px-Tippflächen) für Feedback zu Experimenten."
   },
   "layout": "files",
   "libraries": [

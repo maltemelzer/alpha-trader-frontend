@@ -6,3 +6,6 @@ dist/
 *.tsbuildinfo
 /shots/
 .claude/worktrees/
+
+# Feedback service (local database)
+feedback/*.db*

@@ -2143,3 +2143,21 @@ a.bnk-acard:focus-visible { outline: var(--rule) solid var(--brass); outline-off
 .bnk-acard__facts dd { margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bnk-acard.is-error .bnk-acard__head { align-items: center; }
 .bnk-acard__note { font-size: 13px; color: var(--text-secondary); }
+
+/* RatingInput */
+.bnk-rating { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); font-family: var(--font-sans); }
+.bnk-rating > legend { padding: 0; margin-bottom: var(--space-2); }
+.bnk-rating__row { display: flex; align-items: center; gap: 2px; }
+.bnk-rating__input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.bnk-rating__star { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; cursor: pointer; color: var(--text-secondary); }
+.bnk-rating.is-lg .bnk-rating__star { width: 44px; height: 44px; }
+.bnk-rating__star svg { width: 24px; height: 24px; fill: transparent; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
+.bnk-rating.is-lg .bnk-rating__star svg { width: 32px; height: 32px; }
+.bnk-rating__star.is-on { color: var(--brass); }
+.bnk-rating__star.is-on svg { fill: currentColor; }
+.bnk-rating__input:focus-visible + .bnk-rating__star { outline: var(--rule) solid var(--brass); outline-offset: 1px; border-radius: var(--radius-sm); }
+.bnk-rating.is-invalid .bnk-rating__star:not(.is-on) { color: var(--loss); }
+.bnk-rating:disabled .bnk-rating__star { cursor: not-allowed; opacity: .5; }
+.bnk-rating__word { margin-left: var(--space-3); font-size: 14px; line-height: 20px; color: var(--text-secondary); min-width: 5em; }
+@media (pointer: coarse) { .bnk-rating__star { width: 44px; height: 44px; } }
+@media (prefers-reduced-motion: no-preference) { .bnk-rating__star svg { transition: fill .12s, color .12s; } }

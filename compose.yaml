@@ -1,6 +1,6 @@
-# Production container (nginx). On the Pi: `docker compose pull && docker compose up -d`
-# (docker/update.sh, via cron) uses the image built by GitHub Actions.
-# Locally: `docker compose up -d --build` builds it from source; PARTNER_ID comes from .env
+# Production containers. On the Pi: `docker compose pull && docker compose up -d`
+# (docker/update.sh, via cron) uses the images built by GitHub Actions.
+# Locally: `docker compose up -d --build` builds them from source; PARTNER_ID comes from .env
 # for interpolation only, .env itself stays out of the image.
 name: alpha-trader-frontend
 
@@ -15,3 +15,19 @@ services:
     ports:
       - "${PORT:-9010}:80"
     restart: unless-stopped
+
+  # Experiments: ratings and comments of players (feedback/README.md). Reached only through nginx
+  # (/feedback-api/), no port of its own. FEEDBACK_ADMINS = game usernames that may read the evaluation.
+  feedback:
+    image: ghcr.io/maltemelzer/alpha-trader-feedback:latest
+    build:
+      context: feedback
+    environment:
+      FEEDBACK_ADMINS: ${FEEDBACK_ADMINS:-}
+      API_BASE: ${VITE_API_BASE:-https://stable.alpha-trader.com}
+    volumes:
+      - feedback-data:/data
+    restart: unless-stopped
+
+volumes:
+  feedback-data:

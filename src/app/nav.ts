@@ -83,6 +83,7 @@ export function pageOf(pathname: string): { label: string; href: string } | unde
 /** Title for the phone header: the page's name, or the kind of detail page. */
 export function titleOf(pathname: string): string {
   if (pathname === '/') return 'Meine Organisation';
+  if (pathname === '/experimente') return 'Experimente';
   const detail = DETAIL_TITLES.find(([prefix]) => pathname.startsWith(prefix))?.[1];
   return detail ?? pageOf(pathname)?.label ?? 'Alpha-Trader';
 }
