@@ -17,6 +17,8 @@ RUN npm run build
 
 FROM nginx:1.29-alpine
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+# Operator data for Impressum/Datenschutz from the environment at start (not baked in, see the script).
+COPY --chmod=755 docker/40-legal-config.sh /docker-entrypoint.d/40-legal-config.sh
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 HEALTHCHECK --interval=60s --timeout=3s CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1

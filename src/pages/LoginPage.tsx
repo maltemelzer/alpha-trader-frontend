@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { DS } from '../ds';
 import { useAuth } from '../auth/AuthProvider';
 import { useMediaQuery } from '../lib/useMediaQuery';
@@ -52,7 +52,10 @@ export function LoginPage() {
             />
           </div>
         </div>
-        <p className="login__note">Inoffizielle Oberfläche für Alpha-Trader – kein Angebot der Betreiber.</p>
+        <p className="login__note">
+          Inoffizielle Oberfläche für Alpha-Trader – kein Angebot der Betreiber. <Link to="/impressum">Impressum</Link> ·{' '}
+          <Link to="/datenschutz">Datenschutz</Link>
+        </p>
       </div>
     </div>
   );

@@ -64,12 +64,25 @@ beforeEach(() => {
 });
 
 describe('ExperimentHost – tour (compare)', () => {
-  it('starts with the first variant of the own order, marks it as a test and counts the visit', () => {
+  it('starts with the first variant of the own order and marks it as a test', () => {
     const order = tourOrder(demo, 'Testspieler');
-    const { unmount } = show();
+    show();
     expect(screen.getByText(`Seite ${label(order[0])}`)).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Demo-Seite im Test' })).toHaveTextContent(`${label(order[0])} · 1/3Bewerten`);
-    unmount();
+  });
+
+  it('sends usage figures only after the player agreed', () => {
+    const order = tourOrder(demo, 'Testspieler');
+    sendUsage.mockClear();
+    show().unmount();
+    expect(sendUsage).not.toHaveBeenCalled();
+
+    const view = show();
+    fireEvent.click(screen.getByRole('button', { name: /Demo-Seite: / }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('switch', { name: /Nutzung mitzählen/ }));
+    expect(localStorage.getItem('at.exp.usage')).toBe('ja');
+    view.unmount();
+    show().unmount();
     expect(sendUsage).toHaveBeenCalledWith(expect.objectContaining({ experiment: 'demo', variant: order[0], visit: true }));
   });
 

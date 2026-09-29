@@ -5,6 +5,7 @@
 //   FEEDBACK_ADMINS  comma-separated game usernames that may read the evaluation
 //   API_BASE         game server that verifies the login (default https://stable.alpha-trader.com)
 //   PORT             default 8787
+//   FEEDBACK_RETENTION_DAYS  delete data not changed for this many days (default 365, checked daily)
 import { createServer } from 'node:http';
 import { createHandler, cachedVerifier, HttpError } from './app.mjs';
 import { openStore } from './store.mjs';
@@ -33,6 +34,14 @@ async function lookup(token) {
 }
 
 const store = openStore(process.env.FEEDBACK_DB ?? '/data/feedback.db');
+
+const retentionMs = Number(process.env.FEEDBACK_RETENTION_DAYS ?? 365) * 86_400_000;
+const purge = () => {
+  const n = store.purge(Date.now() - retentionMs);
+  if (n) console.log(`deleted ${n} rows older than ${retentionMs / 86_400_000} days`);
+};
+purge();
+setInterval(purge, 86_400_000).unref();
 const handler = createHandler({ store, verify: cachedVerifier(lookup), admins });
 const port = Number(process.env.PORT ?? 8787);
 

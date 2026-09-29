@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { DS } from '../ds';
 import { FeedbackError, MAX_COMMENT, useMyFeedback, useSaveFavorite, useSaveRating, type MyFeedback } from './api';
 import { nextInTour, PROMPT_AFTER_MS, shouldPrompt } from './assign';
-import { updateLocal, type ExperimentState } from './useExperiment';
+import { setUsageConsent, updateLocal, useUsageConsent, type ExperimentState } from './useExperiment';
 import './ExperimentBar.css';
 
 const COLLAPSED_KEY = 'at.exp.collapsed';
@@ -213,6 +213,7 @@ function FeedbackSheet({ x, open, onClose }: { x: ExperimentState; open: boolean
     favorite.mutate({ experiment: x.exp.id, variant: pickVariant, note: pickNote }, { onSuccess: () => x.choose(null) });
   };
 
+  const consent = useUsageConsent();
   const primary = saved ? (next ? 'Ändern und weiter' : 'Bewertung ändern') : next ? 'Bewerten und weiter' : 'Bewertung senden';
 
   return (
@@ -306,6 +307,20 @@ function FeedbackSheet({ x, open, onClose }: { x: ExperimentState; open: boolean
             </p>
           )
         )}
+
+        <div className="expsheet__rate">
+          <DS.Switch
+            label="Nutzung mitzählen"
+            checked={consent}
+            onChange={setUsageConsent}
+            hint={
+              <>
+                Wie lange du jede Variante ansiehst und welche Bereiche du anklickst – ohne deinen Namen, nur für die Auswertung dieses Tests.
+                Freiwillig, jederzeit abschaltbar. <Link to="/datenschutz#experimente">Datenschutz</Link>
+              </>
+            }
+          />
+        </div>
       </div>
     </DS.Sheet>
   );

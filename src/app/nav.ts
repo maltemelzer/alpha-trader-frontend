@@ -51,6 +51,8 @@ export const AREAS: Area[] = [
 /** Pages outside the areas, shown in the phone's „Mehr“ sheet. */
 export const EXTRA_PAGES = [
   { label: 'Einstellungen', href: '/einstellungen', description: 'Konto, Gold, Werben, Notizen' },
+  { label: 'Impressum', href: '/impressum' },
+  { label: 'Datenschutz', href: '/datenschutz', description: 'Was mit deinen Daten passiert' },
 ];
 
 // Detail pages belong to an area page: shown under that page's name in the phone header.

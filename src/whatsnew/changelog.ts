@@ -32,6 +32,15 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-29-4',
+    title: 'Impressum und Datenschutz',
+    items: [
+      { text: 'Impressum und Datenschutzerklärung findest du jetzt im Spielermenü (oben rechts), am Handy unter „Mehr“ und unter der Anmeldung.', href: '/datenschutz' },
+      { text: 'Die Schriften kommen jetzt von diesem Server statt von Google – beim Laden geht keine Verbindung mehr zu Google.' },
+      { text: 'Bei Tests von Varianten zählen wir die Nutzung nur noch, wenn du „Nutzung mitzählen“ in der Leiste „Test“ einschaltest.' },
+    ],
+  },
+  {
     id: '2026-09-29-3',
     title: 'Spieler im Chat blockieren',
     items: [
