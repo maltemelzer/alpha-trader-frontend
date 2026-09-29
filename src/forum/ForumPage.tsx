@@ -173,6 +173,7 @@ function Board({ boardId }: { boardId: string }) {
   return (
     <>
       <DS.PageHeader
+        className="ph--content"
         size="md"
         title={b?.name ?? 'Forum'}
         eyebrow={b?.parent ? <a href={`/forum/${b.parent.id}`}>{b.parent.name}</a> : <a href="/forum">Forum</a>}

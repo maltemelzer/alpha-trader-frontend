@@ -59,8 +59,9 @@
   width: 240px;
 }
 
-/* The nav needs the room on smaller desktops: narrower field, hidden below 1200 px (Markt has the search). */
-@media (max-width: 1439.98px) {
+/* The nav needs the room on smaller desktops: narrower field (also at 1440 – the active tab may read
+   „Kapitalmaßnahmen“), hidden below 1200 px (Markt has the search). */
+@media (max-width: 1519.98px) {
   .global-search {
     width: 130px;
   }
@@ -72,6 +73,14 @@
 
 @media (max-width: 1199.98px) {
   .global-search {
+    display: none;
+  }
+}
+
+/* The active tab carries the page's name („Kapitalmaßnahmen ▾“), longer than the area's – below 1380 px
+   the cash figure gives way (it is on /organisation and /bank), or the nav runs under the figures. */
+@media (max-width: 1379.98px) {
+  .shell__cash {
     display: none;
   }
 }
@@ -108,8 +117,42 @@
   min-width: 0;
 }
 
-/* The header carries the title – the page's own title stays for screen readers only. Eyebrow and
-   description give way to the content; meta and actions stay. */
+/* The header carries the page's name (phone: title button; wide: the active area's tab) – the page's
+   own title stays for screen readers only, description and eyebrow give way to the content; meta,
+   actions and tabs stay. Headers whose title is content, not the page's name (a forum board, an
+   author in the newspaper), keep it on wide screens: `ph--content`. */
+.page > .bnk-ph:not(.ph--content) .bnk-ph__title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.page > .bnk-ph:not(.ph--content) .bnk-ph__eyebrow,
+.page > .bnk-ph:not(.ph--content) .bnk-ph__desc {
+  display: none;
+}
+
+.page > .bnk-ph:not(.ph--content) {
+  position: relative;
+  padding-top: 0;
+}
+
+/* Only the (hidden) title in the row: the tabs move up to the page's edge. */
+.page > .bnk-ph:not(.ph--content) .bnk-ph__row:not(:has(.bnk-ph__meta, .bnk-ph__side)) + .bnk-ph__tabs {
+  margin-top: 0;
+}
+
+.page > .bnk-ph:not(.ph--content) .bnk-ph__meta {
+  margin-top: 0;
+}
+
+.page > .bnk-ph:not(.ph--content) .bnk-ph__tabs {
+  margin-top: var(--space-2);
+}
+
 @media (max-width: 719.98px) {
   .shell--tabbar .page > .bnk-ph .bnk-ph__title {
     position: absolute;

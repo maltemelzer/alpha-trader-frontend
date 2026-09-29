@@ -84,10 +84,11 @@ export function AppShell() {
     return () => window.removeEventListener('keydown', onKey);
   }, [canDock, sidebarOpen]);
 
-  // „(3) Alpha-Trader“ in the tab.
+  // „(3) Wertpapiere · Alpha-Trader“ in the browser tab: unread count, page name.
+  const pageTitle = titleOf(pathname);
   useEffect(() => {
-    document.title = titleWithUnread(document.title, unread);
-  }, [unread]);
+    document.title = titleWithUnread(`${pageTitle} · Alpha-Trader`, unread);
+  }, [pageTitle, unread]);
 
   // A notice for a new message – unless it is on screen already (chat page, open sidebar).
   const [notice, setNotice] = useState<{ chatId: string; title: string; text: string; key: string }>();
@@ -104,8 +105,10 @@ export function AppShell() {
     setNotice(undefined);
   };
 
+  // The active area's tab carries the name of the open page („Geldflüsse ▾“) – pages have no big
+  // title of their own any more (screen readers only), the tab says where you are.
   const items = AREAS.map((a) => ({
-    label: a.label,
+    label: a.value === current ? pageTitle : a.label,
     href: a.href,
     active: a.value === current,
     badge: badges[a.value],
@@ -118,7 +121,9 @@ export function AppShell() {
     <span key="d" className={`tick${tickClass(valueTick)}`}>
       <DS.HeaderStat label="Depotwert" value={book ?? pending} />
     </span>,
-    <DS.HeaderStat key="b" label="Bargeld" value={portfolio.data?.cash ?? pending} />,
+    <span key="b" className="shell__cash">
+      <DS.HeaderStat label="Bargeld" value={portfolio.data?.cash ?? pending} />
+    </span>,
   ];
 
   const chatButton = (

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { DS } from '../ds';
 import { useCapitalMeasures, useDividendPayments, useMergers } from '../api/queries';
 import { Plot, type PlotPoint } from '../charts/Plot';
+import { MiniStats, type MiniStat } from '../app/phone';
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone } from '../lib/useMediaQuery';
 import { useParamState } from '../lib/useParamState';
@@ -58,6 +59,25 @@ export function CapitalPage() {
   );
 }
 
+/** The view's key figures as one compact row (label over value) – not three big tiles. */
+function Figures({ items }: { items: MiniStat[] }) {
+  // wide: packed to the left; phone: the row shares the width
+  const isPhone = useIsPhone();
+  const columns = isPhone ? undefined : `repeat(${items.length}, max-content) minmax(0, 1fr)`;
+  return <MiniStats className="capital__stats" label="Kennzahlen" items={items} columns={columns} />;
+}
+
+/** „2 T 17 h · Digital Savings Bank“ – countdown to the next date and whose it is. */
+function Next({ at, name }: { at?: number; name?: string }) {
+  if (!at) return <>–</>;
+  return (
+    <>
+      <DS.Countdown to={at} short />
+      {name && <span className="capital__next"> · {name}</span>}
+    </>
+  );
+}
+
 /** Capital increases and reductions: the subscription phases as a timeline. */
 function Measures() {
   const inc = useCapitalMeasures('increase');
@@ -70,11 +90,13 @@ function Measures() {
 
   return (
     <>
-      <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Kennzahlen">
-        <DS.StatTile label="Maßnahmen" value={loading ? '–' : String(totals.count)} />
-        <DS.StatTile label="Erhöhungen" value={totals.increase} compact hint="Volumen" />
-        <DS.StatTile label="Herabsetzungen" value={totals.reduction} compact hint="Volumen" />
-      </DS.StatGroup>
+      <Figures
+        items={[
+          { label: 'Maßnahmen', value: loading ? '–' : String(totals.count) },
+          { label: 'Erhöhungen', value: loading ? '–' : <DS.Amount value={totals.increase} compact /> },
+          { label: 'Herabsetzungen', value: loading ? '–' : <DS.Amount value={totals.reduction} compact /> },
+        ]}
+      />
       <ChartAndList
         title="Zeichnungsfristen"
         chart={
@@ -198,11 +220,13 @@ function Dividends() {
 
   return (
     <>
-      <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Kennzahlen">
-        <DS.StatTile label="Anzahl" value={q.isLoading ? '–' : String(rows.length)} hint="angekündigt" />
-        <DS.StatTile label="Höchstvolumen" value={cap} compact hint="zusammen, Obergrenze" />
-        <DS.StatTile label="Nächste" value={next ? <DS.Countdown to={next} short /> : '–'} hint={next ? rows.find((r) => r.startDate === next)?.name : ' '} />
-      </DS.StatGroup>
+      <Figures
+        items={[
+          { label: 'Angekündigt', value: q.isLoading ? '–' : String(rows.length) },
+          { label: 'Höchstvolumen', value: q.isLoading ? '–' : <DS.Amount value={cap} compact /> },
+          { label: 'Nächste', value: <Next at={next} name={rows.find((r) => r.startDate === next)?.name} /> },
+        ]}
+      />
       <ChartAndList
         title="Höchstvolumen je Unternehmen"
         chart={
@@ -270,11 +294,13 @@ function Mergers() {
 
   return (
     <>
-      <DS.StatGroup columns="repeat(3, minmax(0, 1fr))" aria-label="Kennzahlen">
-        <DS.StatTile label="Fusionen" value={q.isLoading ? '–' : String(rows.length)} hint="angekündigt" />
-        <DS.StatTile label="Übernehmende" value={q.isLoading ? '–' : String(acquirers)} hint="Unternehmen" />
-        <DS.StatTile label="Nächste" value={next ? <DS.Countdown to={next} short /> : '–'} hint={next ? rows.find((r) => r.startDate === next)?.name : ' '} />
-      </DS.StatGroup>
+      <Figures
+        items={[
+          { label: 'Fusionen', value: q.isLoading ? '–' : String(rows.length) },
+          { label: 'Übernehmende', value: q.isLoading ? '–' : String(acquirers) },
+          { label: 'Nächste', value: <Next at={next} name={rows.find((r) => r.startDate === next)?.name} /> },
+        ]}
+      />
       <ChartAndList
         title="Wer übernimmt"
         chart={

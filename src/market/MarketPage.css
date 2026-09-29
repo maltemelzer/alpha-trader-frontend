@@ -7,24 +7,56 @@
   grid-template-rows: minmax(0, 1fr);
 }
 
-.market__side {
-  /* the turnover card gets a little more than the ticker, so ten bars still fit at 1280×720 */
-  grid-template-rows: minmax(0, 1.25fr) minmax(0, 1fr);
-}
-
 @media (max-width: 1379.98px) {
   .market--wide .market__body {
     grid-template-columns: minmax(0, 1fr) 360px;
   }
 }
 
-/* Marktkarte: the map takes the room, the side column only holds the live trades */
+/* Marktkarte: the map takes the whole width */
 .market--wide .market__body--map {
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.market__body--map .market__side {
-  grid-template-rows: minmax(0, 1fr);
+/* Wide: view tabs left, a one-line market pulse right – one row instead of title + figures + tabs */
+.market__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.market__top .bnk-tabs {
+  border-bottom: 0;
+}
+
+/* room for the numbers from the start – they arrive after the page, and must not push the line */
+.market__top .market__pulse-line {
+  min-width: 380px;
+  padding-bottom: 0;
+}
+
+.market__pulse-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding-bottom: var(--space-2);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-muted);
+}
+
+.market__pulse-line b {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.market__ovw-btn[aria-pressed='true'] {
+  color: var(--text-primary);
 }
 
 .market__pages {
@@ -48,10 +80,36 @@
   align-self: flex-end;
 }
 
-/* The title is one short word: a small basis keeps the market pulse beside it down to ~900 px page width.
-   With the default 360 px it wrapped under the title once the numbers arrived and pushed the page down. */
+/* The (screen-reader) title takes no room: the pulse stays in the one row down to ~720 px. */
 .market .bnk-ph__text {
-  flex-basis: 120px;
+  flex-basis: 0;
+}
+
+/* Footer of the list: pages (or the count) and where the rows come from */
+.scr-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 44px;
+}
+
+.scr-foot > .bnk-pag {
+  flex: none;
+}
+
+.scr-foot__count {
+  font: 600 13px/20px var(--font-sans);
+}
+
+.scr-foot__note {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-muted);
 }
 
 .market__hint {
@@ -653,6 +711,53 @@
   min-height: 0;
   padding: var(--space-2) var(--space-4) 0;
   overflow: hidden;
+}
+
+/* ⓘ in the chart corner (wide) – the reading hint as a tooltip instead of a line under the strip */
+.ovw__tip {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-2);
+  z-index: 1;
+}
+
+.ovw__info {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: help;
+}
+
+.ovw__info:hover,
+.ovw__info:focus-visible {
+  color: var(--text-primary);
+}
+
+.ovw__info:focus-visible {
+  outline: var(--rule) solid var(--brass);
+}
+
+@media (min-width: 720px) {
+  .ovw {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .ovw__note {
+    display: none;
+  }
+}
+
+@media (max-width: 719.98px) {
+  .ovw__tip {
+    display: none;
+  }
 }
 
 .ovw__note {

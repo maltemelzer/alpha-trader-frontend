@@ -222,8 +222,16 @@ export function MarketPage() {
         <span>Diagramm</span>
       </button>
     ) : (
-      <DS.Button size="sm" variant="ghost" aria-pressed={showOverview} onClick={() => setParam({ ueb: showOverview ? 'aus' : null })}>
-        {showOverview ? 'Diagramm ausblenden' : 'Diagramm zeigen'}
+      <DS.Button
+        size="sm"
+        variant="ghost"
+        className="market__ovw-btn"
+        aria-pressed={showOverview}
+        title={showOverview ? 'Diagramm ausblenden' : 'Diagramm zeigen'}
+        onClick={() => setParam({ ueb: showOverview ? 'aus' : null })}
+      >
+        <DS.Icon name="markt" size={16} />
+        Diagramm
       </DS.Button>
     )
   ) : null;
@@ -319,14 +327,12 @@ export function MarketPage() {
         overviewToggle={overviewToggle}
         pagination={
           pages > 1 && !special ? (
-            <div className="market__pages">
-              <DS.Pagination
-                page={page + 1}
-                pages={pages}
-                total={isPhone ? undefined : `${rows.length.toLocaleString('de-DE')} Treffer`}
-                onChange={(n) => setParam({ seite: n > 1 ? String(n) : null })}
-              />
-            </div>
+            <DS.Pagination
+              page={page + 1}
+              pages={pages}
+              total={isPhone ? undefined : `${rows.length.toLocaleString('de-DE')} Treffer`}
+              onChange={(n) => setParam({ seite: n > 1 ? String(n) : null })}
+            />
           ) : null
         }
       />
@@ -424,6 +430,26 @@ export function MarketPage() {
   );
 
   const s = stats.data;
+  // One quiet line instead of five big figures: what the whole market did in 24 h, who is online.
+  const pulse = (
+    <p className="market__pulse-line" aria-label="Markt in 24 Stunden">
+      {s ? (
+        <>
+          <span>
+            <b>{s.numberOfTrades24h.toLocaleString('de-DE')}</b> Trades 24 h
+          </span>
+          <span>
+            <b>{short(s.tradeVolume24h)}{'\u00a0'}€</b> Umsatz
+          </span>
+          <span>
+            <b>{s.numberOfOnlineUsers.toLocaleString('de-DE')}</b> online
+          </span>
+        </>
+      ) : (
+        '\u00a0'
+      )}
+    </p>
+  );
   const wideView = view === 'karte' ? 'karte' : 'suche';
   return (
     <div className={`page market${isWide ? ' market--wide' : ''}`} onClick={onLinkClick}>
@@ -443,39 +469,28 @@ export function MarketPage() {
         }
         tabs={
           isWide ? (
-            <DS.Tabs
-              size="sm"
-              aria-label="Ansicht"
-              value={wideView}
-              onChange={(v) => setParam({ ansicht: v === 'karte' ? v : null })}
-              items={[
-                { value: 'suche', label: 'Wertpapiere' },
-                { value: 'karte', label: 'Marktkarte' },
-              ]}
-            />
+            <div className="market__top">
+              <DS.Tabs
+                size="sm"
+                aria-label="Ansicht"
+                value={wideView}
+                onChange={(v) => setParam({ ansicht: v === 'karte' ? v : null })}
+                items={[
+                  { value: 'suche', label: 'Wertpapiere' },
+                  { value: 'karte', label: 'Marktkarte' },
+                ]}
+              />
+              {pulse}
+            </div>
           ) : undefined
         }
-        aside={
-          s && !isPhone ? (
-            <DS.MarketPulse
-              stats={{
-                onlineUsers: s.numberOfOnlineUsers,
-                users: s.numberOfUsers,
-                companies: s.numberOfCompanies,
-                trades24h: s.numberOfTrades24h,
-                volume24h: s.tradeVolume24h,
-              }}
-            />
-          ) : undefined
-        }
+        aside={!isWide && !isPhone ? pulse : undefined}
       />
       {isWide ? (
+        // The live trades run in the tape under the header – no second ticker here.
         <div className={`page__body market__body${wideView === 'karte' ? ' market__body--map' : ''}`}>
           {wideView === 'karte' ? map : searchPanel}
-          <div className="page__col market__side">
-            {wideView === 'karte' ? null : turnover}
-            {live}
-          </div>
+          {wideView === 'karte' ? null : turnover}
         </div>
       ) : (
         <div className="page__body market__body">
