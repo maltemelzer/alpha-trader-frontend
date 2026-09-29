@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DS } from '../ds';
 import {
+  useChatBlock,
+  useChatBlocks,
   useChatMessages,
   useChatRooms,
   useJoinChat,
@@ -14,10 +16,14 @@ import {
 import { chatKind, chatTitle, toConversations, toThread } from './derive';
 import { AssetEmbed } from './AssetEmbed';
 import { MembersSheet } from './MembersSheet';
+import { BlockedSheet } from './BlockedSheet';
+import { blockedNames } from './blocks';
+import { Confirm } from '../companies/Confirm';
 import { mentionedAsins } from './mentions';
 import { gameLinksToMentions } from '../lib/html';
 import { useMentions } from './useMentions';
 import { NewChatDialog } from './NewChatDialog';
+import type { ChatMessage } from '../../design-system/components';
 import './ChatPage.css';
 
 export interface ChatPanelProps {
@@ -53,11 +59,16 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
   const [filter, setFilter] = useState('');
   const [newOpen, setNewOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
+  const [blockedOpen, setBlockedOpen] = useState(false);
+  const [blockTarget, setBlockTarget] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const blocks = useChatBlocks();
+  const { block } = useChatBlock();
+  const blocked = useMemo(() => blockedNames(blocks.data), [blocks.data]);
 
   const groups = useMemo(
-    () => toConversations(chats.data ?? [], { me, activeId: chatId, filter, rooms: rooms.data }),
-    [chats.data, me, chatId, filter, rooms.data],
+    () => toConversations(chats.data ?? [], { me, activeId: chatId, filter, rooms: rooms.data, blocked }),
+    [chats.data, me, chatId, filter, rooms.data, blocked],
   );
   const firstId = groups[0]?.items[0]?.id;
   useEffect(() => {
@@ -79,6 +90,17 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
+        <DS.Button
+          size="sm"
+          variant="ghost"
+          className="chat-blocked-btn"
+          aria-label={`Blockierte Spieler${blocked.size ? ` (${blocked.size})` : ''}`}
+          title="Blockierte Spieler"
+          onClick={() => setBlockedOpen(true)}
+        >
+          <DS.Icon name="blockieren" size={16} />
+          {blocked.size > 0 && <span aria-hidden="true">{blocked.size}</span>}
+        </DS.Button>
         <DS.Button size="sm" variant="secondary" onClick={() => setNewOpen(true)}>
           Neu
         </DS.Button>
@@ -121,7 +143,8 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
       items={[
         ...(kind === 'public' ? [{ heading: 'Regeln: keine Beleidigungen, keine Kaufempfehlungen gegen Geld' }] : []),
         ...(kind !== 'direct' ? [{ label: 'Mitglieder', onSelect: () => setMembersOpen(true) }] : []),
-        ...(kind !== 'direct' ? [{ divider: true }] : []),
+        { label: `Blockierte Spieler${blocked.size ? ` (${blocked.size})` : ''}`, onSelect: () => setBlockedOpen(true) },
+        { divider: true },
         { label: leave.isPending ? 'Verlässt …' : 'Chat verlassen', danger: true, disabled: leave.isPending, onSelect: leaveChat },
       ]}
     />
@@ -200,7 +223,18 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
             Nachrichten eines öffentlichen Raums siehst du erst als Mitglied. Du kannst ihn jederzeit wieder verlassen.
           </DS.EmptyState>
         ) : chatId ? (
-          <Thread key={chatId} chatId={chatId} me={me} direct={kind === 'direct'} unread={chat?.numOfUnreadMessages ?? 0} />
+          <Thread
+            key={chatId}
+            chatId={chatId}
+            me={me}
+            direct={kind === 'direct'}
+            unread={chat?.numOfUnreadMessages ?? 0}
+            blocked={blocked}
+            onBlock={(name) => {
+              block.reset();
+              setBlockTarget(name);
+            }}
+          />
         ) : (
           <DS.EmptyState title="Keine Unterhaltung gewählt">Links eine Unterhaltung wählen oder eine neue beginnen.</DS.EmptyState>
         )}
@@ -224,6 +258,20 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
           canInvite={kind === 'group' && chat.owner?.username === me}
         />
       )}
+      <BlockedSheet open={blockedOpen} onClose={() => setBlockedOpen(false)} />
+      <Confirm
+        open={!!blockTarget}
+        danger
+        title={`${blockTarget ?? ''} blockieren?`}
+        description={`Du siehst keine Chatnachrichten von ${blockTarget ?? ''} mehr – weder alte noch neue, in Lobbys wie in privaten Chats, und sie zählen nicht als ungelesen. ${blockTarget ?? ''} erfährt davon nichts und kann weiter schreiben; alle anderen sehen die Nachrichten wie bisher.`}
+        confirmLabel="Blockieren"
+        pending={block.isPending}
+        error={block.isError ? `Nicht blockiert: ${block.error.message}` : null}
+        onClose={() => !block.isPending && setBlockTarget(null)}
+        onConfirm={() => blockTarget && block.mutate({ username: blockTarget }, { onSuccess: () => setBlockTarget(null) })}
+      >
+        <p className="chat-members__count">Rückgängig machen kannst du es jederzeit unter „Blockierte Spieler“ oben im Chat.</p>
+      </Confirm>
       {error && (
         <DS.ToastRegion>
           <DS.Toast variant="error" title="Chat" onClose={() => setError(null)}>
@@ -238,14 +286,30 @@ export function ChatPanel({ chatId, onSelect, onBack, onLeft, showList, autoOpen
 const subtitle = (kind: string) =>
   kind === 'public' ? 'Öffentlicher Chat' : kind === 'group' ? 'Gruppe' : 'Direktnachricht';
 
-function Thread({ chatId, me, direct, unread }: { chatId: string; me?: string; direct: boolean; unread: number }) {
+function Thread({
+  chatId,
+  me,
+  direct,
+  unread,
+  blocked,
+  onBlock,
+}: {
+  chatId: string;
+  me?: string;
+  direct: boolean;
+  unread: number;
+  /** names of blocked players: their messages are left out */
+  blocked: ReadonlySet<string>;
+  /** ask to block a player (the ⃠ next to their messages) */
+  onBlock: (username: string) => void;
+}) {
   const q = useChatMessages(chatId);
   const markRead = useMarkChatRead();
   const topRef = useRef<HTMLDivElement>(null);
   const restore = useRef<number | null>(null);
 
   const messages = useMemo(() => (q.data ? q.data.pages.slice().reverse().flat() : []), [q.data]);
-  const thread = useMemo(() => toThread(messages, { me, direct }), [messages, me, direct]);
+  const thread = useMemo(() => toThread(messages, { me, direct, blocked }), [messages, me, direct, blocked]);
   // #ASIN / !ASIN (old: $ASIN) link the security; the name comes as tooltip (listings are cached for the session).
   // Game links count too: toThread shows them as #ASIN.
   const asins = useMemo(
@@ -258,6 +322,19 @@ function Thread({ chatId, me, direct, unread }: { chatId: string; me?: string; d
     [asins, listings],
   );
   const renderEmbed = useCallback((asin: string) => <AssetEmbed asin={asin} />, []);
+  // ⃠ next to the last message of each group from someone else: block this player.
+  const blockAction = useCallback(
+    (m: ChatMessage) => {
+      const name = m.author?.name;
+      if (!name || name === '?') return null;
+      return (
+        <button type="button" className="chat-block" aria-label={`${name} blockieren`} title={`${name} blockieren`} onClick={() => onBlock(name)}>
+          <DS.Icon name="blockieren" size={16} />
+        </button>
+      );
+    },
+    [onBlock],
+  );
 
   // Opening a chat (or a new message arriving while it is open) marks it read.
   const { mutate } = markRead;
@@ -310,7 +387,13 @@ function Thread({ chatId, me, direct, unread }: { chatId: string; me?: string; d
         ) : null}
       </div>
       {thread.length ? (
-        <DS.ChatThread messages={thread} tickers={tickers} renderEmbed={renderEmbed} showNames={!direct} />
+        <DS.ChatThread
+          messages={thread}
+          tickers={tickers}
+          renderEmbed={renderEmbed}
+          showNames={!direct}
+          messageAction={blockAction}
+        />
       ) : (
         <DS.EmptyState compact title="Noch keine Nachrichten" as="h3">
           Schreib die erste.

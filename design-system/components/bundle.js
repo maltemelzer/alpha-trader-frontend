@@ -1120,7 +1120,9 @@
           m.trade ? h('div', { className: 'bnk-msg__att' }, h(TradeShare, m.trade)) : null,
           last ? h('div', { className: 'bnk-msg__meta' },
             h('time', null, m.time),
-            m.own && m.status ? h('span', null, ' · ' + m.status) : null) : null));
+            m.own && m.status ? h('span', null, ' · ' + m.status) : null) : null),
+        // Aktion je Person (z. B. Blockieren): neben der letzten Blase einer fremden Gruppe.
+        !m.own && last && props.messageAction ? h('div', { className: 'bnk-msg__act' }, props.messageAction(m)) : null);
     });
     return h('div', { ref: ref, className: cx('bnk-chat', props.className), role: 'log', 'aria-live': 'polite', 'aria-label': props['aria-label'] || 'Nachrichten' },
       items,
@@ -3318,12 +3320,13 @@
     info: 'M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0zM10 9v5M10 6.5v.01',
     warnung: 'M10 3l8 14H2zM10 8v4M10 14.5v.01',
     ueberweisung: 'M4 7h11M12 4l3 3-3 3M16 13H5M8 10l-3 3 3 3',
-    menue: 'M3 6h14M3 10h14M3 14h14'
+    menue: 'M3 6h14M3 10h14M3 14h14',
+    blockieren: 'M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0zM5.05 5.05l9.9 9.9'
   };
   var ICON_LABELS = { markt: 'Markt', organisation: 'Organisation', orders: 'Orders', highscores: 'Highscores', community: 'Community', zeitung: 'Zeitung', chat: 'Chat', glocke: 'Benachrichtigungen',
     suche: 'Suche', portfolio: 'Portfolio', bank: 'Bank', coin: 'AlphaCoins', anleihe: 'Anleihe', index: 'Index', miner: 'Miner', erfolg: 'Erfolge', spieler: 'Spieler', allianz: 'Allianz',
     einstellungen: 'Einstellungen', abmelden: 'Abmelden', plus: 'Hinzufügen', schliessen: 'Schließen', haken: 'Erledigt', extern: 'Externer Link', uhr: 'Zeit', kalender: 'Datum',
-    merken: 'Merken', filter: 'Filter', aktualisieren: 'Aktualisieren', info: 'Hinweis', warnung: 'Warnung', ueberweisung: 'Überweisung', menue: 'Menü' };
+    merken: 'Merken', filter: 'Filter', aktualisieren: 'Aktualisieren', info: 'Hinweis', warnung: 'Warnung', ueberweisung: 'Überweisung', menue: 'Menü', blockieren: 'Blockieren' };
   function Icon(props) {
     var d = ICONS[props.name];
     var size = props.size || 20;

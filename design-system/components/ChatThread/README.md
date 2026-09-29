@@ -10,6 +10,7 @@ Der Verlauf zeigt Nachrichten als Sprechblasen: fremde links auf `bg-raised`, ei
 - **Karte (`!STHANSEREE`):** wie `#`, zusätzlich erscheint unter der Blase die Karte aus `renderEmbed(asin)` (meist `AssetCard`, höchstens drei je Nachricht). Karten am Anfang oder Ende der Nachricht stehen nicht noch einmal im Text (mitten im Satz bleiben sie Erwähnung); besteht die Nachricht nur aus Karten, entfällt die Blase. Mit Karte darf die Spalte 92 % statt 72 % breit werden.
 - **Geteilter Trade (`trade`):** `TradeShare` in der Blase: Kauf/Verkauf, Stückzahl, Kurs, Veränderung seither. Kauf und Verkauf sind keine Farben.
 - **Schreibt-Anzeige (`typing`):** drei Punkte in `text-muted` und Text in `text-secondary`.
+- **Aktion je Person (`messageAction`):** z. B. ein Knopf „Blockieren“ (Icon `blockieren`, ⃠) neben der letzten Blase jeder fremden Gruppe – bei Hover/Fokus sichtbar, auf Touch immer. Der Knopf kommt vom Aufrufer (eigener Name für Screenreader, Tippfläche ≥ 44 px).
 - **Status eigener Nachrichten:** „Gesendet“ / „Gelesen“ als Text unter der letzten Blase, keine Häkchen-Farben.
 
 ## Regeln

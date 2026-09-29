@@ -641,6 +641,8 @@ export interface ChatThreadProps {
   renderEmbed?: (asin: string) => React.ReactNode;
   /** Namen über fremden Nachrichten (Standard true; in Direktnachrichten false) */
   showNames?: boolean;
+  /** Aktion je Person neben der letzten Blase jeder fremden Gruppe, z. B. ein Knopf „Blockieren“ (Icon `blockieren`); auf Touch immer sichtbar, sonst bei Hover/Fokus */
+  messageAction?: (m: ChatMessage) => React.ReactNode;
   /** z. B. „Frieda schreibt …“ */
   typing?: React.ReactNode;
   /** beim Hinzufügen neuer Nachrichten nach unten scrollen (Standard true) */
@@ -1541,7 +1543,7 @@ export interface CashTransferLogEntry { id: string; date: number; amount: number
 export declare function AccountStatement(props: { entries: CashTransferLogEntry[]; bankAccountId: string; currency?: string; density?: 'sm' | 'md'; empty?: React.ReactNode; className?: string }): React.ReactElement;
 
 /* ---------- Rahmen ---------- */
-export type IconName = 'markt' | 'organisation' | 'orders' | 'highscores' | 'community' | 'zeitung' | 'chat' | 'glocke' | 'suche' | 'portfolio' | 'bank' | 'coin' | 'anleihe' | 'index' | 'miner' | 'erfolg' | 'spieler' | 'allianz' | 'einstellungen' | 'abmelden' | 'plus' | 'schliessen' | 'haken' | 'extern' | 'uhr' | 'kalender' | 'merken' | 'filter' | 'aktualisieren' | 'info' | 'warnung' | 'ueberweisung' | 'menue';
+export type IconName = 'markt' | 'organisation' | 'orders' | 'highscores' | 'community' | 'zeitung' | 'chat' | 'glocke' | 'suche' | 'portfolio' | 'bank' | 'coin' | 'anleihe' | 'index' | 'miner' | 'erfolg' | 'spieler' | 'allianz' | 'einstellungen' | 'abmelden' | 'plus' | 'schliessen' | 'haken' | 'extern' | 'uhr' | 'kalender' | 'merken' | 'filter' | 'aktualisieren' | 'info' | 'warnung' | 'ueberweisung' | 'menue' | 'blockieren';
 /** SVG-Pfade je Icon (viewBox 0 0 20 20) */
 export declare const ICONS: Record<IconName, string>;
 export declare const ICON_LABELS: Record<IconName, string>;
