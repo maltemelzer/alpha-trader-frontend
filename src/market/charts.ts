@@ -1,52 +1,10 @@
 // Plotly figures for the market page.
 import type { plotlyTheme } from '../charts/plotlyTheme';
-import { changeText, clip, euro, mix, short } from '../lib/format';
-import { heatShare, tileArea, TYPE_LABEL, wrapLabel, type HeatTile, type VolumeRow } from './derive';
+import { changeText, euro, mix, short } from '../lib/format';
+import { heatShare, tileArea, wrapLabel, type HeatTile } from './derive';
 import type { MapNode } from './screener';
 
 type Theme = ReturnType<typeof plotlyTheme>;
-
-/** Biggest 24 h volumes as bars (chart-2); one category per ASIN, so equal names (buildings) stay apart. */
-export function volumeChart(t: Theme, w: number, rows: VolumeRow[], showType = false) {
-  const v = t.tokens;
-  const narrow = w < 420;
-  const shown = [...rows].reverse();
-  const label = (r: VolumeRow) => clip(r.name, narrow ? 14 : 24);
-  return {
-    data: [
-      {
-        type: 'bar',
-        orientation: 'h',
-        y: shown.map((r) => r.asin),
-        x: shown.map((r) => r.volume),
-        marker: { color: v('chart-2') },
-        text: shown.map((r) => `${short(r.volume)}\u00a0€`),
-        textposition: 'outside',
-        cliponaxis: false,
-        textfont: { family: v('font-mono'), size: 11, color: v('text-secondary') },
-        customdata: shown.map((r) => r.asin),
-        hovertext: shown.map((r) => `${r.name}${showType && TYPE_LABEL[r.type] ? ` · ${TYPE_LABEL[r.type]}` : ''}`),
-        hovertemplate: '%{hovertext} (%{customdata})<br>Umsatz 24 h: %{text}<extra></extra>',
-      },
-    ],
-    layout: {
-      showlegend: false,
-      hovermode: 'closest',
-      bargap: 0.35,
-      margin: { l: 0, r: 88, t: 4, b: 0 },
-      xaxis: { ...t.layout.xaxis, visible: false, showspikes: false, rangemode: 'tozero' },
-      yaxis: {
-        ...t.layout.yaxis,
-        side: 'left',
-        showgrid: false,
-        tickmode: 'array',
-        tickvals: shown.map((r) => r.asin),
-        ticktext: shown.map(label),
-        tickfont: { family: v('font-sans'), size: 12, color: v('text-primary') },
-      },
-    },
-  };
-}
 
 /** Price in a hover: full euros below a million, short form above (building prices reach Mrd.). */
 const priceText = (n: number) => (Math.abs(n) >= 1e6 ? `${short(n)}\u00a0€` : euro(n));

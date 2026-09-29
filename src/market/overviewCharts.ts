@@ -1,8 +1,8 @@
 // Plotly figures for the class overviews above the market list (see overview.ts for the data).
 import type { plotlyTheme } from '../charts/plotlyTheme';
 import { rangeTicks } from '../charts/ticks';
-import { changeShort, clip, euro, ratePct, short } from '../lib/format';
-import { CHANGE_CLIP, clusterLog, type BondDot, type Cluster, type ClassRow, type Close, type EtfPair, type IndexBar, type MoverDot, type RepoDot } from './overview';
+import { changeShort, clip, ratePct, short } from '../lib/format';
+import { clusterLog, type BondDot, type Cluster, type Close, type EtfPair, type IndexBar, type RepoDot } from './overview';
 
 type Theme = ReturnType<typeof plotlyTheme>;
 
@@ -12,8 +12,6 @@ const NARROW = 520;
 const de = (n: number) => n.toLocaleString('de-DE');
 const CLICK = '<br><i>Klicken öffnet das Wertpapier</i>';
 
-/** Price in a hover: full euros below a million, short form above. */
-const priceText = (n: number) => (Math.abs(n) >= 1e6 ? `${short(n)}${NB}€` : euro(n));
 const signedPct = (n: number, d = 0) => {
   const s = Math.abs(n).toLocaleString('de-DE', { maximumFractionDigits: d });
   return n > 0 ? `+${s}${NB}%` : n < 0 ? `−${s}${NB}%` : `0${NB}%`;
@@ -114,83 +112,6 @@ const note = (t: Theme, text: string, x: number, y: number, xanchor: 'left' | 'r
   font: { family: t.tokens('font-mono'), size: 11, color: t.tokens('text-secondary') },
   ...extra,
 });
-
-// ---------- Shares ----------
-
-/**
- * „Wo bewegt sich was?“: every share traded in 24 h as a dot – turnover (log) against change to the
- * previous day, area by number of trades, gain/loss colour (a price move), unchanged in muted.
- * Changes beyond ±50 % sit on the edge as triangles. The three biggest turnovers carry their name.
- */
-export function moversChart(t: Theme, w: number, dots: MoverDot[]) {
-  const v = t.tokens;
-  const narrow = w < NARROW;
-  const maxTrades = Math.max(1, ...dots.map((d) => d.trades));
-  const size = (d: MoverDot) => 5 + (narrow ? 8 : 12) * Math.sqrt(d.trades / maxTrades);
-  const at = (c: number) => Math.max(-CHANGE_CLIP, Math.min(CHANGE_CLIP, c));
-  const span = Math.max(2, ...dots.map((d) => Math.abs(at(d.change)))) * 1.15;
-  const xr = logRange(dots.map((d) => d.volume), 0.2, [0, 6]);
-  const hover = (d: MoverDot) =>
-    `${d.name}<br>${changeShort(d.change)} zum Vortag${d.last != null ? ` · ${priceText(d.last)}` : ''}<br>Umsatz 24 h ${short(d.volume)}${NB}€${d.trades ? ` · ${d.trades.toLocaleString('de-DE')} Trades` : ''}${CLICK}`;
-  const trace = (name: string, own: MoverDot[], color: string, up: boolean | null) => ({
-    type: 'scatter',
-    mode: 'markers',
-    name,
-    x: own.map((d) => d.volume),
-    y: own.map((d) => at(d.change)),
-    marker: {
-      color,
-      size: own.map(size),
-      opacity: 0.8,
-      line: { width: 0 },
-      symbol: own.map((d) => (Math.abs(d.change) > CHANGE_CLIP ? (up ? 'triangle-up' : 'triangle-down') : 'circle')),
-    },
-    text: own.map(hover),
-    hovertemplate: '%{text}<extra></extra>',
-    customdata: own.map((d) => d.asin),
-  });
-  const up = dots.filter((d) => d.change > 0.005);
-  const down = dots.filter((d) => d.change < -0.005);
-  const flat = dots.filter((d) => Math.abs(d.change) <= 0.005);
-  // Names for the biggest turnovers – skipping one that would sit on a label already placed.
-  const top: MoverDot[] = [];
-  for (const d of [...dots].sort((a, b) => b.volume - a.volume)) {
-    if (top.length >= (narrow ? 2 : 3)) break;
-    const near = top.some((o) => Math.abs(Math.log10(o.volume) - Math.log10(d.volume)) < (xr[1] - xr[0]) * 0.25 && Math.abs(at(o.change) - at(d.change)) < span * 0.25);
-    if (!near) top.push(d);
-  }
-  const xTicks = decades(xr[0], xr[1], narrow ? 4 : 7);
-  const yTicks = rangeTicks(-span, span, narrow ? 4 : 6).filter((x) => Math.abs(x) <= span);
-  return {
-    data: [trace('Unverändert', flat, v('text-muted'), null), trace('Gestiegen', up, v('gain'), true), trace('Gefallen', down, v('loss'), false)],
-    layout: {
-      showlegend: false,
-      hovermode: 'closest',
-      margin: { l: 0, r: 0, t: 6, b: 0 },
-      xaxis: {
-        ...t.layout.xaxis,
-        type: 'log',
-        range: xr,
-        showspikes: false,
-        tickvals: xTicks,
-        ticktext: xTicks.map((x) => `${short(x)}${NB}€`),
-        title: { text: 'Umsatz 24 h', font: { size: 11, color: v('text-muted') }, standoff: 4 },
-      },
-      yaxis: {
-        ...t.layout.yaxis,
-        range: [-span, span],
-        showspikes: false,
-        zeroline: false,
-        tickvals: yTicks,
-        ticktext: yTicks.map((x) => signedPct(x)),
-      },
-      shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 0, y1: 0, line: { color: v('line-strong'), width: 1 } }],
-      annotations: top.map((d) =>
-        note(t, clip(d.name, narrow ? 12 : 20), Math.log10(d.volume), at(d.change), 'right', { xshift: -size(d) / 2 - 2, yanchor: 'middle', font: { family: v('font-sans'), size: 11, color: v('text-secondary') } }),
-      ),
-    },
-  };
-}
 
 // ---------- Bonds ----------
 
@@ -590,72 +511,3 @@ export function etfChart(t: Theme, w: number, pairs: EtfPair[]) {
 
 // ---------- Several classes ----------
 
-/**
- * „Welche Klasse steigt, welche fällt?“: per class the number of rising (right, gain) and falling
- * (left, loss) securities; on the right the class's 24 h turnover and how many were traded.
- * Bonds and repos have no change to the previous day – they carry only the turnover note.
- * A click on a class selects it (customdata = group).
- */
-export function classChart(t: Theme, w: number, rows: ClassRow[]) {
-  const v = t.tokens;
-  const narrow = w < NARROW;
-  const shown = [...rows].reverse();
-  const max = Math.max(1, ...rows.map((r) => Math.max(r.up, r.down)));
-  const hover = (r: ClassRow) =>
-    `${r.label}: ${r.count.toLocaleString('de-DE')} in der Liste, ${r.traded.toLocaleString('de-DE')} mit Umsatz<br>${r.hasChange ? `▲ ${r.up.toLocaleString('de-DE')} gestiegen · ▼ ${r.down.toLocaleString('de-DE')} gefallen` : 'keine Tagesveränderung'}<br>${r.volumeKnown ? `Umsatz 24 h ${short(r.volume)}${NB}€` : 'Umsatz nicht erfasst'}<br><i>Klicken zeigt nur ${r.label}</i>`;
-  const bar = (name: string, xs: number[], color: string, text: string[]) => ({
-    type: 'bar',
-    orientation: 'h',
-    name,
-    y: shown.map((r) => r.group),
-    x: xs,
-    marker: { color },
-    text,
-    textposition: 'outside',
-    cliponaxis: false,
-    textfont: { family: v('font-mono'), size: 11, color: v('text-secondary') },
-    customdata: shown.map((r) => r.group),
-    hovertext: shown.map(hover),
-    hovertemplate: '%{hovertext}<extra></extra>',
-  });
-  return {
-    data: [
-      bar('Gefallen', shown.map((r) => -r.down), v('loss'), shown.map((r) => (r.down ? `▼${NB}${r.down.toLocaleString('de-DE')}` : ''))),
-      bar('Gestiegen', shown.map((r) => r.up), v('gain'), shown.map((r) => (r.up ? `▲${NB}${r.up.toLocaleString('de-DE')}` : ''))),
-    ],
-    layout: {
-      showlegend: false,
-      hovermode: 'closest',
-      barmode: 'overlay',
-      bargap: 0.4,
-      margin: { l: 0, r: narrow ? 88 : 200, t: 4, b: 0 },
-      // room for the ▲/▼ counts beside the bars (wider share on the phone)
-      xaxis: { ...t.layout.xaxis, visible: false, showspikes: false, range: [-max * (narrow ? 1.7 : 1.35), max * (narrow ? 1.7 : 1.35)] },
-      yaxis: {
-        ...t.layout.yaxis,
-        side: 'left',
-        showgrid: false,
-        tickmode: 'array',
-        tickvals: shown.map((r) => r.group),
-        ticktext: shown.map((r) => r.label),
-        tickfont: { family: v('font-sans'), size: 12, color: v('text-primary') },
-      },
-      shapes: [{ type: 'line', yref: 'paper', y0: 0, y1: 1, x0: 0, x1: 0, line: { color: v('line-strong'), width: 1 } }],
-      annotations: [
-        ...shown.map((r) => ({
-          xref: 'paper',
-          x: 1,
-          y: r.group,
-          xanchor: 'left',
-          xshift: 8,
-          showarrow: false,
-          text: !r.volumeKnown ? (narrow ? '–' : 'Umsatz nicht erfasst') : narrow ? `${short(r.volume)}${NB}€` : `${short(r.volume)}${NB}€ · ${de(r.traded)} gehandelt`,
-          font: { family: v('font-mono'), size: 11, color: v('text-secondary') },
-        })),
-        ...shown
-          .filter((r) => !r.hasChange)
-          .map((r) => ({ x: 0, y: r.group, xanchor: 'center', showarrow: false, text: 'ohne Tagesveränderung', bgcolor: v('bg-card'), font: { size: 11, color: v('text-muted') } })),
-      ],
-    },
-  };
-}

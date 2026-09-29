@@ -2,20 +2,10 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
+/* Wide: one card over the full width – the screener (with its heatmap on top) or the market map */
 .market--wide .market__body {
-  grid-template-columns: minmax(0, 1fr) 420px;
-  grid-template-rows: minmax(0, 1fr);
-}
-
-@media (max-width: 1379.98px) {
-  .market--wide .market__body {
-    grid-template-columns: minmax(0, 1fr) 360px;
-  }
-}
-
-/* Marktkarte: the map takes the whole width */
-.market--wide .market__body--map {
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 /* Wide: view tabs left, a one-line market pulse right – one row instead of title + figures + tabs */
@@ -767,6 +757,38 @@
   font-size: 12px;
   line-height: 16px;
   color: var(--text-muted);
+}
+
+/* Gestiegen | unverändert | gefallen as one thin bar in the tile's hint line */
+.ovw-split {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ovw-split__bar {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 40px;
+  max-width: 160px;
+  height: 6px;
+  gap: 1px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+}
+
+.ovw-split__up {
+  background: var(--gain);
+}
+
+.ovw-split__flat {
+  background: var(--text-muted);
+  opacity: 0.5;
+}
+
+.ovw-split__down {
+  background: var(--loss);
 }
 
 .ovw-toggle {

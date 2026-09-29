@@ -21,7 +21,6 @@ import type {
   SecurityOrderLogEntryView,
   SecurityOrderWithVolumeView,
   ShareholderView,
-  TradingMatrixItemView,
   UserAccountView,
   UsernameView,
 } from './types';
@@ -1881,24 +1880,26 @@ function pageableSerializer(q: Record<string, unknown>) {
 
 // ---------- Market overview ----------
 
-/** The 100 most traded securities of the last 24 h with last price and price 24 h ago (market heatmap). */
-export function useTradingMatrix() {
+/**
+ * 24 h volumes of every class the endpoint lists (STOCK, BUILDING, COIN), one page of `size` each.
+ * Without a type the buildings crowd out the shares (29.09.2026: the first 1.000 of 2.530 rows held
+ * 992 buildings and 7 of 522 traded shares). Total = sum of the classes' totals, so the lookup stays
+ * incomplete as long as one class was cut off.
+ */
+export function useBiggestTradedAll(size = 1000) {
   return useQuery({
-    queryKey: ['tradingmatrix'],
-    queryFn: () => unwrap<TradingMatrixItemView[]>(api.GET('/api/v2/tradingmatrix/top100')),
-    refetchInterval: SLOW,
-  });
-}
-
-/** Securities with the largest traded volume in 24 h, of one type (all types when empty). */
-export function useBiggestTraded(type?: string, size = 10) {
-  return useQuery({
-    queryKey: ['biggesttraded', type ?? '', size],
-    queryFn: () =>
-      getPage<ListingWithTradingVolumeView>('/api/v2/biggesttradedsecurities', {
-        type: type || undefined,
-        pageable: { page: 0, size },
-      }),
+    queryKey: ['biggesttraded', 'all-classes', size],
+    queryFn: async (): Promise<Page<ListingWithTradingVolumeView>> => {
+      const pages = await Promise.all(
+        ['STOCK', 'BUILDING', 'COIN'].map((type) =>
+          getPage<ListingWithTradingVolumeView>('/api/v2/biggesttradedsecurities', { type, pageable: { page: 0, size } }),
+        ),
+      );
+      return {
+        content: pages.flatMap((p) => p.content).sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0)),
+        totalElements: pages.reduce((s, p) => s + p.totalElements, 0),
+      };
+    },
     placeholderData: (prev) => prev,
     refetchInterval: SLOW,
   });

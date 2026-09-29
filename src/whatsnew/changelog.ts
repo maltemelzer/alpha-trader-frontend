@@ -32,6 +32,20 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-29-6',
+    title: 'Markt: die Heatmap folgt deinen Filtern',
+    items: [
+      {
+        text: 'Über der Liste steht jetzt eine Heatmap der gefilterten Wertpapiere – bei Aktien und bei mehreren Arten: Fläche nach Umsatz der letzten 24 Stunden, Farbe nach Veränderung zum Vortag. Ein Klick öffnet das Wertpapier.',
+        href: '/markt?art=STOCK',
+      },
+      { text: 'Dafür ist die Karte „Umsatz 24 h“ rechts weg – die Liste hat die ganze Breite. Am Handy entfällt die Ansicht „Umsatz“, die Heatmap öffnest du mit dem Diagramm-Knopf.' },
+      { text: '„Marktbreite“ heißt jetzt „Zum Vortag“ und zeigt gestiegen, unverändert und gefallen als Balken.' },
+      { text: 'Behoben: Die Liste kannte nur den Umsatz von 7 Aktien, weil Immobilien die Abfrage füllten – jetzt sind es alle gehandelten (heute über 500).' },
+    ],
+    shot: { path: '/markt?art=STOCK', alt: 'Markt, Aktien: Heatmap der gefilterten Aktien nach Umsatz und Veränderung zum Vortag', crop: '.ovw' },
+  },
+  {
     id: '2026-09-29-5',
     title: 'Mehr Platz auf jeder Seite',
     items: [

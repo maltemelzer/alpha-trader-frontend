@@ -11,6 +11,7 @@ import {
   bondDots,
   breadth,
   classRows,
+  heatRows,
   closes,
   etfPair,
   indexBars,
@@ -20,19 +21,27 @@ import {
   ratePerDay,
   repoDots,
   sumVolume,
+  topMovers,
+  type Breadth,
   type EtfPair,
   type OverviewKind,
 } from './overview';
-import { bondChart, classChart, coinChart, etfChart, indexChart, moversChart, repoChart, type CoinSeries } from './overviewCharts';
-import type { Group, ScreenRow } from './screener';
+import { heatmapChart } from './charts';
+import { bondChart, coinChart, etfChart, indexChart, repoChart, type CoinSeries } from './overviewCharts';
+import type { ScreenRow } from './screener';
 
-type Theme = Parameters<typeof moversChart>[0];
+type Theme = Parameters<typeof bondChart>[0];
 const NB = String.fromCharCode(0xa0);
 const de = (n: number) => n.toLocaleString('de-DE');
 const share = (x: number) => `${(x * 100).toLocaleString('de-DE', { maximumFractionDigits: x < 0.1 ? 1 : 0 })}${NB}%`;
 /** Indexes and ETFs whose closes are loaded – each is one request, cached for five minutes. */
 const MAX_SERIES = 8;
 const COINS = 4;
+/** Tiles in the shares heatmap (wide / narrow) – more stay unreadable in ~250 px height. */
+const HEAT_TILES = 80;
+const HEAT_TILES_NARROW = 30;
+/** Candidates for „Stärkste Bewegung“ (only the first of each side counts). */
+const MOVERS = 1;
 
 export interface ClassOverviewProps {
   kind: OverviewKind;
@@ -41,8 +50,6 @@ export interface ClassOverviewProps {
   now: number;
   /** the screener's sources are still loading */
   loading: boolean;
-  /** several classes: a click on a class selects it */
-  onSelectType: (g: Group) => void;
 }
 
 export function ClassOverview(p: ClassOverviewProps) {
@@ -117,6 +124,16 @@ function Frame(f: FrameProps) {
   );
 }
 
+/** Heatmap of the filtered rows – the same treemap and colours as the market map: biggest turnovers, fewer on the phone. */
+function useHeatmap(rows: ScreenRow[]) {
+  const tiles = useMemo(() => heatRows(rows), [rows]);
+  const figure = useCallback((t: Theme, w: number) => heatmapChart(t, w, tiles.slice(0, w < 560 ? HEAT_TILES_NARROW : HEAT_TILES)), [tiles]);
+  return { tiles, figure };
+}
+
+const HEAT_NOTE = (what: string) =>
+  `Die umsatzstärksten ${what} der Liste (folgt den Filtern): Fläche nach Umsatz 24 h, Farbe nach Veränderung zum Vortag, volle Farbe ab ±10 %.`;
+
 const Tile = ({ label, value, hint }: { label: string; value: ReactNode; hint?: ReactNode }) => (
   <DS.StatTile label={label} value={value} hint={hint ?? NB} />
 );
@@ -126,35 +143,50 @@ const Tile = ({ label, value, hint }: { label: string; value: ReactNode; hint?: 
 function StockOverview({ rows, loading }: ClassOverviewProps) {
   const open = useOpen();
   const dots = useMemo(() => moverDots(rows), [rows]);
+  const movers = useMemo(() => topMovers(dots, MOVERS), [dots]);
   const b = useMemo(() => breadth(rows), [rows]);
   const total = useMemo(() => sumVolume(rows), [rows]);
   const traded = rows.filter((r) => (r.volume ?? 0) > 0).length;
-  // The biggest move among the traded ones (token-price jumps are already unknown, see changeLookup).
-  const move = dots.reduce<(typeof dots)[number] | undefined>((m, d) => (!m || Math.abs(d.change) > Math.abs(m.change) ? d : m), undefined);
-  const figure = useCallback((t: Theme, w: number) => moversChart(t, w, dots), [dots]);
-  const hidden = rows.length - traded;
+  // The biggest move among shares with real turnover – the same ones the chart shows.
+  const move = [movers.up[0], movers.down[0]].filter((d) => !!d).sort((x, y) => Math.abs(y.change) - Math.abs(x.change))[0];
+  const { tiles, figure } = useHeatmap(rows);
   return (
     <Frame
       label="Aktien im Überblick"
       loading={loading}
-      empty={dots.length ? undefined : 'Keine der gefilterten Aktien wurde in den letzten 24 Stunden gehandelt.'}
+      empty={tiles.length ? undefined : 'Keine der gefilterten Aktien wurde in den letzten 24 Stunden gehandelt.'}
       figs={
         <>
-          <Tile label="Marktbreite" value={`▲${NB}${de(b.up)} · ▼${NB}${de(b.down)}`} hint={`${de(b.flat)} unverändert`} />
+          <Tile label="Zum Vortag" value={`▲${NB}${de(b.up)} · ▼${NB}${de(b.down)}`} hint={<BreadthBar b={b} />} />
           <Tile label="Gehandelt" value={`${de(traded)} von ${de(rows.length)}`} hint={total ? `Umsatz ${short(total)}${NB}€` : undefined} />
           <Tile label="Stärkste Bewegung" value={move ? changeText(move.change) : '–'} hint={move?.name} />
         </>
       }
       figure={figure}
-      chartLabel="Aktien: Umsatz in 24 Stunden gegen Veränderung zum Vortag, Punktfläche nach Trades; ein Punkt öffnet die Aktie"
+      chartLabel="Heatmap der gefilterten Aktien: Fläche nach Umsatz in 24 Stunden, Farbe nach Veränderung zum Vortag; eine Kachel öffnet die Aktie"
       onPointClick={open}
-      note={
-        <>
-          Jeder Punkt eine in 24 h gehandelte Aktie: rechts viel Umsatz, oben gestiegen, Fläche nach Trades.
-          {hidden > 0 && ` ${de(hidden)} ohne Umsatz nicht gezeigt.`}
-        </>
-      }
+      note={HEAT_NOTE('Aktien')}
     />
+  );
+}
+
+/** Rising | unchanged | falling as one thin bar, with the unchanged count beside it. */
+function BreadthBar({ b }: { b: Breadth }) {
+  const all = b.up + b.flat + b.down;
+  const text = `${de(b.up)} gestiegen, ${de(b.flat)} unverändert, ${de(b.down)} gefallen zum Vortag`;
+  return (
+    <span className="ovw-split" title={text}>
+      <span className="ovw-split__bar" role="img" aria-label={text}>
+        {all > 0 && (
+          <>
+            <span className="ovw-split__up" style={{ flexGrow: b.up }} />
+            <span className="ovw-split__flat" style={{ flexGrow: b.flat }} />
+            <span className="ovw-split__down" style={{ flexGrow: b.down }} />
+          </>
+        )}
+      </span>
+      <span aria-hidden="true">{de(b.flat)}{NB}unv.</span>
+    </span>
   );
 }
 
@@ -381,35 +413,29 @@ function EtfOverview({ rows, loading }: ClassOverviewProps) {
 
 // ---------- Mehrere Klassen ----------
 
-function MixedOverview({ rows, loading, onSelectType }: ClassOverviewProps) {
+function MixedOverview({ rows, loading }: ClassOverviewProps) {
+  const open = useOpen();
   const list = useMemo(() => classRows(rows), [rows]);
   const b = useMemo(() => breadth(rows), [rows]);
   const total = useMemo(() => sumVolume(rows), [rows]);
   const biggest = [...list].sort((a, c) => c.volume - a.volume)[0];
-  const figure = useCallback((t: Theme, w: number) => classChart(t, w, list), [list]);
-  const select = useCallback(
-    (pt: PlotPoint) => {
-      const g = Array.isArray(pt.customdata) ? pt.customdata[0] : pt.customdata;
-      if (typeof g === 'string' && g) onSelectType(g as Group);
-    },
-    [onSelectType],
-  );
+  const { tiles, figure } = useHeatmap(rows);
   return (
     <Frame
-      label="Klassen im Überblick"
+      label="Markt im Überblick"
       loading={loading}
-      empty={list.length ? undefined : 'Keine Wertpapiere unter diesem Filter.'}
+      empty={tiles.length ? undefined : 'Keins der gefilterten Wertpapiere wurde in den letzten 24 Stunden gehandelt.'}
       figs={
         <>
-          <Tile label="Marktbreite" value={`▲${NB}${de(b.up)} · ▼${NB}${de(b.down)}`} hint={`${de(b.flat)} unverändert`} />
+          <Tile label="Zum Vortag" value={`▲${NB}${de(b.up)} · ▼${NB}${de(b.down)}`} hint={<BreadthBar b={b} />} />
           <Tile label="Umsatz 24 h" value={`${short(total)}${NB}€`} hint={`${de(rows.filter((r) => (r.volume ?? 0) > 0).length)} gehandelt`} />
           <Tile label="Größter Umsatz" value={biggest?.label ?? '–'} hint={biggest && total ? `${share(biggest.volume / total)} des Umsatzes` : undefined} />
         </>
       }
       figure={figure}
-      chartLabel="Gestiegene und gefallene Wertpapiere je Klasse mit Umsatz; eine Klasse antippen zeigt nur diese"
-      onPointClick={select}
-      note="Gestiegen rechts, gefallen links, je Klasse zum Vortag – eine Klasse anklicken filtert die Liste."
+      chartLabel="Heatmap der gefilterten Wertpapiere: Fläche nach Umsatz in 24 Stunden, Farbe nach Veränderung zum Vortag; eine Kachel öffnet das Wertpapier"
+      onPointClick={open}
+      note={HEAT_NOTE('Wertpapiere')}
     />
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { DS } from '../ds';
 import {
   useAllPriceChanges,
-  useBiggestTraded,
+  useBiggestTradedAll,
   useBond,
   useBondList,
   useIndexes,
@@ -13,7 +13,6 @@ import {
   useMostTraded,
   useSpreadSearch,
   useTopBookValues,
-  useTradingMatrix,
 } from '../api/queries';
 import { Plot, type PlotPoint } from '../charts/Plot';
 import { short } from '../lib/format';
@@ -21,8 +20,8 @@ import { useInternalLinks } from '../lib/useInternalLinks';
 import { useIsPhone, useMediaQuery } from '../lib/useMediaQuery';
 import { useNow } from '../lib/useNow';
 import { useUrlSearch } from '../lib/useUrlSearch';
-import { heatmapChart, marketMapChart, volumeChart } from './charts';
-import { heatTiles, tickerItems, tileArea, TYPE_LABEL, volumeRows } from './derive';
+import { marketMapChart } from './charts';
+import { tickerItems, tileArea } from './derive';
 import {
   applyScreen,
   bookLookup,
@@ -32,7 +31,6 @@ import {
   defaultSort,
   fromBonds,
   fromMarketRow,
-  groupOf,
   issuerIds,
   marketMap,
   matchesText,
@@ -58,11 +56,12 @@ const href = (asin: string) => `/wertpapier/${asin}`;
 
 /**
  * Market – a screener over everything the fast lists deliver (search, types, ranges, presets, sort,
- * columns – all in the URL), turnover heatmap and live trades beside it; the „Marktkarte“ tab shows
- * all securities traded in 24 h grouped by type. Phone: one view at a time.
+ * columns – all in the URL) over the full width, its class overview (a turnover heatmap for shares and
+ * several classes) on top; the „Marktkarte“ tab shows all securities traded in 24 h grouped by type.
+ * Phone: one view at a time.
  *
- * Views: ?ansicht=suche|karte (wide tabs) plus umsatz|live on the phone; old `heatmap` → karte,
- * old `bewegung` → umsatz. Side card ?diagramm=heatmap|liste (old `umsatz` → liste).
+ * Views: ?ansicht=suche|karte (wide tabs) plus live on the phone; old `heatmap` → karte, old
+ * `umsatz`/`bewegung` (the removed turnover card) → suche.
  */
 export function MarketPage() {
   const isWide = useMediaQuery('(min-width: 1100px)');
@@ -99,7 +98,7 @@ export function MarketPage() {
 
   // Sources. Without a search: everything traded recently (24 h volumes, trade counts); with a
   // search: the spread search over all listings. Bonds, repos and indexes come from their own lists.
-  const volumes = useBiggestTraded('', UNIVERSE);
+  const volumes = useBiggestTradedAll(UNIVERSE);
   const frequent = useMostTraded(undefined, UNIVERSE);
   const changes = useAllPriceChanges();
   const found = useSpreadSearch(searching ? q : '', SEARCH);
@@ -205,7 +204,6 @@ export function MarketPage() {
       rows={filtered}
       now={now}
       loading={loading || ((kind === 'bond' || kind === 'repo') && loadingBonds)}
-      onSelectType={(g) => setParam({ art: g, seite: null, sp: null, sort: null, immo: null })}
     />
   ) : null;
   const overview = !overviewEl || !showOverview ? null : isPhone ? <div className={phoneChart ? 'ovw-wrap' : 'ovw-wrap ovw-wrap--figs'}>{overviewEl}</div> : overviewEl;
@@ -251,29 +249,6 @@ export function MarketPage() {
   }, [volumes.data, frequent.data, found.data, universe]);
   const ticker = useMemo(() => tickerItems(trades.data ?? [], names), [trades.data, names]);
 
-  // Turnover: heatmap of the top 100 (24 h change) or ranking bars of the chosen types.
-  const matrix = useTradingMatrix();
-  // Tile colour = the same change as in the table and the map (to the previous day); the matrix's own
-  // 24 h change only where the movers lists are not loaded yet.
-  const changeMap = useMemo(() => changeLookup(changes.data?.winners, changes.data?.losers), [changes.data]);
-  const tiles = useMemo(
-    () =>
-      heatTiles(matrix.data ?? []).map((t) =>
-        changeMap ? { ...t, change: changeMap.map.get(t.asin) ?? (changeMap.complete ? 0 : t.change) } : t,
-      ),
-    [matrix.data, changeMap],
-  );
-  const ranking = useMemo(
-    () =>
-      volumeRows(
-        (volumes.data?.content ?? []).filter((r) => {
-          const g = groupOf(r.listing?.type ?? r.type);
-          return !!g && (all || types.includes(g));
-        }),
-        10,
-      ),
-    [volumes.data, all, types],
-  );
   // Market map: all securities with 24 h volume, independent of the screener filter.
   const allTraded = useMemo(
     () =>
@@ -293,15 +268,11 @@ export function MarketPage() {
     },
     [navigate],
   );
-  type Theme = Parameters<typeof heatmapChart>[0];
-  const heatFigure = useCallback((t: Theme, w: number) => heatmapChart(t, w, tiles), [tiles]);
-  const rankFigure = useCallback((t: Theme, w: number) => volumeChart(t, w, ranking, types.length !== 1), [ranking, types.length]);
+  type Theme = Parameters<typeof marketMapChart>[0];
   const mapFigure = useCallback((t: Theme, w: number) => marketMapChart(t, w, mapAll), [mapAll]);
 
   const rawView = params.get('ansicht') ?? 'suche';
-  const view = rawView === 'heatmap' ? 'karte' : rawView === 'bewegung' ? 'umsatz' : rawView;
-  const chart = params.get('diagramm') === 'liste' || params.get('diagramm') === 'umsatz' ? 'liste' : 'heatmap';
-  const typeText = types.length === 1 ? (TYPE_LABEL[types[0]] ?? types[0]) : all ? 'Alle Arten' : types.map((t) => TYPE_LABEL[t] ?? t).join(', ');
+  const view = rawView === 'heatmap' ? 'karte' : rawView;
 
   const searchPanel = (
     <DS.Card flush className="panel market__search">
@@ -336,48 +307,6 @@ export function MarketPage() {
           ) : null
         }
       />
-    </DS.Card>
-  );
-
-  const turnover = (
-    <DS.Card
-      className="panel market__turnover"
-      title="Umsatz 24 h"
-      action={
-        <DS.SegmentedControl
-          size="sm"
-          aria-label="Darstellung"
-          value={chart}
-          onChange={(v) => setParam({ diagramm: v === 'liste' ? v : null })}
-          options={[
-            { value: 'heatmap', label: 'Heatmap' },
-            { value: 'liste', label: 'Rangliste' },
-          ]}
-        />
-      }
-      footer={chart === 'heatmap' ? <HeatLegend note="Top 100 · Fläche nach Umsatz" suffix="zum Vortag" /> : `${typeText} mit dem größten Umsatz in 24 h.`}
-    >
-      <div className="panel__fill market__chart">
-        {chart === 'heatmap' ? (
-          matrix.error ? (
-            <DS.Banner variant="error">Heatmap nicht geladen: {matrix.error.message}</DS.Banner>
-          ) : tiles.length ? (
-            <Plot
-              aria-label="Heatmap der 100 umsatzstärksten Wertpapiere: Fläche nach Umsatz, Farbe nach Veränderung zum Vortag; eine Kachel öffnet das Wertpapier"
-              figure={heatFigure}
-              onPointClick={openPoint}
-            />
-          ) : (
-            <DS.Loading rows={6} label="Heatmap wird geladen" />
-          )
-        ) : volumes.isLoading ? (
-          <DS.Loading rows={6} />
-        ) : ranking.length ? (
-          <Plot aria-label="Größte Umsätze in 24 Stunden; ein Balken öffnet das Wertpapier" figure={rankFigure} onPointClick={openPoint} />
-        ) : (
-          <DS.EmptyState compact title="Keine Umsätze">In den letzten 24 Stunden wurde hier nichts gehandelt.</DS.EmptyState>
-        )}
-      </div>
     </DS.Card>
   );
 
@@ -488,25 +417,23 @@ export function MarketPage() {
       />
       {isWide ? (
         // The live trades run in the tape under the header – no second ticker here.
-        <div className={`page__body market__body${wideView === 'karte' ? ' market__body--map' : ''}`}>
+        <div className="page__body market__body">
           {wideView === 'karte' ? map : searchPanel}
-          {wideView === 'karte' ? null : turnover}
         </div>
       ) : (
         <div className="page__body market__body">
           <DS.SegmentedControl
             aria-label="Ansicht"
             fullWidth
-            value={['suche', 'umsatz', 'karte', 'live'].includes(view) ? view : 'suche'}
+            value={['suche', 'karte', 'live'].includes(view) ? view : 'suche'}
             onChange={(v) => setParam({ ansicht: v === 'suche' ? null : v })}
             options={[
               { value: 'suche', label: 'Suche' },
-              { value: 'umsatz', label: 'Umsatz' },
               { value: 'karte', label: 'Karte' },
               { value: 'live', label: 'Live' },
             ]}
           />
-          {view === 'umsatz' ? turnover : view === 'karte' ? map : view === 'live' ? live : searchPanel}
+          {view === 'karte' ? map : view === 'live' ? live : searchPanel}
         </div>
       )}
     </div>

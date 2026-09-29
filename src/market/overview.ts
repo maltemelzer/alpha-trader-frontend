@@ -1,6 +1,7 @@
 // Class overviews above the market list: one question per asset class, answered from the screener
 // rows (so every filter applies) plus a few cached extras (daily closes, ETF details).
 // Pure functions only – tested in overview.test.ts, drawn in overviewCharts.ts.
+import type { HeatTile } from './derive';
 import type { HistorizedListingDataView, PricePoint } from '../api/types';
 import { afterRebase, quantile, withoutSpikes } from '../security/derive';
 import { GROUPS, type Group, type ScreenRow } from './screener';
@@ -31,10 +32,10 @@ export function overviewKind(types: Group[]): OverviewKind | null {
   }
 }
 
-// ---------- Shares: turnover against change ----------
+// ---------- Shares: biggest moves with turnover ----------
 
-/** Changes beyond this sit on the edge of the chart (as triangles), so one outlier does not flatten the rest. */
-export const CHANGE_CLIP = 50;
+/** Shares below this 24 h turnover never make the movers chart – a single tiny trade would top it. */
+export const MOVER_MIN_VOLUME = 10_000;
 
 export interface MoverDot {
   asin: string;
@@ -46,11 +47,37 @@ export interface MoverDot {
   last: number | null;
 }
 
-/** Rows traded in 24 h with a known change – the dots of the „Umsatz gegen Veränderung“ chart. */
+/** Rows traded in 24 h with a known change. */
 export function moverDots(rows: ScreenRow[]): MoverDot[] {
   return rows
     .filter((r) => (r.volume ?? 0) > 0 && r.change != null && Number.isFinite(r.change))
     .map((r) => ({ asin: r.asin, name: r.name, volume: r.volume!, change: r.change!, trades: r.trades ?? 0, last: r.last }));
+}
+
+/** Heatmap tiles of the traded rows with a known change, biggest turnover first (price 0 when unknown). */
+export function heatRows(rows: ScreenRow[]): HeatTile[] {
+  return moverDots(rows)
+    .sort((a, b) => b.volume - a.volume)
+    .map((d) => ({ asin: d.asin, name: d.name, last: d.last ?? 0, change: d.change, volume: d.volume }));
+}
+
+export interface Movers {
+  /** biggest gains first */
+  up: MoverDot[];
+  /** biggest losses first */
+  down: MoverDot[];
+  /** traded shares with a known change and at least the minimum turnover */
+  candidates: number;
+}
+
+/** The `n` biggest gains and losses among the dots with at least `min` € turnover in 24 h. */
+export function topMovers(dots: MoverDot[], n: number, min = MOVER_MIN_VOLUME): Movers {
+  const ok = dots.filter((d) => d.volume >= min);
+  return {
+    up: ok.filter((d) => d.change > 0.005).sort((a, b) => b.change - a.change).slice(0, n),
+    down: ok.filter((d) => d.change < -0.005).sort((a, b) => a.change - b.change).slice(0, n),
+    candidates: ok.length,
+  };
 }
 
 export interface Breadth {

@@ -1,5 +1,5 @@
 import type { MarketRow } from '../api/queries';
-import type { ListingWithTradingVolumeView, SecurityOrderLogEntryView, TradingMatrixItemView } from '../api/types';
+import type { SecurityOrderLogEntryView } from '../api/types';
 import type { MarketResult, TickerItem } from '../../design-system/components';
 
 /** Latest trades, newest first, as LiveTicker items; names come from whatever lists are loaded. */
@@ -40,18 +40,6 @@ export function toResult(r: MarketRow): MarketResult {
 
 // ---------- Market overview ----------
 
-/** German names of listing types (Umsatz view footer). */
-export const TYPE_LABEL: Record<string, string> = {
-  STOCK: 'Aktien',
-  BOND: 'Anleihen',
-  REPO: 'Repos',
-  COIN: 'Coins',
-  INDEX: 'Indizes',
-  ETF: 'ETFs',
-  WARRANT: 'Optionsscheine',
-  BUILDING: 'Immobilien',
-};
-
 /** „Building 1200 20/09/2026“ → „Gebäude 1200 (20.09.)“; other names trimmed. */
 export function displayName(name: string): string {
   const n = name.trim();
@@ -88,20 +76,6 @@ export interface HeatTile {
   volume: number;
 }
 
-/** Heatmap tiles from the trading matrix: only traded securities, largest volume first. */
-export function heatTiles(items: TradingMatrixItemView[]): HeatTile[] {
-  return items
-    .filter((i) => i.securityIdentifier && (i.volume24h ?? 0) > 0 && i.lastPrice != null)
-    .map((i) => ({
-      asin: i.securityIdentifier!,
-      name: displayName(i.name ?? i.securityIdentifier!),
-      last: i.lastPrice!,
-      change: i.previousPrice ? (i.lastPrice! / i.previousPrice - 1) * 100 : null,
-      volume: i.volume24h!,
-    }))
-    .sort((a, b) => b.volume - a.volume);
-}
-
 /**
  * Tile area. Volumes span seven orders of magnitude (AlphaCoins alone ~95 % of the top 100),
  * so the area follows the fourth root: order stays, small tiles remain visible.
@@ -119,23 +93,3 @@ export function heatShare(change: number | null, cap = 10, max = 0.42): number {
   return max * Math.min(1, Math.abs(change) / cap);
 }
 
-export interface VolumeRow {
-  asin: string;
-  name: string;
-  type: string;
-  volume: number;
-}
-
-/** Biggest traded securities as bar rows (only with volume), biggest first. */
-export function volumeRows(content: ListingWithTradingVolumeView[], n = 8): VolumeRow[] {
-  return content
-    .map((r) => ({
-      asin: r.listing?.securityIdentifier ?? r.securityIdentifier ?? '',
-      name: displayName(r.listing?.name ?? r.name ?? ''),
-      type: r.listing?.type ?? r.type ?? '',
-      volume: r.volume ?? 0,
-    }))
-    .filter((r) => r.asin && r.volume > 0)
-    .sort((a, b) => b.volume - a.volume)
-    .slice(0, n);
-}
