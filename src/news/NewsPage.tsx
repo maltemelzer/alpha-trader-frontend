@@ -166,6 +166,7 @@ export function NewsPage() {
   const header =
     filter.kind === 'author' ? (
       <DS.PageHeader
+        className="ph--content"
         size="md"
         eyebrow={<a href="/zeitung">Zeitung · Autor</a>}
         title={filter.username}
@@ -179,6 +180,7 @@ export function NewsPage() {
       />
     ) : filter.kind === 'hashtag' ? (
       <DS.PageHeader
+        className="ph--content"
         size="md"
         eyebrow={<a href="/zeitung">Zeitung · Hashtag</a>}
         title={`#${filter.tag}`}
@@ -192,6 +194,7 @@ export function NewsPage() {
       />
     ) : filter.kind === 'company' ? (
       <DS.PageHeader
+        className="ph--content"
         size="md"
         eyebrow={
           <>

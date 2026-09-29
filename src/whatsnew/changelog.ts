@@ -32,6 +32,18 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-29-5',
+    title: 'Mehr Platz auf jeder Seite',
+    items: [
+      { text: 'Die große Überschrift über jeder Seite ist weg – der Reiter oben in der Kopfleiste trägt jetzt den Namen der offenen Seite, etwa „Geldflüsse“ statt „Markt“. Auch der Browser-Tab heißt so.' },
+      {
+        text: 'Markt aufgeräumt: Ansichten und Marktzahlen stehen in einer Zeile, Trefferzahl und Herkunft der Liste unten bei den Seiten, die Leseanleitung des Diagramms hinter ⓘ. Die „Letzten Trades“ laufen im Börsenband – die Umsatz-Heatmap hat jetzt die ganze rechte Spalte.',
+        href: '/markt',
+      },
+    ],
+    shot: { path: '/markt', alt: 'Der Markt ohne Seitenüberschrift: Ansichten und Marktzahlen in einer Zeile, Liste mit Diagramm, rechts die Umsatz-Heatmap' },
+  },
+  {
     id: '2026-09-29-4',
     title: 'Impressum und Datenschutz',
     items: [

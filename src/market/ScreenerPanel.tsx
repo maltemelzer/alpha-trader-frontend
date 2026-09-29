@@ -694,7 +694,7 @@ export function Screener(p: ScreenerProps) {
             ) : (
               <PhoneList rows={p.pageRows} sort={p.sort} now={p.now} />
             ))}
-          {p.pagination}
+          {p.pagination && <div className="market__pages">{p.pagination}</div>}
         </div>
         {sheet}
       </>
@@ -728,17 +728,11 @@ export function Screener(p: ScreenerProps) {
             />
           )}
           {filterButton}
+          {p.estateSwitch}
+          {!p.special && p.overviewToggle}
         </div>
         <TypeToggles types={screen.types} onChange={(art) => setParam({ art, seite: null, sp: null, sort: null, immo: null })} />
         <Chips screen={screen} setParam={setParam} onOpen={() => setOpen(true)} />
-      </div>
-      <div className="scr-status">
-        <span className="scr-status__count">
-          {p.special ? '\u00a0' : p.total == null ? 'Lädt …' : `${p.total.toLocaleString('de-DE')} Treffer`}
-          {!p.special && <span className="scr-status__note">{p.note}</span>}
-        </span>
-        {p.estateSwitch}
-        {!p.special && p.overviewToggle && <span className="scr-status__tools">{p.overviewToggle}</span>}
       </div>
       <div className="panel__fill scroll market__results">
         {p.special ?? p.overview}
@@ -751,7 +745,12 @@ export function Screener(p: ScreenerProps) {
             <ResultsTable rows={p.pageRows} screen={screen} now={p.now} sort={p.sort} setParam={setParam} maxVolume={p.maxVolume} />
           ))}
       </div>
-      {p.pagination}
+      {!p.special && (
+        <div className="market__pages scr-foot">
+          {p.pagination ?? <span className="scr-foot__count">{p.total == null ? 'Lädt …' : `${p.total.toLocaleString('de-DE')} Treffer`}</span>}
+          <span className="scr-foot__note">{p.note}</span>
+        </div>
+      )}
       {sheet}
     </>
   );

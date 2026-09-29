@@ -24,7 +24,8 @@ import './WhatsNew.css';
 // Pictures from `npm run whatsnew:shots`: only entries whose picture exists get one. The file names
 // are hashed by Vite; the browser loads a picture only when its entry is shown.
 const SHOT_URLS = import.meta.glob<string>('./shots/*.webp', { eager: true, query: '?url', import: 'default' });
-const SHOT_SIZES: Record<string, [number, number] | undefined> = shotSizes;
+// JSON arrays type as number[] – each entry is [width, height].
+const SHOT_SIZES = shotSizes as unknown as Record<string, [number, number] | undefined>;
 
 function shotOf(c: UiChange) {
   const src = SHOT_URLS[`./shots/${c.id}.webp`];

@@ -96,6 +96,12 @@ function Frame(f: FrameProps) {
         {f.figs}
       </DS.StatGroup>
       <div className="ovw__chart">
+        {/* wide: the reading hint sits behind ⓘ in the chart's corner instead of taking a line */}
+        <DS.Tooltip className="ovw__tip" content={f.note} placement="bottom" width={280}>
+          <button type="button" className="ovw__info" aria-label={`So liest du das Diagramm: ${f.note}`}>
+            ⓘ
+          </button>
+        </DS.Tooltip>
         {f.loading ? (
           <DS.Loading rows={4} label={`${f.label} wird geladen`} />
         ) : f.empty ? (

@@ -214,3 +214,18 @@
     display: none;
   }
 }
+
+/* Key figures: one compact row, left-packed (wide: more room between the figures) */
+@media (min-width: 720px) {
+  .capital__stats .ph-stats__item {
+    padding: 6px var(--space-6);
+  }
+  .capital__stats .ph-stats__item:first-child {
+    padding-left: 0;
+  }
+}
+
+.capital__next {
+  font: 13px/24px var(--font-sans);
+  color: var(--text-secondary);
+}
