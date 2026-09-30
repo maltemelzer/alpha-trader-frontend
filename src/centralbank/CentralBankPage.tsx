@@ -26,6 +26,7 @@ import { ReservesCard } from './ReservesForm';
 import { TenderBid, TenderPhone, TenderSide } from './TenderPanel';
 import { MiniStats } from '../app/phone';
 import './CentralBankPage.css';
+import { companyHref } from '../companies/views';
 
 const pct = (n: number | undefined, d = 2) =>
   n == null ? '–' : `${n.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d })} %`;
@@ -263,7 +264,7 @@ function Banks() {
             return (
               <li key={c.asin}>
                 <div className="cb__row">
-                  <a href={`/unternehmen/${c.asin}`}>{c.name}</a>
+                  <a href={companyHref(c.asin)}>{c.name}</a>
                   <span>
                     <DS.Amount value={taken} compact /> von <DS.Amount value={max} compact />
                   </span>

@@ -1,9 +1,16 @@
-.company {
-  grid-template-rows: auto minmax(0, 1fr);
+/* Company views on the stock page (CompanyViews.tsx): one card that fills the cell, its body scrolls –
+   except where a view lays out its own scrolling columns (Überblick, Einordnung, Chronik, Entwicklung). */
+.cv__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
-.company .bnk-prof a {
-  color: inherit;
+.cv__body > * {
+  flex: none;
 }
 
 .company__chart {
@@ -13,13 +20,8 @@
   box-sizing: border-box;
 }
 
-.company .bnk-tabs__panel:has(.company__chart) {
-  display: flex;
-  flex-direction: column;
-}
-
-.company .bnk-tabs__panel[hidden] {
-  display: none;
+.cv__body > .company__chart {
+  flex: 1;
 }
 
 .company__pad {
@@ -334,10 +336,8 @@
 }
 
 /* Einordnung and Chronik fill the tab panel; their lists scroll inside. */
-.company .bnk-tabs__panel:has(> .rank),
-.company .bnk-tabs__panel:has(> .chron) {
-  display: flex;
-  flex-direction: column;
+.cv__body:has(> .rank),
+.cv__body:has(> .chron) {
   overflow: hidden;
 }
 
@@ -629,8 +629,8 @@
 /* Phone: the profile header leaves little height, so the tab panel scrolls as a whole again –
    chart on top, the figures or events below (a tap on a figure scrolls its chart back into view). */
 @media (max-width: 719.98px) {
-  .company .bnk-tabs__panel:has(> .rank),
-  .company .bnk-tabs__panel:has(> .chron) {
+  .cv__body:has(> .rank),
+  .cv__body:has(> .chron) {
     display: block;
     overflow: auto;
   }
@@ -661,9 +661,7 @@
 }
 
 /* ---------- Überblick ---------- */
-.company .bnk-tabs__panel:has(> .ov) {
-  display: flex;
-  flex-direction: column;
+.cv__body:has(> .ov) {
   overflow: hidden;
 }
 
@@ -912,7 +910,7 @@
 
 /* Phone: the sections stack, the tab panel scrolls as a whole. */
 @media (max-width: 719.98px) {
-  .company .bnk-tabs__panel:has(> .ov) {
+  .cv__body:has(> .ov) {
     display: block;
     overflow: auto;
   }

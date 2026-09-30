@@ -24,6 +24,7 @@ import { valuationChart } from './charts';
 import { bondSummary, changePct, priceToBook, RANGES, upcoming, valuationSeries, type IssuedBond, type PollLike, type RangeKey } from './overview';
 import { chronicle, rankRows } from './profile';
 import { RankRowContent } from './ProfileViews';
+import { companyHref } from './views';
 
 const NBSP = String.fromCharCode(0xa0);
 
@@ -56,12 +57,11 @@ export function Overview({
   onRange: (r: RangeKey) => void;
 }) {
   const now = useNow();
-  const base = `/unternehmen/${asin}`;
   return (
     <div className="ov">
       <Valuation company={c} asin={asin} history={history} range={range} onRange={onRange} now={now} />
       <div className="ov__col ov__col--a">
-        <Standing companyId={c?.id} base={base} />
+        <Standing companyId={c?.id} asin={asin} />
         <Owners asin={asin} freeFloat={(history?.at(-1) as (CompanyHistoryPoint & { freeFloatInPercent?: number }) | undefined)?.freeFloatInPercent} />
       </div>
       <div className="ov__col ov__col--b">
@@ -147,16 +147,16 @@ function Valuation({
 }
 
 /** The company figures as position bars (Einordnung): each row links to its distribution. */
-function Standing({ companyId, base }: { companyId: string | undefined; base: string }) {
+function Standing({ companyId, asin }: { companyId: string | undefined; asin: string }) {
   const q = useCompanyHistograms(companyId);
   const rows = useMemo(() => rankRows(q.data).filter((r) => r.population === 'companies'), [q.data]);
   return (
-    <Section title="Unter allen Unternehmen" action={<a className="ov-sec__more" href={`${base}?ansicht=einordnung`}>Einordnung</a>}>
+    <Section title="Unter allen Unternehmen" action={<a className="ov-sec__more" href={companyHref(asin, 'zahlen', { zahlen: 'einordnung' })}>Einordnung</a>}>
       {rows.length ? (
         <ul className="ov__rank ov__rank-loading">
           {rows.slice(0, 4).map((r) => (
             <li key={r.key}>
-              <a className="rank-row" href={`${base}?ansicht=einordnung&kennzahl=${r.key}`}>
+              <a className="rank-row" href={companyHref(asin, 'zahlen', { zahlen: 'einordnung', kennzahl: r.key })}>
                 <RankRowContent r={r} />
               </a>
             </li>
@@ -257,7 +257,7 @@ function Issued({ company: c, asin, now }: { company: Profile | undefined; asin:
           label="Market Maker"
           value={sponsors.length ? `${sponsors.length} betreuen die Aktie` : c.marketMakerPolicy === 'CLOSED' ? 'geschlossen' : 'offen, keiner'}
           note={sponsored.length ? `selbst Sponsor für ${sponsored.length}` : undefined}
-          href={`/unternehmen/${asin}?ansicht=marketmaker`}
+          href={companyHref(asin, 'marketmaker')}
         />
       </ul>
     </Section>
@@ -273,7 +273,7 @@ function BankBrief({ company: c, asin }: { company: Profile | undefined; asin: s
   const taken = caps.takenCentralBankLoans ?? 0;
   const income = reserveIncome(caps.reserves, rate.data?.reserveInterestRate);
   return (
-    <Section title="Bank" action={<a className="ov-sec__more" href={`/unternehmen/${asin}?ansicht=bank`}>Details</a>}>
+    <Section title="Bank" action={<a className="ov-sec__more" href={companyHref(asin, 'bank')}>Details</a>}>
       <div className="ov__bank">
         <span className="ov__bank-row">
           <span>
@@ -321,7 +321,7 @@ function Next({ company: c, asin, polls, now }: { company: Profile | undefined; 
   );
   const recent = useMemo(() => chronicle(hist.data?.content).filter((e) => !e.minor).slice(-4).reverse(), [hist.data]);
   return (
-    <Section title="Demnächst" action={<a className="ov-sec__more" href={`/unternehmen/${asin}?ansicht=chronik`}>Chronik</a>}>
+    <Section title="Demnächst" action={<a className="ov-sec__more" href={companyHref(asin, 'presse', { presse: 'chronik' })}>Chronik</a>}>
       {items.length ? (
         <ul className="ov__events">
           {items.slice(0, 4).map((e) => (

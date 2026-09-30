@@ -14,6 +14,7 @@ import { recentPrices } from './derive';
 import { Panel } from './Panel';
 import { corridorChart, corridorHeight, warrantChart } from './warrantCharts';
 import { callPutCount, corridors, mergeWarrants, toWarrantView, warrantEnd, warrantPosition } from './warrants';
+import { companyHref } from '../companies/views';
 
 const DAY = 86_400_000;
 /** Asks are looked up for at most this many warrants of one underlying (one request each). */
@@ -161,7 +162,7 @@ export function WarrantsOnView({ asin }: { asin: string }) {
       <DS.WarrantList
         warrants={rows}
         density="sm"
-        issuerHref={(c) => (c.securityIdentifier ? `/unternehmen/${c.securityIdentifier}` : '#')}
+        issuerHref={(c) => (c.securityIdentifier ? companyHref(c.securityIdentifier) : '#')}
       />
     </div>
   );

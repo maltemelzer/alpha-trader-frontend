@@ -21,6 +21,7 @@ import { Article } from './Article';
 import { FollowControl } from './FollowControl';
 import { newsFilter, newsHref, toPost } from './derive';
 import './NewsPage.css';
+import { companyHref } from '../companies/views';
 
 /**
  * Newspaper: latest news as a feed (lead story on top), popular ones on the side.
@@ -198,7 +199,7 @@ export function NewsPage() {
         size="md"
         eyebrow={
           <>
-            <a href="/zeitung">Zeitung</a> · <a href={`/unternehmen/${encodeURIComponent(filter.asin)}`}>{filter.asin}</a>
+            <a href="/zeitung">Zeitung</a> · <a href={companyHref(filter.asin)}>{filter.asin}</a>
           </>
         }
         title={company.data?.name ?? filter.asin}

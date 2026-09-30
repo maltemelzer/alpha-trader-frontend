@@ -140,7 +140,7 @@ describe('parseAccount', () => {
       c: parseAccount({ id: 'c', name: 'X AG (STXXXXXXXX) | bob', privateAccount: false }),
       p: parseAccount({ id: 'p', name: 'bob', privateAccount: true }),
     };
-    expect(accountHref('c', infos)).toBe('/unternehmen/STXXXXXXXX');
+    expect(accountHref('c', infos)).toBe('/wertpapier/STXXXXXXXX?ansicht=ueberblick');
     expect(accountHref('p', infos)).toBe('/spieler/bob');
     expect(accountHref('org:bob', infos)).toBe('/spieler/bob');
     expect(accountHref('zz', infos)).toBeUndefined();

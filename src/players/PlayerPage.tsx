@@ -8,6 +8,7 @@ import { PhoneProfile } from '../app/phone';
 import { translate } from '../lib/messages';
 import { achievementItems } from './derive';
 import './PlayerPage.css';
+import { companyHref } from '../companies/views';
 
 const TEAM: Record<string, string> = { OWNER: 'Leitung', DEPUTY: 'Stellvertretung', MEMBER: 'Team' };
 
@@ -53,7 +54,7 @@ export function PlayerPage() {
         <ul className="player-list">
           {companies.data.map((c) => (
             <li key={c.id}>
-              <a href={`/unternehmen/${c.securityIdentifier}`}>{c.name}</a>
+              <a href={companyHref(c.securityIdentifier ?? '')}>{c.name}</a>
               <span className="player-list__meta">{c.securityIdentifier}</span>
               {c.achievementTotal ? (
                 <span className="player-list__bar">

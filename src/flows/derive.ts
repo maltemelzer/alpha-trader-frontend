@@ -1,5 +1,6 @@
 // Money flows between accounts: pure functions over the market-wide trade log (GET /api/securityorderlogs).
 import type { SecurityOrderLogEntryView } from '../api/types';
+import { companyHref } from '../companies/views';
 
 /** One trade, reduced to what the flows page needs. `volume` is € (bonds: price in % × face value 100). */
 export interface Trade {
@@ -1007,7 +1008,7 @@ export function accountHref(id: string, infos: Record<string, AccountInfo | unde
   const info = infos[id];
   if (!info || info.fund) return undefined;
   if (info.private) return info.name ? `/spieler/${encodeURIComponent(info.name)}` : undefined;
-  return info.asin ? `/unternehmen/${info.asin}` : undefined;
+  return info.asin ? companyHref(info.asin) : undefined;
 }
 
 /** What one account (or a person's accounts) bought and sold from others, and with how many counterparties. */

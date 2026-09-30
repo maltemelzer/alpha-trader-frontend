@@ -32,6 +32,23 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-30-2',
+    title: 'Aktie und Unternehmen sind eine Seite',
+    items: [
+      {
+        text: 'Auf der Seite einer Aktie findest du jetzt auch alles zum Unternehmen: Überblick, Zahlen (Entwicklung, Einordnung, Bilanz), Presse und Chronik, Abstimmungen, Market Maker, Erfolge – als Reiter unter dem Kopf.',
+        href: '/wertpapier/STSN3G03LB?ansicht=ueberblick',
+      },
+      { text: 'Links auf ein Unternehmen (Highscores, Kapitalmaßnahmen, Spielerprofile) öffnen dieselbe Seite im Überblick; alte Links funktionieren weiter.' },
+      { text: 'Die Order-Maske steht nicht mehr fest rechts, sondern öffnet sich als Dialog über Kaufen/Verkaufen oder eine Zeile im Orderbuch. Die Diagramme bekommen die ganze Breite.' },
+    ],
+    shot: {
+      path: '/wertpapier/STSN3G03LB?ansicht=ueberblick',
+      alt: 'Wertpapierseite der Aktie mit den Reitern Handel, Überblick, Zahlen, Presse und dem Überblick des Unternehmens',
+      wait: 6000,
+    },
+  },
+  {
     id: '2026-09-30',
     title: 'Markt: mehr Wege, Wertpapiere zu finden',
     items: [
