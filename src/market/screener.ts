@@ -2,7 +2,7 @@
 // Pure functions only – the page loads the sources, this file merges, filters and sorts them.
 import type { MarketRow } from '../api/queries';
 import type { ListingWithTradingVolumeView } from '../api/types';
-import type { BondView, HighscoreEntry } from '../../design-system/components';
+import type { BondView } from '../../design-system/components';
 import { buildingSize, dailyYield, issuerCoverage, type DueBond } from '../security/derive';
 import { short } from '../lib/format';
 import { displayName } from './derive';
@@ -84,6 +84,25 @@ export interface ScreenRow {
   size: number | null;
   /** buildings: ask (or last price without ask) per m² */
   perSqm: number | null;
+  /** start of the listing in ms (issue date for bonds) */
+  listed: number | null;
+  /** time of the last trade in ms */
+  lastTrade: number | null;
+  /** € on offer at the best ask / bid (shares × price; bonds: × price in % of the face value 100) */
+  askValue: number | null;
+  bidValue: number | null;
+  /** bonds/repos: nominal volume in € */
+  face: number | null;
+  /** shares: last price ÷ book value per share */
+  kbv: number | null;
+  /** shares: the company's net cash in € */
+  netCash: number | null;
+  /** shares: the company's CEO */
+  ceo: string | null;
+  /** shares: whether the company lets market makers in */
+  mm: 'OPEN' | 'CLOSED' | null;
+  /** in the player's private depot (null = depot not loaded) */
+  held: boolean | null;
 }
 
 type Spreadish = {
@@ -91,7 +110,7 @@ type Spreadish = {
   bidSize?: number | null;
   askPrice?: number | null;
   askSize?: number | null;
-  lastPrice?: { value?: number | null } | number | null;
+  lastPrice?: { value?: number | null; date?: number | null } | number | null;
 };
 
 const lastOf = (lp: Spreadish['lastPrice']) => (lp == null ? null : typeof lp === 'number' ? lp : (lp.value ?? null));
@@ -101,7 +120,10 @@ function spreadOf(bid: number | null, ask: number | null): number | null {
   return ((ask - bid) / ask) * 100;
 }
 
-function base(asin: string, name: string, type: string, s: Spreadish | null | undefined): ScreenRow | null {
+const lastDateOf = (lp: Spreadish['lastPrice']) => (lp == null || typeof lp === 'number' ? null : (lp.date ?? null));
+const worth = (price: number | null, size: number | null | undefined) => (price != null && size != null && size > 0 ? price * size : null);
+
+function base(asin: string, name: string, type: string, s: Spreadish | null | undefined, listed?: number | null): ScreenRow | null {
   const group = groupOf(type);
   if (!group || !asin) return null;
   const bid = s?.bidPrice ?? null;
@@ -134,12 +156,22 @@ function base(asin: string, name: string, type: string, s: Spreadish | null | un
     coverage: null,
     size,
     perSqm: size && ref != null ? ref / size : null,
+    listed: listed ?? null,
+    lastTrade: lastDateOf(s?.lastPrice),
+    askValue: worth(ask, s?.askSize),
+    bidValue: worth(bid, s?.bidSize),
+    face: null,
+    kbv: null,
+    netCash: null,
+    ceo: null,
+    mm: null,
+    held: null,
   };
 }
 
 /** A market list row (pricespreads, most traded, biggest traded) as a screener row. */
 export function fromMarketRow(r: MarketRow): ScreenRow | null {
-  return base(r.listing.securityIdentifier, r.listing.name, r.listing.type, r);
+  return base(r.listing.securityIdentifier, r.listing.name, r.listing.type, r, r.listing.startDate);
 }
 
 /** Running bonds as rows – bonds with their spread, repos (with `repos`) without prices. */
@@ -149,8 +181,9 @@ export function fromBonds(bonds: BondView[], now: number, repos = false): Screen
     if (!(b.maturityDate > now)) continue;
     const l = repos ? b.repurchaseListing : b.listing;
     if (!l) continue;
-    const row = base(l.securityIdentifier, l.name, l.type ?? (repos ? 'REPO' : 'BOND'), repos ? null : (b.priceSpread as Spreadish));
+    const row = base(l.securityIdentifier, l.name, l.type ?? (repos ? 'REPO' : 'BOND'), repos ? null : (b.priceSpread as Spreadish), l.startDate ?? b.issueDate);
     if (!row) continue;
+    row.face = b.volume ?? null;
     row.rate = b.interestRate ?? null;
     row.maturity = b.maturityDate;
     row.issuer = b.issuer?.name ?? null;
@@ -160,6 +193,36 @@ export function fromBonds(bonds: BondView[], now: number, repos = false): Screen
     out.push(row);
   }
   return out;
+}
+
+/** A depot position (GET /api/v2/my/portfolio) – the fields a row needs. */
+export interface PositionLike {
+  securityIdentifier: string;
+  type?: string;
+  listing: { name: string; type?: string; startDate?: number };
+  lastPrice?: { value?: number | null; date?: number | null } | null;
+  currentBidPrice?: number;
+}
+
+/** Depot positions as rows (for „Im Depot“, so positions nobody traded lately show up too). */
+export function fromPositions(positions: PositionLike[]): ScreenRow[] {
+  return positions.flatMap((p) => {
+    const r = base(p.securityIdentifier, p.listing.name, p.type ?? p.listing.type ?? '', { lastPrice: p.lastPrice, bidPrice: p.currentBidPrice ?? null }, p.listing.startDate);
+    return r ? [r] : [];
+  });
+}
+
+/** Shares of companies (CEO list) as rows, with their spread where it was loaded. */
+export function fromCompanies(
+  companies: { listing?: { name?: string; securityIdentifier?: string; type?: string; startDate?: number } }[],
+  spreads: Record<string, Spreadish>,
+): ScreenRow[] {
+  return companies.flatMap((c) => {
+    const l = c.listing;
+    if (!l?.securityIdentifier || !l.name) return [];
+    const r = base(l.securityIdentifier, l.name, l.type ?? 'STOCK', spreads[l.securityIdentifier], l.startDate);
+    return r ? [r] : [];
+  });
 }
 
 /** Lookup of a figure by ASIN; `complete` = the source listed every row that has one (others are 0). */
@@ -205,13 +268,57 @@ export function changeLookup(winners: MarketRow[] | undefined, losers: MarketRow
   return lookup(entries, reachedZero(winners) && reachedZero(losers));
 }
 
-/** Book values of the largest companies (company highscore BOOK_VALUE), by the company's ASIN. */
-export function bookLookup(entries: HighscoreEntry[] | undefined): Lookup | null {
-  if (!entries) return null;
-  return lookup(
-    entries.filter((e) => e.company?.securityIdentifier).map((e) => [e.company!.securityIdentifier!, e.value]),
-    false,
-  );
+/** Company figures of a share (by the company's ASIN) – from GET /api/v2/companies and the CEO list. */
+export interface CompanyFacts {
+  bookValue?: number;
+  netCash?: number;
+  /** book value per share (like the company page), see `bookPerShare` */
+  bookPerShare?: number;
+  ceo?: string;
+  mm?: 'OPEN' | 'CLOSED';
+}
+
+/** Fields of CompanyListView (GET /api/v2/companies) and CompanyView (CEO list) the screener uses. */
+export interface CompanyListRow {
+  securityIdentifier?: string;
+  bookValue?: number;
+  netCash?: number;
+  fairValuePerShare?: number;
+  marketMakerPolicy?: 'OPEN' | 'CLOSED';
+  ceo?: { username?: string } | null;
+}
+
+/**
+ * Book value per share from the company list. Its `fairValuePerShare` is (book value + central bank
+ * reserves) ÷ shares – checked against historizedcompanydata (Argo: 1,87 · 10¹¹ vs. book value per
+ * share 2,87 · 10¹⁰, the difference is exactly its reserves). For banks the reserves come out again;
+ * without reserves both are the same.
+ */
+export function bookPerShare(fairValuePerShare: number | undefined, bookValue: number | undefined, reserves = 0): number | undefined {
+  if (fairValuePerShare == null || !(fairValuePerShare > 0)) return undefined;
+  if (!(reserves > 0)) return fairValuePerShare;
+  if (bookValue == null) return undefined;
+  const fair = bookValue + reserves;
+  return fair > 0 ? (fairValuePerShare * bookValue) / fair : undefined;
+}
+
+/** Company figures by ASIN; later lists fill gaps of earlier ones. `reserves` by ASIN (highscore RESERVES). */
+export function companyFacts(lists: (CompanyListRow[] | undefined)[], reserves?: Map<string, number>): Map<string, CompanyFacts> {
+  const out = new Map<string, CompanyFacts>();
+  for (const list of lists) {
+    for (const c of list ?? []) {
+      const asin = c.securityIdentifier;
+      if (!asin) continue;
+      const f = out.get(asin) ?? {};
+      f.bookValue ??= c.bookValue;
+      f.netCash ??= c.netCash;
+      f.bookPerShare ??= bookPerShare(c.fairValuePerShare, c.bookValue, reserves?.get(asin));
+      f.ceo ??= c.ceo?.username;
+      f.mm ??= c.marketMakerPolicy;
+      out.set(asin, f);
+    }
+  }
+  return out;
 }
 
 /** Bond issuers (company ids) of the rows – system bonds have none. */
@@ -253,7 +360,15 @@ const VOLUME_GROUPS: Group[] = ['STOCK', 'BUILDING', 'COIN'];
 /** Merges row lists (first occurrence of an ASIN wins, later lists fill its gaps) and adds the lookups. */
 export function mergeRows(
   lists: (ScreenRow | null)[][],
-  add: { volume?: Lookup | null; trades?: Lookup | null; change?: Lookup | null; book?: Lookup | null; coverage?: Lookup | null },
+  add: {
+    volume?: Lookup | null;
+    trades?: Lookup | null;
+    change?: Lookup | null;
+    coverage?: Lookup | null;
+    company?: Map<string, CompanyFacts> | null;
+    /** ASINs in the player's depot (null = not loaded) */
+    held?: Set<string> | null;
+  },
 ): ScreenRow[] {
   const byAsin = new Map<string, ScreenRow>();
   for (const list of lists) {
@@ -271,7 +386,17 @@ export function mergeRows(
     r.trades ??= pick(add.trades, r.asin);
     // Bonds and repos are not in the movers lists; indexes and ETFs are.
     if (r.group !== 'BOND' && r.group !== 'REPO') r.change ??= pick(add.change, r.asin);
-    if (r.group === 'STOCK') r.bookValue ??= pick(add.book, r.asin);
+    if (r.group === 'STOCK') {
+      const c = add.company?.get(r.asin);
+      if (c) {
+        r.bookValue ??= c.bookValue ?? null;
+        r.netCash ??= c.netCash ?? null;
+        r.ceo ??= c.ceo ?? null;
+        r.mm ??= c.mm ?? null;
+        if (r.last != null && c.bookPerShare) r.kbv ??= r.last / c.bookPerShare;
+      }
+    }
+    if (add.held) r.held = add.held.has(r.asin);
     // By the issuer, not the bond: all of an issuer's bonds share one coverage.
     if (r.group === 'BOND' && r.issuerId) r.coverage ??= pick(add.coverage, r.issuerId);
   }
@@ -287,9 +412,34 @@ export interface Range {
 
 export type Quote = '' | 'brief' | 'geld' | 'beide';
 
-export type ColKey = 'kurs' | 'ver' | 'geld' | 'brief' | 'spr' | 'ums' | 'tr' | 'bw' | 'zins' | 'rt' | 'lz' | 'deck' | 'em' | 'gr' | 'qm';
+export type Held = '' | 'ja' | 'nein';
 
-export type RangeKey = 'kurs' | 'ver' | 'spr' | 'ums' | 'tr' | 'bw' | 'zins' | 'rt' | 'lz' | 'deck' | 'qm';
+export type Policy = '' | 'offen' | 'zu';
+
+export type ColKey =
+  | 'kurs'
+  | 'ver'
+  | 'geld'
+  | 'brief'
+  | 'spr'
+  | 'ums'
+  | 'tr'
+  | 'zul'
+  | 'alt'
+  | 'bw'
+  | 'kbv'
+  | 'nc'
+  | 'ceo'
+  | 'zins'
+  | 'rt'
+  | 'lz'
+  | 'deck'
+  | 'nv'
+  | 'em'
+  | 'gr'
+  | 'qm';
+
+export type RangeKey = 'kurs' | 'ver' | 'spr' | 'ums' | 'tr' | 'tb' | 'tg' | 'zul' | 'alt' | 'bw' | 'kbv' | 'nc' | 'zins' | 'rt' | 'lz' | 'deck' | 'nv' | 'qm';
 
 export interface Screen {
   /** empty = all types */
@@ -298,6 +448,12 @@ export interface Screen {
   ranges: Partial<Record<RangeKey, Range>>;
   quote: Quote;
   issuer: string;
+  /** CEO names (exact player names) */
+  ceos: string[];
+  /** market maker policy of the company */
+  mm: Policy;
+  /** in the player's private depot */
+  held: Held;
   sizes: number[];
   sort: { key: ColKey | 'name'; dir: 'asc' | 'desc' } | null;
   /** chosen columns, null = the default for the types */
@@ -305,9 +461,9 @@ export interface Screen {
 }
 
 /** URL parameters owned by the screener (a preset or „Zurücksetzen“ clears all of them). */
-export const SCREEN_KEYS = ['art', 'q', 'kurs', 'ver', 'spr', 'ums', 'tr', 'bw', 'zins', 'rt', 'lz', 'deck', 'qm', 'mit', 'em', 'gr', 'sort', 'sp', 'seite'] as const;
+export const RANGE_KEYS: RangeKey[] = ['kurs', 'ver', 'spr', 'ums', 'tr', 'tb', 'tg', 'zul', 'alt', 'bw', 'kbv', 'nc', 'zins', 'rt', 'lz', 'deck', 'nv', 'qm'];
 
-export const RANGE_KEYS: RangeKey[] = ['kurs', 'ver', 'spr', 'ums', 'tr', 'bw', 'zins', 'rt', 'lz', 'deck', 'qm'];
+export const SCREEN_KEYS = ['art', 'q', ...RANGE_KEYS, 'mit', 'em', 'ceo', 'mm', 'depot', 'gr', 'sort', 'sp', 'seite'] as const;
 
 const num = (s: string) => {
   if (s.trim() === '') return undefined;
@@ -331,7 +487,7 @@ export function formatRange(r: Range | undefined): string | null {
   return `${r.min != null ? plain(r.min) : ''}..${r.max != null ? plain(r.max) : ''}`;
 }
 
-const COL_KEYS: ColKey[] = ['kurs', 'ver', 'geld', 'brief', 'spr', 'ums', 'tr', 'bw', 'zins', 'rt', 'lz', 'deck', 'em', 'gr', 'qm'];
+const COL_KEYS: ColKey[] = ['kurs', 'ver', 'geld', 'brief', 'spr', 'ums', 'tr', 'zul', 'alt', 'bw', 'kbv', 'nc', 'ceo', 'zins', 'rt', 'lz', 'deck', 'nv', 'em', 'gr', 'qm'];
 
 /** Reads the screener from the URL. Without `art` it shows shares (as before), `art=alle` all types. */
 export function readScreen(p: URLSearchParams): Screen {
@@ -356,12 +512,17 @@ export function readScreen(p: URLSearchParams): Screen {
     if (key === 'name' || (COL_KEYS as string[]).includes(key)) sort = { key: key as ColKey | 'name', dir: desc ? 'desc' : 'asc' };
   }
   const sp = p.get('sp');
+  const mm = p.get('mm');
+  const depot = p.get('depot');
   return {
     types,
     q: p.get('q') ?? '',
     ranges,
     quote: mit === 'brief' || mit === 'geld' || mit === 'beide' ? mit : '',
     issuer: p.get('em') ?? '',
+    ceos: [...new Set((p.get('ceo') ?? '').split(',').map((n) => n.trim()).filter(Boolean))],
+    mm: mm === 'offen' || mm === 'zu' ? mm : '',
+    held: depot === 'ja' || depot === 'nein' ? depot : '',
     sizes: (p.get('gr') ?? '')
       .split(',')
       .map(Number)
@@ -394,6 +555,7 @@ const only = (types: Group[], ...g: Group[]) => types.length > 0 && types.every(
 export function sections(types: Group[]) {
   return {
     company: has(types, 'STOCK'),
+    stocksOnly: only(types, 'STOCK'),
     bonds: has(types, 'BOND', 'REPO'),
     buildings: has(types, 'BUILDING'),
   };
@@ -422,11 +584,17 @@ export const COLUMNS: ColumnDef[] = [
   { key: 'spr', label: 'Spread', short: 'Spread', unit: '%', for: [], value: (r) => r.spread, dir: 'asc' },
   { key: 'ums', label: 'Umsatz 24 h', short: 'Umsatz', unit: '€', for: [], value: (r) => r.volume, dir: 'desc' },
   { key: 'tr', label: 'Trades', short: 'Trades', unit: '', for: [], value: (r) => r.trades, dir: 'desc' },
+  { key: 'zul', label: 'Letzter Trade', short: 'Letzter Trade', unit: 'ts', for: [], value: (r) => r.lastTrade, dir: 'desc' },
+  { key: 'alt', label: 'Gelistet', short: 'Gelistet', unit: 'ts', for: [], value: (r) => r.listed, dir: 'desc' },
   { key: 'bw', label: 'Buchwert', short: 'Buchwert', unit: '€', for: ['STOCK'], value: (r) => r.bookValue, dir: 'desc' },
+  { key: 'kbv', label: 'KBV', short: 'KBV', unit: '', for: ['STOCK'], value: (r) => r.kbv, dir: 'asc' },
+  { key: 'nc', label: 'Net Cash', short: 'Net Cash', unit: '€', for: ['STOCK'], value: (r) => r.netCash, dir: 'desc' },
+  { key: 'ceo', label: 'CEO', short: 'CEO', unit: '', for: ['STOCK'], value: (r) => r.ceo, dir: 'asc' },
   { key: 'zins', label: 'Zins bis Fälligkeit', short: 'Zins', unit: '%', for: ['BOND', 'REPO'], value: (r) => r.rate, dir: 'desc' },
   { key: 'rt', label: 'Rendite / Tag', short: 'Rendite/Tag', unit: '%', for: ['BOND'], value: (r) => r.yieldPerDay, dir: 'desc' },
   { key: 'lz', label: 'Restlaufzeit', short: 'Laufzeit', unit: 'T', for: ['BOND', 'REPO'], value: (r) => r.maturity, dir: 'asc' },
   { key: 'deck', label: 'Deckung', short: 'Deckung', unit: '%', for: ['BOND'], value: (r) => r.coverage, dir: 'desc' },
+  { key: 'nv', label: 'Nennvolumen', short: 'Nennvol.', unit: '€', for: ['BOND', 'REPO'], value: (r) => r.face, dir: 'desc' },
   { key: 'em', label: 'Emittent', short: 'Emittent', unit: '', for: ['BOND', 'REPO'], value: (r) => r.issuer, dir: 'asc' },
   { key: 'gr', label: 'Größe', short: 'Größe', unit: 'm²', for: ['BUILDING'], value: (r) => r.size, dir: 'desc' },
   { key: 'qm', label: 'Preis je m²', short: 'je m²', unit: '€', for: ['BUILDING'], value: (r) => r.perSqm, dir: 'asc' },
@@ -466,6 +634,7 @@ export function defaultSort(types: Group[]): NonNullable<Screen['sort']> {
 // ---------- Filter and sort ----------
 
 const DAY = 86_400_000;
+const HOUR = 3_600_000;
 
 /** Value a range filter tests (Restlaufzeit in days). */
 export function rangeValue(k: RangeKey, r: ScreenRow, now: number): number | null {
@@ -480,8 +649,20 @@ export function rangeValue(k: RangeKey, r: ScreenRow, now: number): number | nul
       return r.volume;
     case 'tr':
       return r.trades;
+    case 'tb':
+      return r.askValue;
+    case 'tg':
+      return r.bidValue;
+    case 'zul':
+      return r.lastTrade == null ? null : Math.max(0, now - r.lastTrade) / HOUR;
+    case 'alt':
+      return r.listed == null ? null : Math.max(0, now - r.listed) / DAY;
     case 'bw':
       return r.bookValue;
+    case 'kbv':
+      return r.kbv;
+    case 'nc':
+      return r.netCash;
     case 'zins':
       return r.rate;
     case 'rt':
@@ -490,6 +671,8 @@ export function rangeValue(k: RangeKey, r: ScreenRow, now: number): number | nul
       return r.maturity == null ? null : (r.maturity - now) / DAY;
     case 'deck':
       return r.coverage;
+    case 'nv':
+      return r.face;
     case 'qm':
       return r.perSqm;
   }
@@ -498,6 +681,9 @@ export function rangeValue(k: RangeKey, r: ScreenRow, now: number): number | nul
 /** Which rows a range applies to – a bond filter does not remove shares when both are listed. */
 const RANGE_FOR: Partial<Record<RangeKey, Group[]>> = {
   bw: ['STOCK'],
+  kbv: ['STOCK'],
+  nc: ['STOCK'],
+  nv: ['BOND', 'REPO'],
   zins: ['BOND', 'REPO'],
   rt: ['BOND'],
   lz: ['BOND', 'REPO'],
@@ -513,6 +699,7 @@ export function matchesText(r: ScreenRow, q: string): boolean {
 
 export function applyScreen(rows: ScreenRow[], s: Screen, now: number): ScreenRow[] {
   const issuer = s.issuer.trim().toLowerCase();
+  const ceos = s.ceos.map((n) => n.toLowerCase());
   return rows.filter((r) => {
     if (s.types.length && !s.types.includes(r.group)) return false;
     if (!matchesText(r, s.q)) return false;
@@ -529,6 +716,10 @@ export function applyScreen(rows: ScreenRow[], s: Screen, now: number): ScreenRo
       if (range.max != null && v > range.max) return false;
     }
     if (issuer && (r.group === 'BOND' || r.group === 'REPO') && !(r.issuer ?? '').toLowerCase().includes(issuer)) return false;
+    // „Firmen von …“ means only their shares; the policy (like the ranges) leaves other types alone.
+    if (ceos.length && !(r.ceo != null && ceos.includes(r.ceo.toLowerCase()))) return false;
+    if (s.mm && r.group === 'STOCK' && r.mm !== (s.mm === 'offen' ? 'OPEN' : 'CLOSED')) return false;
+    if (s.held && r.held !== (s.held === 'ja')) return false;
     if (s.sizes.length && r.group === 'BUILDING' && !(r.size != null && s.sizes.includes(r.size))) return false;
     return true;
   });
@@ -572,11 +763,18 @@ const LABEL: Record<RangeKey, { name: string; fmt: (n: number) => string; unit: 
   spr: { name: 'Spread', fmt: (n) => de(n), unit: '%' },
   ums: { name: 'Umsatz', fmt: (n) => money(n), unit: '€' },
   tr: { name: 'Trades', fmt: (n) => de(n, 0), unit: '' },
+  tb: { name: 'Im Brief', fmt: (n) => money(n), unit: '€' },
+  tg: { name: 'Im Geld', fmt: (n) => money(n), unit: '€' },
+  zul: { name: 'Letzter Trade vor', fmt: (n) => de(n, 1), unit: 'Std.' },
+  alt: { name: 'Gelistet vor', fmt: (n) => de(n, 1), unit: 'T' },
   bw: { name: 'Buchwert', fmt: (n) => money(n), unit: '€' },
+  kbv: { name: 'KBV', fmt: (n) => de(n), unit: '' },
+  nc: { name: 'Net Cash', fmt: (n) => (n < 0 ? MINUS + money(-n) : money(n)), unit: '€' },
   zins: { name: 'Zins', fmt: (n) => de(n, 4), unit: '%' },
   rt: { name: 'Rendite/Tag', fmt: (n) => de(n, 3), unit: '%' },
   lz: { name: 'Laufzeit', fmt: (n) => de(n), unit: 'T' },
   deck: { name: 'Deckung', fmt: (n) => de(n, 0), unit: '%' },
+  nv: { name: 'Nennvolumen', fmt: (n) => money(n), unit: '€' },
   qm: { name: 'je m²', fmt: (n) => money(n), unit: '€' },
 };
 
@@ -599,6 +797,9 @@ export function chips(s: Screen): Chip[] {
     if (r) out.push({ key: k, label: rangeText(k, r) });
   }
   if (s.issuer.trim()) out.push({ key: 'em', label: `Emittent: ${s.issuer.trim()}` });
+  if (s.ceos.length) out.push({ key: 'ceo', label: `CEO: ${s.ceos.join(', ')}` });
+  if (s.mm) out.push({ key: 'mm', label: s.mm === 'offen' ? 'Market Maker erlaubt' : 'Market Maker gesperrt' });
+  if (s.held) out.push({ key: 'depot', label: s.held === 'ja' ? 'Im Depot' : 'Nicht im Depot' });
   if (s.sizes.length) out.push({ key: 'gr', label: `Größe ${s.sizes.map((n) => de(n, 0)).join(', ')}\u00a0m²` });
   return out;
 }
@@ -633,6 +834,20 @@ export const PRESETS: Preset[] = [
     params: { art: 'STOCK', mit: 'beide', ums: '1..', sort: 'spr' },
   },
   {
+    id: 'buchwert',
+    label: 'Unter Buchwert',
+    // By turnover: sorted by KBV, shells with absurd book values (KBV 10⁻¹⁰) would come first.
+    description: 'Aktien mit Brief, letzter Kurs unter dem Buchwert je Aktie',
+    params: { art: 'STOCK', mit: 'brief', kbv: '..1', sort: '-ums' },
+  },
+  {
+    id: 'neu',
+    label: 'Neu gelistet',
+    description: 'Aktien der letzten 7 Tage, die schon gehandelt werden',
+    params: { art: 'STOCK', alt: '..7', sort: '-alt' },
+  },
+  { id: 'depot', label: 'Mein Depot', description: 'Alles, was du privat hältst', params: { art: 'alle', depot: 'ja', sort: '-ums' } },
+  {
     id: 'rendite',
     label: 'Anleihen mit Rendite',
     description: 'Kaufbar, noch mindestens eine Stunde',
@@ -652,6 +867,14 @@ export const PRESETS: Preset[] = [
   },
 ];
 
+/** Presets plus „Meine Unternehmen“ for the signed-in player. */
+export function presetsFor(me: string | undefined): Preset[] {
+  if (!me) return PRESETS;
+  const mine: Preset = { id: 'meine', label: 'Meine Unternehmen', description: 'Aktien der Firmen, die du führst', params: { art: 'STOCK', ceo: me, sort: 'name' } };
+  const at = PRESETS.findIndex((p) => p.id === 'depot') + 1;
+  return [...PRESETS.slice(0, at), mine, ...PRESETS.slice(at)];
+}
+
 /** URL changes that apply a preset: all screener keys cleared, the preset's set. */
 export function presetChanges(p: Preset): Record<string, string | null> {
   const out: Record<string, string | null> = {};
@@ -660,9 +883,9 @@ export function presetChanges(p: Preset): Record<string, string | null> {
 }
 
 /** The preset the URL matches exactly (search and columns do not count). */
-export function activePreset(p: URLSearchParams): Preset | undefined {
+export function activePreset(p: URLSearchParams, list: Preset[] = PRESETS): Preset | undefined {
   const own = SCREEN_KEYS.filter((k) => k !== 'q' && k !== 'sp' && k !== 'seite');
-  return PRESETS.find((x) => own.every((k) => (p.get(k) ?? undefined) === x.params[k]));
+  return list.find((x) => own.every((k) => (p.get(k) ?? undefined) === x.params[k]));
 }
 
 /** Number of active filters for the badge – the types are visible as toggles and do not count. */
@@ -746,11 +969,18 @@ export const HIST: Record<RangeKey, { log?: boolean; lo?: number; hi?: number }>
   spr: { lo: 0, hi: 10 },
   ums: { log: true },
   tr: { log: true },
+  tb: { log: true },
+  tg: { log: true },
+  zul: { log: true },
+  alt: { log: true },
   bw: { log: true },
+  kbv: { log: true },
+  nc: { log: true },
   zins: { lo: 0 },
   rt: { log: true },
   lz: { lo: 0 },
   deck: { log: true },
+  nv: { log: true },
   qm: { log: true },
 };
 

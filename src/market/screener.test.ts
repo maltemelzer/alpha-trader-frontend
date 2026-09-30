@@ -4,7 +4,9 @@ import type { BondView } from '../../design-system/components';
 import {
   activePreset,
   applyScreen,
+  bookPerShare,
   changeLookup,
+  companyFacts,
   chips,
   coverageLookup,
   defaultColumns,
@@ -14,7 +16,9 @@ import {
   issuerIds,
   formatRange,
   fromBonds,
+  fromCompanies,
   fromMarketRow,
+  fromPositions,
   groupOf,
   lookup,
   marketMap,
@@ -22,6 +26,8 @@ import {
   parseRange,
   PRESETS,
   presetChanges,
+  presetsFor,
+  rangeValue,
   rangeText,
   readScreen,
   sortRows,
@@ -135,6 +141,9 @@ describe('rows from sources', () => {
     expect(r.asin).toBe('RE1');
     expect(r.ask).toBeNull();
     expect(r.rate).toBe(2);
+    expect(b.face).toBe(1000);
+    // bond prices are % of the face value 100: 5 bonds at 100 % = 500 €
+    expect(b.askValue).toBe(500);
   });
   it('merges lists, fills gaps from later lists and adds lookups; complete lookups mean 0', () => {
     const rows = mergeRows([[row('ST1', 'STOCK')], [row('ST1', 'STOCK', { askPrice: 5 }), row('ST2', 'STOCK')]], {
@@ -318,5 +327,94 @@ describe('marketMap', () => {
     const buildings = sum((n) => n.asin.startsWith('BD'));
     // group areas 100 : 10 (square root of 10.000 and of 100)
     expect(stock / buildings).toBeCloseTo(10);
+  });
+});
+
+describe('activity and depth', () => {
+  it('reads listing start, last trade and the € at the best quotes', () => {
+    const r = row('ST1', 'STOCK', {
+      listing: { securityIdentifier: 'ST1', name: 'A', type: 'STOCK', startDate: NOW - 3 * DAY },
+      lastPrice: { value: 2, date: NOW - 2 * 3_600_000 },
+      askPrice: 2.5,
+      askSize: 100,
+      bidPrice: 2,
+      bidSize: 0,
+    });
+    expect(rangeValue('alt', r, NOW)).toBeCloseTo(3);
+    expect(rangeValue('zul', r, NOW)).toBeCloseTo(2);
+    expect(r.askValue).toBe(250);
+    expect(r.bidValue).toBeNull();
+    const s = readScreen(new URLSearchParams('art=STOCK&alt=..7&zul=..1'));
+    expect(applyScreen([r], s, NOW)).toHaveLength(0);
+    expect(applyScreen([r], readScreen(new URLSearchParams('art=STOCK&alt=..7&tb=100..')), NOW)).toHaveLength(1);
+  });
+});
+
+describe('company figures', () => {
+  it('takes the reserves out of the fair value per share', () => {
+    // Argo (checked against historizedcompanydata): book value per share 2,8667 · 10¹⁰
+    expect(bookPerShare(187161989232.98, 1433383354355586.5, 7924716107292928)).toBeCloseTo(28667667087.11, -3);
+    expect(bookPerShare(20, 1000)).toBe(20);
+    expect(bookPerShare(0, 1000)).toBeUndefined();
+  });
+  it('fills KBV, net cash, CEO and policy of shares; later lists fill gaps', () => {
+    const facts = companyFacts(
+      [
+        [{ securityIdentifier: 'ST1', bookValue: 1000, netCash: 50, fairValuePerShare: 4, marketMakerPolicy: 'OPEN' }],
+        [{ securityIdentifier: 'ST1', ceo: { username: 'Malte' } }],
+      ],
+      new Map(),
+    );
+    const rows = mergeRows([[row('ST1', 'STOCK', { lastPrice: { value: 2, date: NOW } }), row('BO1', 'BOND')]], { company: facts, held: new Set(['BO1']) });
+    const st = rows.find((r) => r.asin === 'ST1')!;
+    expect(st.kbv).toBe(0.5);
+    expect(st.netCash).toBe(50);
+    expect(st.ceo).toBe('Malte');
+    expect(st.mm).toBe('OPEN');
+    expect(st.held).toBe(false);
+    expect(rows.find((r) => r.asin === 'BO1')!.held).toBe(true);
+  });
+  it('filters by CEO (any case, shares only), policy and KBV (other types stay)', () => {
+    const facts = companyFacts([[{ securityIdentifier: 'ST1', fairValuePerShare: 4, marketMakerPolicy: 'CLOSED', ceo: { username: 'Malte' } }]]);
+    const rows = mergeRows([[row('ST1', 'STOCK', { lastPrice: { value: 2, date: NOW } }), row('ST2', 'STOCK'), row('AC1', 'COIN')]], { company: facts });
+    const pick = (q: string) => applyScreen(rows, readScreen(new URLSearchParams(q)), NOW).map((r) => r.asin);
+    expect(pick('art=alle&ceo=malte')).toEqual(['ST1']);
+    expect(pick('art=alle&mm=zu')).toEqual(['ST1', 'AC1']);
+    expect(pick('art=alle&mm=offen')).toEqual(['AC1']);
+    expect(pick('art=STOCK&kbv=..1')).toEqual(['ST1']);
+  });
+  it('filters by depot only once it is known', () => {
+    const rows = mergeRows([[row('ST1', 'STOCK'), row('ST2', 'STOCK')]], { held: new Set(['ST2']) });
+    expect(applyScreen(rows, readScreen(new URLSearchParams('depot=ja')), NOW).map((r) => r.asin)).toEqual(['ST2']);
+    expect(applyScreen(rows, readScreen(new URLSearchParams('depot=nein')), NOW).map((r) => r.asin)).toEqual(['ST1']);
+    const unknown = mergeRows([[row('ST1', 'STOCK')]], {});
+    expect(applyScreen(unknown, readScreen(new URLSearchParams('depot=ja')), NOW)).toHaveLength(0);
+  });
+});
+
+describe('extra sources', () => {
+  it('turns depot positions and CEO companies into rows', () => {
+    const [p] = fromPositions([{ securityIdentifier: 'ST9', listing: { name: 'Neun', type: 'STOCK' }, lastPrice: { value: 3, date: NOW }, currentBidPrice: 2.9 }]);
+    expect([p.asin, p.last, p.bid, p.lastTrade]).toEqual(['ST9', 3, 2.9, NOW]);
+    const rows = fromCompanies([{ listing: { name: 'Acht', securityIdentifier: 'ST8', type: 'STOCK' } }, {}], { ST8: { askPrice: 4, askSize: 10 } });
+    expect(rows.map((r) => [r.asin, r.ask, r.askValue])).toEqual([['ST8', 4, 40]]);
+  });
+});
+
+describe('new filters in the URL', () => {
+  it('reads CEOs, policy and depot and shows them as chips', () => {
+    const s = readScreen(new URLSearchParams('ceo=Malte, Kuschelchen,Malte&mm=offen&depot=nein&kbv=..1'));
+    expect(s.ceos).toEqual(['Malte', 'Kuschelchen']);
+    expect(chips(s).map((c) => c.label)).toEqual(['KBV ≤ 1', 'CEO: Malte, Kuschelchen', 'Market Maker erlaubt', 'Nicht im Depot']);
+    expect(readScreen(new URLSearchParams('mm=x&depot=y')).mm).toBe('');
+  });
+  it('adds „Meine Unternehmen“ after „Mein Depot“ and recognises it', () => {
+    const list = presetsFor('Malte');
+    expect(list.length).toBe(PRESETS.length + 1);
+    const mine = list.find((p) => p.id === 'meine')!;
+    expect(list[list.findIndex((p) => p.id === 'depot') + 1]).toBe(mine);
+    const url = new URLSearchParams(Object.entries(presetChanges(mine)).filter(([, v]) => v) as [string, string][]);
+    expect(activePreset(url, list)?.id).toBe('meine');
+    expect(presetsFor(undefined)).toBe(PRESETS);
   });
 });

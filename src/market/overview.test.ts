@@ -50,6 +50,16 @@ const row = (asin: string, o: Partial<ScreenRow> = {}): ScreenRow => ({
   coverage: null,
   size: null,
   perSqm: null,
+  listed: null,
+  lastTrade: null,
+  askValue: null,
+  bidValue: null,
+  face: null,
+  kbv: null,
+  netCash: null,
+  ceo: null,
+  mm: null,
+  held: null,
   ...o,
 });
 
