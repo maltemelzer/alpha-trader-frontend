@@ -1,4 +1,4 @@
-import { alpha, changeText, clip, euro, mix, parseDe, short, ratePct, span, changeShort } from './format';
+import { age, alpha, changeText, clip, euro, mix, parseDe, short, ratePct, span, changeShort } from './format';
 
 describe('changeShort', () => {
   it('keeps small changes and shortens huge ones', () => {
@@ -15,6 +15,17 @@ describe('span', () => {
     expect(span(13 * 3_600_000 + 5 * 60_000)).toBe('13\u00a0Std.');
     expect(span((5 * 24 + 4) * 3_600_000)).toBe('5\u00a0T 4\u00a0Std.');
     expect(span(2 * 86_400_000)).toBe('2\u00a0T');
+  });
+});
+
+describe('age', () => {
+  it('uses one unit, rounded down', () => {
+    expect(age(-5)).toBe('0\u00a0Min.');
+    expect(age(59 * 60_000)).toBe('59\u00a0Min.');
+    expect(age(3 * 3_600_000 + 50 * 60_000)).toBe('3\u00a0Std.');
+    expect(age(12 * 86_400_000)).toBe('12\u00a0T');
+    expect(age(250 * 86_400_000)).toBe('8\u00a0Mon.');
+    expect(age(3 * 365.25 * 86_400_000)).toBe('3\u00a0J.');
   });
 });
 

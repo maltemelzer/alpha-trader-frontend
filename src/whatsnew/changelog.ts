@@ -32,6 +32,28 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-30',
+    title: 'Markt: mehr Wege, Wertpapiere zu finden',
+    items: [
+      {
+        text: 'Neue Vorlage „Unter Buchwert“: Aktien, deren letzter Kurs unter dem Buchwert je Aktie liegt. Dazu die Spalte und der Filter KBV (Kurs-Buchwert-Verhältnis).',
+        href: '/markt?art=STOCK&mit=brief&kbv=..1&sort=-ums',
+      },
+      { text: 'Unternehmen filtern nach Net Cash, Buchwert, CEO und ob sie Market Maker zulassen. Buchwert und Net Cash suchen über alle Unternehmen.' },
+      { text: 'Vorlagen „Meine Unternehmen“ und „Mein Depot“ – auch Papiere, die zuletzt niemand gehandelt hat.', href: '/markt?art=alle&depot=ja&sort=-ums' },
+      {
+        text: 'Liquidität und Alter: wie viel du sofort zum Brief kaufen oder zum Geld verkaufen kannst, wann zuletzt gehandelt wurde und seit wann ein Papier gelistet ist („Neu gelistet“). Bei Anleihen zusätzlich das Nennvolumen.',
+        href: '/markt?art=STOCK&alt=..7&sort=-alt',
+      },
+      { text: 'Das Filterfenster ist in aufklappbare Abschnitte geteilt; Abschnitte mit aktivem Filter sind offen und zeigen die Zahl.' },
+    ],
+    shot: {
+      path: '/markt?art=STOCK&mit=brief&kbv=..1&sort=-ums&ueb=aus&sp=kurs,brief,kbv,nc,ceo,ums',
+      alt: 'Markt mit der Vorlage „Unter Buchwert“: Aktien nach KBV mit Net Cash und CEO',
+      wait: 6000,
+    },
+  },
+  {
     id: '2026-09-29-6',
     title: 'Markt: die Heatmap folgt deinen Filtern',
     items: [

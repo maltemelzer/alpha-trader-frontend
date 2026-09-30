@@ -476,6 +476,58 @@
   color: var(--text-secondary);
 }
 
+/* Foldable sections: the summary is the whole row (≥ 44 px), a chevron turns when open */
+.scr-sec--fold {
+  gap: 0;
+  padding-bottom: 0;
+}
+
+.scr-sec__sum {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.scr-sec__sum::-webkit-details-marker {
+  display: none;
+}
+
+.scr-sec__sum .scr-sec__title {
+  margin: 0;
+}
+
+.scr-sec__sum:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+.scr-sec__chev {
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  margin-right: var(--space-1);
+  border-right: 1.5px solid var(--text-secondary);
+  border-bottom: 1.5px solid var(--text-secondary);
+  transform: rotate(45deg) translateY(-2px);
+}
+
+.scr-sec--fold[open] .scr-sec__chev {
+  transform: rotate(-135deg) translateY(-2px);
+}
+
+.scr-sec__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-1) 0 var(--space-4);
+}
+
+.scr-range__hint--top {
+  margin-top: calc(-1 * var(--space-2));
+}
+
 .scr-range__label {
   margin-bottom: var(--space-1);
   font: 600 13px/18px var(--font-sans);

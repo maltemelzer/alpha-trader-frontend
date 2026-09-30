@@ -2954,13 +2954,73 @@ export function useAllPriceChanges(enabled = true) {
 }
 
 /** Book values of the 1.000 largest companies (company highscore BOOK_VALUE), only when asked for. */
-export function useTopBookValues(enabled: boolean) {
+
+/** Query of GET /api/v2/companies – ranges the server filters (all ~9.400 companies). */
+export interface CompanyListQuery {
+  bookValueMin?: number;
+  bookValueMax?: number;
+  netCashMin?: number;
+  netCashMax?: number;
+}
+
+/** CompanyListView (GET /api/v2/companies) – the fields the market screener uses. */
+export interface CompanyListView {
+  id: string;
+  name: string;
+  securityIdentifier?: string;
+  bookValue?: number;
+  netCash?: number;
+  /** (book value + central bank reserves) ÷ shares, see market/screener `bookPerShare` */
+  fairValuePerShare?: number;
+  marketMakerPolicy?: 'OPEN' | 'CLOSED';
+  ceo?: { username?: string } | null;
+}
+
+/**
+ * Companies by book value, largest first (GET /api/v2/companies, at most 100 per page), with the
+ * ranges the server filters. Loads the first page, then the rest of up to `pages` pages at once
+ * (~1 s, ~170 KB each). The figures are the latest daily snapshot, so they are kept for 10 minutes.
+ */
+export function useCompanyList(query: CompanyListQuery, pages: number, enabled: boolean) {
   return useQuery({
-    queryKey: ['highscores', 'company', 'BOOK_VALUE', 'top1000'],
+    queryKey: ['companies', 'list', query, pages],
     enabled,
-    queryFn: () =>
-      getPage<HighscoreEntry>('/api/v2/companyhighscores', { highscoreType: 'BOOK_VALUE', pageable: { page: 0, size: 1000 } }),
-    staleTime: SLOW,
+    queryFn: async () => {
+      const load = (page: number) =>
+        getPage<CompanyListView>('/api/v2/companies', { ...query, pageable: { page, size: 100, sort: ['bookValue,desc'] } });
+      const first = await load(0);
+      const more = Math.min(pages, Math.ceil(first.totalElements / 100)) - 1;
+      const rest = await Promise.all(Array.from({ length: Math.max(0, more) }, (_, i) => load(i + 1)));
+      return { content: [first, ...rest].flatMap((p) => p.content), totalElements: first.totalElements };
+    },
+    placeholderData: (prev) => prev,
+    staleTime: 10 * 60_000,
+  });
+}
+
+/** Central bank reserves of the 1.000 largest banks (company highscore RESERVES; smaller ones hardly move a KBV). */
+export function useTopReserves(enabled: boolean) {
+  return useQuery({
+    queryKey: ['highscores', 'company', 'RESERVES', 'top1000'],
+    enabled,
+    queryFn: () => getPage<HighscoreEntry>('/api/v2/companyhighscores', { highscoreType: 'RESERVES', pageable: { page: 0, size: 1000 } }),
+    staleTime: 10 * 60_000,
+  });
+}
+
+/** Companies run by each of the players (GET /api/companies/ceo/username/{username}), one request per name. */
+export function useCeoCompanies(usernames: string[]) {
+  return useQueries({
+    queries: usernames.map((username) => ({
+      queryKey: ['companies', 'ceo', 'name', username],
+      queryFn: () => unwrap<CompanyView[]>(api.GET('/api/companies/ceo/username/{username}', { params: { path: { username } } })),
+      staleTime: SLOW,
+      retry: false,
+    })),
+    combine: (results) => ({
+      data: results.flatMap((r) => r.data ?? []),
+      isLoading: results.some((r) => r.isLoading),
+    }),
   });
 }
 

@@ -6,13 +6,19 @@ import {
   useBiggestTradedAll,
   useBond,
   useBondList,
+  useCeoCompanies,
+  useCompanyList,
   useIndexes,
   useIssuerProfiles,
   useMarketTrades,
   useMinimalStats,
+  useMe,
   useMostTraded,
+  usePortfolio,
+  usePriceSpreads,
   useSpreadSearch,
-  useTopBookValues,
+  useTopReserves,
+  type CompanyListQuery,
 } from '../api/queries';
 import { Plot, type PlotPoint } from '../charts/Plot';
 import { short } from '../lib/format';
@@ -24,13 +30,15 @@ import { marketMapChart } from './charts';
 import { tickerItems, tileArea } from './derive';
 import {
   applyScreen,
-  bookLookup,
   changeLookup,
   chips,
+  companyFacts,
   coverageLookup,
   defaultSort,
   fromBonds,
+  fromCompanies,
   fromMarketRow,
+  fromPositions,
   issuerIds,
   marketMap,
   matchesText,
@@ -52,6 +60,10 @@ import './MarketPage.css';
 const PAGE = 50;
 const UNIVERSE = 1000;
 const SEARCH = 500;
+/** pages of 100 companies for the company figures */
+const COMPANY_PAGES = 5;
+/** columns that need the company figures */
+const COMPANY_KEYS = ['bw', 'kbv', 'nc', 'ceo'] as const;
 const href = (asin: string) => `/wertpapier/${asin}`;
 
 /**
@@ -110,8 +122,35 @@ export function MarketPage() {
   );
   const indexes = useIndexes(types.includes('INDEX'));
   const cols = visibleColumns(screen);
-  const needBook = !!screen.ranges.bw || cols.includes('bw') || screen.sort?.key === 'bw';
-  const book = useTopBookValues(needBook);
+  // Company figures (GET /api/v2/companies) only while a company column, sort or filter asks for them:
+  // the 500 companies with the largest book value (5 requests) – they carry ~99,9 % of the share
+  // turnover – plus the reserves of the banks for the book value per share. Book value and net cash
+  // ranges go to the server as well, so those filters see all ~9.400 companies (up to 500 hits).
+  const wantsStocks = all || types.includes('STOCK');
+  const needCompany =
+    wantsStocks &&
+    (COMPANY_KEYS.some((k) => cols.includes(k)) ||
+      COMPANY_KEYS.some((k) => screen.sort?.key === k) ||
+      !!screen.ranges.kbv ||
+      !!screen.ranges.bw ||
+      !!screen.ranges.nc ||
+      !!screen.mm);
+  const topCompanies = useCompanyList({}, COMPANY_PAGES, needCompany);
+  const reserves = useTopReserves(needCompany);
+  const serverQuery = useMemo(() => {
+    const q: CompanyListQuery = {};
+    const { bw, nc } = screen.ranges;
+    if (bw?.min != null) q.bookValueMin = bw.min;
+    if (bw?.max != null) q.bookValueMax = bw.max;
+    if (nc?.min != null) q.netCashMin = nc.min;
+    if (nc?.max != null) q.netCashMax = nc.max;
+    return q;
+  }, [screen.ranges]);
+  const serverFiltered = Object.keys(serverQuery).length > 0;
+  const matchingCompanies = useCompanyList(serverQuery, COMPANY_PAGES, wantsStocks && serverFiltered);
+  const ceoCompanies = useCeoCompanies(wantsStocks ? screen.ceos : []);
+  const me = useMe();
+  const portfolio = usePortfolio();
   // Coverage: one company profile per bond issuer, only while the column, filter or sort asks for it.
   const needCoverage = wantsBonds && (!!screen.ranges.deck || cols.includes('deck') || screen.sort?.key === 'deck');
   const issuers = useMemo(() => {
@@ -119,6 +158,33 @@ export function MarketPage() {
     return issuerIds(fromBonds(bondList, now));
   }, [asinBond.data, bonds.data, now]);
   const profiles = useIssuerProfiles(issuers, needCoverage);
+
+  // Shares of the chosen CEOs that are not in the lists yet get their spread (at most 30 requests).
+  const listed = useMemo(() => {
+    const out = new Set<string>();
+    for (const r of volumes.data?.content ?? []) if (r.listing?.securityIdentifier) out.add(r.listing.securityIdentifier);
+    for (const r of frequent.data?.content ?? []) out.add(r.listing.securityIdentifier);
+    for (const r of found.data?.content ?? []) out.add(r.listing.securityIdentifier);
+    return out;
+  }, [volumes.data, frequent.data, found.data]);
+  const ceoAsins = useMemo(
+    () =>
+      ceoCompanies.data
+        .map((c) => c.listing?.securityIdentifier)
+        .filter((a): a is string => !!a && !listed.has(a))
+        .slice(0, 30),
+    [ceoCompanies.data, listed],
+  );
+  const ceoSpreads = usePriceSpreads(ceoAsins);
+  const reserveMap = useMemo(
+    () => new Map((reserves.data?.content ?? []).flatMap((e) => (e.company?.securityIdentifier ? [[e.company.securityIdentifier, e.value] as [string, number]] : []))),
+    [reserves.data],
+  );
+  const facts = useMemo(
+    () => companyFacts([matchingCompanies.data?.content, topCompanies.data?.content, ceoCompanies.data as never], reserveMap),
+    [matchingCompanies.data, topCompanies.data, ceoCompanies.data, reserveMap],
+  );
+  const held = useMemo(() => (portfolio.data ? new Set(portfolio.data.positions.map((p) => p.securityIdentifier)) : null), [portfolio.data]);
 
   const universe: ScreenRow[] = useMemo(() => {
     const bondList = [...(asinBond.data ? [asinBond.data] : []), ...(bonds.data ?? [])];
@@ -133,24 +199,56 @@ export function MarketPage() {
           indexRows.filter((r) => r && matchesText(r, q)),
         ]
       : [(volumes.data?.content ?? []).map((r) => fromMarketRow(r as never)), (frequent.data?.content ?? []).map(fromMarketRow), bondRowsAll, indexRows];
+    // Asked for by name: the chosen CEOs' shares and (for „Im Depot“) every position, traded lately or not.
+    if (screen.ceos.length) lists.push(fromCompanies(ceoCompanies.data, ceoSpreads as never).filter((r) => !searching || matchesText(r, q)));
+    if (screen.held === 'ja' && portfolio.data) lists.push(fromPositions(portfolio.data.positions as never).filter((r) => !searching || matchesText(r, q)));
     return mergeRows(lists, {
       volume: volumeLookup(volumes.data?.content, volumes.data?.totalElements),
       trades: tradesLookup(frequent.data?.content, frequent.data?.totalElements),
       change: changeLookup(changes.data?.winners, changes.data?.losers),
-      book: bookLookup(book.data?.content),
       coverage: needCoverage ? coverageLookup(profiles.data, now) : null,
+      company: facts,
+      held,
     });
-  }, [searching, q, found.data, volumes.data, frequent.data, bonds.data, asinBond.data, indexes.data, changes.data, book.data, needCoverage, profiles.data, now]);
+  }, [
+    searching,
+    q,
+    found.data,
+    volumes.data,
+    frequent.data,
+    bonds.data,
+    asinBond.data,
+    indexes.data,
+    changes.data,
+    needCoverage,
+    profiles.data,
+    now,
+    screen.ceos.length,
+    screen.held,
+    ceoCompanies.data,
+    ceoSpreads,
+    portfolio.data,
+    facts,
+    held,
+  ]);
 
   const sort = screen.sort ?? defaultSort(types);
-  const base = useMemo(() => applyScreen(universe, { ...screen, ranges: {}, quote: '', issuer: '', sizes: [] }, now), [universe, screen, now]);
+  const base = useMemo(() => applyScreen(universe, { ...screen, ranges: {}, quote: '', issuer: '', ceos: [], mm: '', held: '', sizes: [] }, now), [universe, screen, now]);
   const filtered = useMemo(() => applyScreen(universe, screen, now), [universe, screen, now]);
   const rows = useMemo(() => sortRows(filtered, sort), [filtered, sort]);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   const page = Math.min(Math.max(0, Number(params.get('seite') ?? 1) - 1), pages - 1);
   const pageRows = useMemo(() => rows.slice(page * PAGE, (page + 1) * PAGE), [rows, page]);
   const maxVolume = useMemo(() => rows.reduce((m, r) => Math.max(m, r.volume ?? 0), 0), [rows]);
-  const loading = searching ? found.isLoading : volumes.isLoading || frequent.isLoading || (types.includes('INDEX') && indexes.isLoading);
+  // A company filter without its figures would show „0 Treffer“ – count as loading until they are there.
+  const companyFilter = wantsStocks && (!!screen.ranges.kbv || !!screen.mm || serverFiltered || screen.ceos.length > 0);
+  const companiesLoading =
+    (needCompany && (topCompanies.isLoading || reserves.isLoading)) || (serverFiltered && matchingCompanies.isFetching) || ceoCompanies.isLoading;
+  const depotLoading = !!screen.held && !portfolio.data;
+  const loading =
+    (searching ? found.isLoading : volumes.isLoading || frequent.isLoading || (types.includes('INDEX') && indexes.isLoading)) ||
+    (companyFilter && companiesLoading) ||
+    depotLoading;
   const loadingBonds = wantsBonds && bonds.isLoading;
   const error = (searching ? found.error : volumes.error ?? frequent.error) ?? null;
 
@@ -165,11 +263,38 @@ export function MarketPage() {
       parts.push('andere über die Suche');
     }
     if (loadingBonds) parts.push('Anleihen laden …');
-    if (needBook) parts.push('Buchwert nur für die 1.000 größten Unternehmen');
+    if (needCompany) {
+      if (topCompanies.isLoading || reserves.isLoading || matchingCompanies.isLoading) parts.push('Unternehmensdaten laden …');
+      else parts.push('KBV, Net Cash und Market Maker für die 500 Unternehmen mit dem größten Buchwert');
+    }
+    const matchTotal = matchingCompanies.data?.totalElements ?? 0;
+    if (serverFiltered && matchTotal > COMPANY_PAGES * 100)
+      parts.push(`Buchwert/Net Cash: die größten ${COMPANY_PAGES * 100} von ${matchTotal.toLocaleString('de-DE')} passenden Unternehmen`);
+    if (screen.ceos.length && ceoCompanies.isLoading) parts.push('Unternehmen der CEOs laden …');
+    if (screen.held && !portfolio.data) parts.push('Depot lädt …');
     if (needCoverage && profiles.pending)
       parts.push(`Deckung lädt (${(profiles.total - profiles.pending).toLocaleString('de-DE')} von ${profiles.total.toLocaleString('de-DE')} Emittenten)`);
     return parts.join(' · ');
-  }, [searching, found.data, universe.length, wantsBonds, loadingBonds, needBook, needCoverage, profiles.pending, profiles.total]);
+  }, [
+    searching,
+    found.data,
+    universe.length,
+    wantsBonds,
+    loadingBonds,
+    needCompany,
+    topCompanies.isLoading,
+    reserves.isLoading,
+    matchingCompanies.isLoading,
+    matchingCompanies.data,
+    serverFiltered,
+    screen.ceos.length,
+    screen.held,
+    ceoCompanies.isLoading,
+    portfolio.data,
+    needCoverage,
+    profiles.pending,
+    profiles.total,
+  ]);
 
   // Own views in the results area: warrants per underlying; buildings as an overview unless filtered.
   const estate = types.length === 1 && types[0] === 'BUILDING' && !searching;
@@ -292,6 +417,7 @@ export function MarketPage() {
         error={error}
         note={note}
         isPhone={isPhone}
+        me={me.data?.username}
         special={special}
         estateSwitch={estateSwitch}
         overview={overview}

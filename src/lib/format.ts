@@ -97,6 +97,18 @@ export function span(ms: number): string {
   return rest ? `${d}\u00a0T ${rest}\u00a0Std.` : `${d}\u00a0T`;
 }
 
+/** Age in one unit for narrow columns: „5 Min.“, „3 Std.“, „12 T“, „8 Mon.“, „3 J.“ (rounded down). */
+export function age(ms: number): string {
+  const min = Math.max(0, Math.floor(ms / 60_000));
+  if (min < 60) return `${min}\u00a0Min.`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}\u00a0Std.`;
+  const d = ms / 86_400_000;
+  if (d < 60) return `${Math.floor(d)}\u00a0T`;
+  if (d < 730) return `${Math.floor(d / 30.44)}\u00a0Mon.`;
+  return `${Math.floor(d / 365.25)}\u00a0J.`;
+}
+
 /** Number typed in German format (\u201e1.234,5\u201c, \u201e12,50\u201c, \u201e 7 \u201c) \u2192 1234.5; NaN when it isn't one. */
 export function parseDe(s: string): number {
   const t = s.trim().replace(/[\s\u00a0]/g, '');

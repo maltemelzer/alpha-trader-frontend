@@ -4,8 +4,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DS, format } from '../ds';
 import type { DataTableColumn } from '../../design-system/components';
-import { parseDe, ratePct, short, span } from '../lib/format';
+import { age, parseDe, ratePct, short, span } from '../lib/format';
 import { useDebounced } from '../lib/useDebounced';
+import { useUserSearch } from '../api/queries';
 import { OptionsButton } from '../app/phone';
 import { coverageText } from '../security/derive';
 import {
@@ -24,7 +25,7 @@ import {
   rangeValue,
   offeredColumns,
   presetChanges,
-  PRESETS,
+  presetsFor,
   sections,
   SCREEN_KEYS,
   sortParam,
@@ -33,6 +34,8 @@ import {
   visibleColumns,
   type Bin,
   type ColKey,
+  type Held,
+  type Policy,
   type Quote,
   type Range,
   type RangeKey,
@@ -230,6 +233,49 @@ function TextFilter({ k, label, value, setParam, placeholder }: { k: string; lab
   return <DS.Input label={label} size="sm" value={text} placeholder={placeholder} onChange={(e) => setText(e.target.value)} />;
 }
 
+/** CEO filter: one or more players by exact name, picked from the player search. */
+function CeoPicker({ value, setParam }: { value: string[]; setParam: SetParam }) {
+  const [q, setQ] = useState('');
+  const search = useUserSearch(useDebounced(q, 250));
+  const results = (search.data ?? []).filter((u) => u.id && u.username).map((u) => ({ id: u.id!, username: u.username! }));
+  return (
+    <DS.UserPicker
+      label="CEO"
+      value={value.map((n) => ({ id: n, username: n }))}
+      onChange={(users) => setParam({ ceo: users.map((u) => u.username).join(',') || null, seite: null })}
+      onSearch={setQ}
+      results={results}
+      loading={search.isFetching}
+      placeholder="Spielername …"
+      hint="Aktien der Firmen, die diese Spieler führen – auch ohne Handel in letzter Zeit"
+    />
+  );
+}
+
+/** URL keys per sheet section – a section with an active filter opens by itself and shows the count. */
+const SECTION_KEYS: Record<string, string[]> = {
+  vorlagen: [],
+  handel: ['mit', 'depot', 'kurs', 'ver', 'spr', 'ums', 'tr'],
+  aktiv: ['tb', 'tg', 'zul', 'alt'],
+  firma: ['kbv', 'bw', 'nc', 'ceo', 'mm'],
+  anleihen: ['zins', 'rt', 'lz', 'deck', 'nv', 'em'],
+  immo: ['gr', 'qm'],
+};
+
+/** One foldable section of the filter sheet (native details/summary: keyboard and screen readers for free). */
+function Section({ title, count, open, onToggle, children }: { title: string; count: number; open: boolean; onToggle: (open: boolean) => void; children: ReactNode }) {
+  return (
+    <details className="scr-sec scr-sec--fold" open={open} onToggle={(e) => onToggle(e.currentTarget.open)}>
+      <summary className="scr-sec__sum">
+        <span className="scr-sec__title">{title}</span>
+        {count > 0 && <span className="scr-badge" aria-label={`${count} aktiv`}>{count}</span>}
+        <span className="scr-sec__chev" aria-hidden="true" />
+      </summary>
+      <div className="scr-sec__body">{children}</div>
+    </details>
+  );
+}
+
 const BUILDING_SIZES = [150, 1200, 5000, 7500];
 
 /** The filter sheet: presets (phone), all filters for the chosen types, columns (wide). */
@@ -244,6 +290,7 @@ function FilterSheet({
   base,
   now,
   note,
+  presets,
 }: {
   open: boolean;
   onClose: () => void;
@@ -255,8 +302,25 @@ function FilterSheet({
   base: ScreenRow[];
   now: number;
   note: string;
+  presets: ReturnType<typeof presetsFor>;
 }) {
   const sec = sections(screen.types);
+  // Sections: „Kurs und Handel“ and every section with an active filter start open; the player's
+  // own folding holds until the sheet closes.
+  const active = chips(screen).map((c) => c.key);
+  const countOf = (id: string) => SECTION_KEYS[id].filter((k) => active.includes(k)).length;
+  const [folded, setFolded] = useState<Record<string, boolean>>({});
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setFolded({});
+  }
+  // Presets (phone) stay open until a filter is set – then the filters matter more.
+  const isOpen = (id: string) => folded[id] ?? (id === 'vorlagen' ? !active.length : id === 'handel' || countOf(id) > 0);
+  const fold = (id: string) => (o: boolean) => {
+    if (o !== isOpen(id)) setFolded((f) => ({ ...f, [id]: o }));
+  };
+  const sectionProps = (id: string) => ({ count: countOf(id), open: isOpen(id), onToggle: fold(id) });
   // Distribution of each figure over the chosen types (other filters left out), only while open.
   const dist = useMemo(() => {
     const out: Partial<Record<RangeKey, Bin[]>> = {};
@@ -273,7 +337,7 @@ function FilterSheet({
   }, [open, base, now]);
   const onlyBonds = screen.types.length > 0 && screen.types.every((t) => t === 'BOND' || t === 'REPO');
   const cols = visibleColumns(screen);
-  const preset = activePreset(params);
+  const preset = activePreset(params, presets);
   const toggleCol = (k: ColKey, on: boolean) => {
     const next = on ? [...cols, k] : cols.filter((c) => c !== k);
     const def = defaultColumns(screen.types);
@@ -313,20 +377,18 @@ function FilterSheet({
           </fieldset>
         )}
         {isPhone && (
-          <fieldset className="scr-sec">
-            <legend className="scr-sec__title">Vorlagen</legend>
+          <Section title={preset ? `Vorlage: ${preset.label}` : 'Vorlagen'} {...sectionProps('vorlagen')}>
             <div className="scr-presets">
-              {PRESETS.map((p) => (
+              {presets.map((p) => (
                 <button key={p.id} type="button" className="scr-preset" aria-pressed={preset?.id === p.id} onClick={() => setParam(presetChanges(p))}>
                   <span className="scr-preset__label">{p.label}</span>
                   <span className="scr-preset__desc">{p.description}</span>
                 </button>
               ))}
             </div>
-          </fieldset>
+          </Section>
         )}
-        <fieldset className="scr-sec">
-          <legend className="scr-sec__title">Kurs und Handel</legend>
+        <Section title="Kurs und Handel" {...sectionProps('handel')}>
           <DS.SegmentedControl
             label="Angebot"
             size="sm"
@@ -339,31 +401,69 @@ function FilterSheet({
               { value: 'beide', label: 'Beides' },
             ]}
           />
+          <DS.SegmentedControl
+            label="Mein Depot"
+            size="sm"
+            value={screen.held || 'egal'}
+            onChange={(v) => setParam({ depot: v === 'egal' ? null : (v as Held), seite: null })}
+            options={[
+              { value: 'egal', label: 'Egal' },
+              { value: 'ja', label: 'Im Depot' },
+              { value: 'nein', label: 'Nicht im Depot' },
+            ]}
+          />
           <RangeField k="kurs" label="Letzter Kurs" unit={onlyBonds ? '%' : '€'} value={screen.ranges.kurs} bins={dist.kurs} setParam={setParam} hint={!onlyBonds && sec.bonds ? 'Anleihen und Repos in %' : undefined} />
           <RangeField k="ver" label="Veränderung zum Vortag" unit="%" value={screen.ranges.ver} bins={dist.ver} setParam={setParam} hint="Negativ mit Minus, z. B. −5" />
           <RangeField k="spr" label="Spread" unit="%" value={screen.ranges.spr} bins={dist.spr} setParam={setParam} hint="(Brief − Geld) ÷ Brief, nur mit beiden Seiten" />
           <RangeField k="ums" label="Umsatz 24 h" unit="€" value={screen.ranges.ums} bins={dist.ums} setParam={setParam} hint="≥ 1 = in den letzten 24 h gehandelt" />
           <RangeField k="tr" label="Trades" unit="" value={screen.ranges.tr} bins={dist.tr} setParam={setParam} />
-        </fieldset>
+        </Section>
+        <Section title="Liquidität und Alter" {...sectionProps('aktiv')}>
+          <RangeField k="tb" label="Im Brief – sofort kaufbar" unit="€" value={screen.ranges.tb} bins={dist.tb} setParam={setParam} hint="Stück × Kurs am besten Brief" />
+          <RangeField k="tg" label="Im Geld – sofort verkaufbar" unit="€" value={screen.ranges.tg} bins={dist.tg} setParam={setParam} hint="Stück × Kurs am besten Geld" />
+          <RangeField k="zul" label="Letzter Trade vor" unit="Std." value={screen.ranges.zul} bins={dist.zul} setParam={setParam} hint="≤ 1 = in der letzten Stunde gehandelt · ≥ 168 = seit einer Woche nicht mehr" />
+          <RangeField k="alt" label="Gelistet vor" unit="Tagen" value={screen.ranges.alt} bins={dist.alt} setParam={setParam} hint="≤ 7 = neu in dieser Woche · Anleihen: seit der Ausgabe" />
+        </Section>
         {sec.company && (
-          <fieldset className="scr-sec">
-            <legend className="scr-sec__title">Unternehmen</legend>
-            <RangeField k="bw" label="Buchwert" unit="€" value={screen.ranges.bw} bins={dist.bw} setParam={setParam} hint="Bekannt für die 1.000 größten Unternehmen" />
-          </fieldset>
+          <Section title="Unternehmen" {...sectionProps('firma')}>
+            <RangeField
+              k="kbv"
+              label="Kurs-Buchwert-Verhältnis (KBV)"
+              unit=""
+              value={screen.ranges.kbv}
+              bins={dist.kbv}
+              setParam={setParam}
+              hint="Letzter Kurs ÷ Buchwert je Aktie · unter 1 = billiger als der Buchwert · bekannt für die 500 Unternehmen mit dem größten Buchwert"
+            />
+            <RangeField k="bw" label="Buchwert" unit="€" value={screen.ranges.bw} bins={dist.bw} setParam={setParam} hint="Sucht über alle Unternehmen (Stand letzter Tagesabschluss)" />
+            <RangeField k="nc" label="Net Cash" unit="€" value={screen.ranges.nc} bins={dist.nc} setParam={setParam} hint="Bargeld abzüglich Verbindlichkeiten · sucht über alle Unternehmen" />
+            <CeoPicker value={screen.ceos} setParam={setParam} />
+            <DS.SegmentedControl
+              label="Market Maker"
+              size="sm"
+              value={screen.mm || 'egal'}
+              onChange={(v) => setParam({ mm: v === 'egal' ? null : (v as Policy), seite: null })}
+              options={[
+                { value: 'egal', label: 'Egal' },
+                { value: 'offen', label: 'Erlaubt' },
+                { value: 'zu', label: 'Gesperrt' },
+              ]}
+            />
+            <p className="scr-range__hint scr-range__hint--top">Erlaubt = das Unternehmen lässt Market Maker zu (Voraussetzung für ein Mandat)</p>
+          </Section>
         )}
         {sec.bonds && (
-          <fieldset className="scr-sec">
-            <legend className="scr-sec__title">Anleihen und Repos</legend>
+          <Section title="Anleihen und Repos" {...sectionProps('anleihen')}>
             <RangeField k="zins" label="Zins bis Fälligkeit" unit="%" value={screen.ranges.zins} bins={dist.zins} setParam={setParam} hint="Für die ganze Laufzeit, nicht pro Jahr" />
             <RangeField k="rt" label="Rendite pro Tag" unit="%" value={screen.ranges.rt} bins={dist.rt} setParam={setParam} hint="Zum Brief gerechnet" />
             <RangeField k="lz" label="Restlaufzeit" unit="Tage" value={screen.ranges.lz} bins={dist.lz} setParam={setParam} hint="0,04 Tage ≈ 1 Stunde" />
             <RangeField k="deck" label="Deckung" unit="%" value={screen.ranges.deck} bins={dist.deck} setParam={setParam} hint="Net Cash des Emittenten ÷ Rückzahlung aller seiner laufenden Anleihen · 100 = gerade gedeckt · lädt je Emittent, sobald genutzt" />
+            <RangeField k="nv" label="Nennvolumen" unit="€" value={screen.ranges.nv} bins={dist.nv} setParam={setParam} hint="Ausgegebene Anleihen × Nennwert" />
             <TextFilter k="em" label="Emittent" value={screen.issuer} setParam={setParam} placeholder="Name enthält …" />
-          </fieldset>
+          </Section>
         )}
         {sec.buildings && (
-          <fieldset className="scr-sec">
-            <legend className="scr-sec__title">Immobilien</legend>
+          <Section title="Immobilien" {...sectionProps('immo')}>
             <div className="scr-sizes">
               {BUILDING_SIZES.map((n) => (
                 <DS.Checkbox
@@ -378,7 +478,7 @@ function FilterSheet({
               ))}
             </div>
             <RangeField k="qm" label="Preis je m²" unit="€" value={screen.ranges.qm} bins={dist.qm} setParam={setParam} hint="Brief (ohne Brief der letzte Kurs) ÷ Fläche" />
-          </fieldset>
+          </Section>
         )}
         {!isPhone && (
           <fieldset className="scr-sec">
@@ -437,6 +537,19 @@ function VolumeBar({ value, max }: { value: number | null; max: number }) {
   );
 }
 
+/** „gerade“ within the first minute, else „vor 5 Min.“ … „vor 3 J.“ */
+const ago = (ms: number) => (ms < 60_000 ? 'gerade' : `vor${NB}${age(ms)}`);
+
+/** KBV with two decimals; below 0,1 two significant digits (0,0012), below 0,001 „< 0,001“, absurd values in short form. */
+const kbvText = (n: number) =>
+  Math.abs(n) >= 1e4
+    ? short(n)
+    : n > 0 && n < 0.001
+      ? '< 0,001'
+      : n > 0 && n < 0.1
+        ? n.toLocaleString('de-DE', { maximumSignificantDigits: 2 })
+      : n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 function cellFor(k: ColKey, now: number, maxVolume: number): DataTableColumn<ScreenRow> {
   const c = column(k);
   const base = { key: k, label: c.label, mobileLabel: c.short, sortable: true, defaultDir: c.dir, sortValue: (r: ScreenRow) => c.value(r) as number | string };
@@ -455,8 +568,24 @@ function cellFor(k: ColKey, now: number, maxVolume: number): DataTableColumn<Scr
       return { ...base, type: 'currency', render: (r) => <VolumeBar value={r.volume} max={maxVolume} /> };
     case 'tr':
       return { ...base, type: 'number', accessor: (r) => r.trades };
+    case 'zul':
+      return { ...base, type: 'number', render: (r) => (r.lastTrade == null ? '–' : ago(now - r.lastTrade)) };
+    case 'alt':
+      return { ...base, type: 'number', render: (r) => (r.listed == null ? '–' : ago(now - r.listed)) };
     case 'bw':
       return { ...base, type: 'currency', accessor: (r) => r.bookValue };
+    case 'kbv':
+      return { ...base, type: 'number', render: (r) => (r.kbv == null ? '–' : kbvText(r.kbv)) };
+    case 'nc':
+      return { ...base, type: 'currency', accessor: (r) => r.netCash };
+    case 'ceo':
+      return {
+        ...base,
+        type: 'text',
+        render: (r) => (r.ceo == null ? '–' : <a className="scr-issuer" href={`/spieler/${encodeURIComponent(r.ceo)}`}>{r.ceo}</a>),
+      };
+    case 'nv':
+      return { ...base, type: 'currency', accessor: (r) => r.face };
     case 'zins':
       return { ...base, type: 'percent', render: (r) => (r.rate == null ? '–' : pct(r.rate, 2)) };
     case 'rt':
@@ -529,6 +658,9 @@ function PhoneList({ rows, sort, now }: { rows: ScreenRow[]; sort: NonNullable<S
     const v = c.value(r);
     if (v == null) return `${c.short} –`;
     if (metaKey === 'lz') return `${c.short} ${span((v as number) - now)}`;
+    if (c.unit === 'ts') return `${c.short} ${ago(now - (v as number))}`;
+    if (metaKey === 'kbv') return `KBV ${kbvText(v as number)}`;
+    if (metaKey === 'ceo') return `CEO ${v}`;
     if (metaKey === 'em') return String(v);
     if (metaKey === 'rt') return `${c.short} ${ratePct(v as number)}`;
     if (metaKey === 'deck') return `${c.short} ${coverageText(v as number)}`;
@@ -575,6 +707,8 @@ export interface ScreenerProps {
   /** where the rows come from and what is missing */
   note: string;
   isPhone: boolean;
+  /** signed-in player (preset „Meine Unternehmen“) */
+  me?: string;
   /** own view instead of the table (buildings overview, warrants) */
   special: ReactNode;
   pagination: ReactNode;
@@ -591,7 +725,8 @@ export function Screener(p: ScreenerProps) {
   // ?filter=1 opens the sheet on arrival (links, screenshots); closing does not touch the URL.
   const [open, setOpen] = useState(() => params.get('filter') === '1');
   const count = filterCount(screen);
-  const preset = activePreset(params);
+  const presets = useMemo(() => presetsFor(p.me), [p.me]);
+  const preset = activePreset(params, presets);
   const sortOptions = useMemo(
     () => [
       { value: 'name:asc', label: 'Name A–Z' },
@@ -630,7 +765,7 @@ export function Screener(p: ScreenerProps) {
     />
   );
   const sheet = (
-    <FilterSheet open={open} onClose={() => setOpen(false)} screen={screen} params={params} setParam={setParam} count={p.total} isPhone={isPhone} base={p.base} now={p.now} note={p.note} />
+    <FilterSheet open={open} onClose={() => setOpen(false)} screen={screen} params={params} setParam={setParam} count={p.total} isPhone={isPhone} base={p.base} now={p.now} note={p.note} presets={presets} />
   );
 
   // Phone: one fixed row (search · type · filter); count, sort, chips, overview and pages scroll with
@@ -719,7 +854,7 @@ export function Screener(p: ScreenerProps) {
               size="sm"
               label={preset ? `Vorlage: ${preset.label}` : 'Vorlagen'}
               align="end"
-              items={PRESETS.map((x) => ({
+              items={presets.map((x) => ({
                 label: x.label,
                 description: x.description,
                 meta: preset?.id === x.id ? '✓' : undefined,
