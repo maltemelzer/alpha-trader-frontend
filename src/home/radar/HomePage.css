@@ -1,0 +1,827 @@
+/* Start page „Radar“ – prefix radar-. Instrument look: engraved hairlines, brass sweep, flat. */
+
+.page.radar {
+  grid-template-rows: minmax(0, 1fr);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.radar__body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 400px);
+  gap: var(--space-4);
+}
+
+/* ---------- stage: gauges + scope + legend ---------- */
+
+.radar__stage {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  container-type: size;
+}
+
+.radar__grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'gauges scope'
+    '. scope'
+    'legend scope';
+  column-gap: var(--space-2);
+}
+
+.radar-gauges {
+  grid-area: gauges;
+  margin: 0;
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+  z-index: 1;
+}
+
+.radar-gauge {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--brass);
+  min-width: 0;
+}
+
+.radar-gauge dt {
+  font: 600 11px/16px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.radar-gauge dd {
+  margin: 0;
+}
+
+.radar-gauge__value {
+  font: 600 30px/36px var(--font-serif);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  min-height: 36px;
+}
+
+.radar-gauge__hint {
+  font: 400 12px/16px var(--font-sans);
+  color: var(--text-muted);
+}
+
+.radar-hot {
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.radar-hot__name {
+  font: 600 20px/26px var(--font-serif);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-hot:hover .radar-hot__name {
+  text-decoration: underline;
+}
+
+.radar-legend {
+  grid-area: legend;
+  margin: 0;
+  display: grid;
+  gap: var(--space-1);
+  font: 400 11px/16px var(--font-sans);
+  color: var(--text-secondary);
+  align-self: end;
+  z-index: 1;
+}
+
+.radar-legend__row {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-2);
+}
+
+.radar-legend__row {
+  column-gap: var(--space-2);
+}
+
+.radar-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.radar-legend__more {
+  color: var(--text-muted);
+}
+
+.radar-legend__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.radar-legend__dot--up {
+  background: var(--gain);
+}
+
+.radar-legend__dot--down {
+  background: var(--loss);
+}
+
+.radar-legend__dot--own {
+  background: transparent;
+  border: 1px solid var(--brass);
+  width: 11px;
+  height: 11px;
+}
+
+/* Narrow stage (chat sidebar, tablets): gauges as one row on top, legend as one line below. */
+@container (aspect-ratio < 1.3) {
+  .radar__grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'gauges' 'scope' 'legend';
+    row-gap: var(--space-2);
+  }
+
+  .radar-gauges {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .radar-legend {
+    justify-items: center;
+  }
+}
+
+/* ---------- the scope ---------- */
+
+.radar-scope {
+  grid-area: scope;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.radar-scope__square {
+  position: relative;
+  flex: none;
+}
+
+.radar-dial,
+.radar-scope__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.radar-scope__canvas {
+  border-radius: 50%;
+  touch-action: manipulation;
+}
+
+.radar-scope__canvas:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+.radar-dial {
+  pointer-events: none;
+}
+
+.radar-dial__rim {
+  fill: var(--bg-card);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.radar-dial__ring {
+  fill: none;
+  stroke: var(--hairline);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+
+.radar-dial__edge {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.radar-dial__now {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+}
+
+.radar-dial__tick {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.radar-dial__tick--long {
+  stroke: var(--text-muted);
+}
+
+.radar-dial__label,
+.radar-dial__band,
+.radar-dial__rimlabel {
+  font: 500 11px/1 var(--font-sans);
+  fill: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.radar-dial__label--now {
+  fill: var(--brass);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.radar-dial__band {
+  fill: var(--text-secondary);
+}
+
+.radar-dial__rimlabel {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+
+/* the centre: depot value */
+.radar-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radar-depot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-primary);
+  text-decoration: none;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.radar-depot:hover .radar-depot__value,
+.radar-depot:focus-visible .radar-depot__value {
+  text-decoration: underline;
+  text-decoration-color: var(--brass);
+}
+
+.radar-depot__label {
+  font: 600 11px/14px var(--font-sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.radar-depot__value {
+  font: 600 clamp(18px, 3.6cqmin, 30px) / 1.15 var(--font-serif);
+  font-variant-numeric: tabular-nums;
+  min-height: 1.15em;
+}
+
+.radar-depot__change,
+.radar-depot__flat {
+  font: 400 12px/16px var(--font-sans);
+  color: var(--text-muted);
+  min-height: 16px;
+}
+
+.radar-depot__load {
+  font: 400 11px/14px var(--font-sans);
+  color: var(--text-muted);
+}
+
+/* contacts on the rim */
+.radar-blip {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-page);
+  border: 1px solid var(--line-strong);
+  color: var(--text-secondary);
+  text-decoration: none;
+  z-index: 2;
+}
+
+.radar-blip::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+.radar-blip--future {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.radar-blip--urgent {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+  border-width: 2px;
+}
+
+.radar-blip:hover,
+.radar-blip:focus-visible,
+.radar-blip.is-active {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: var(--on-brass);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .radar-blip--urgent {
+    animation: radar-ping 2.4s ease-out infinite;
+  }
+}
+
+@keyframes radar-ping {
+  0% {
+    outline: 2px solid var(--text-primary);
+    outline-offset: 0;
+  }
+  60%,
+  100% {
+    outline: 2px solid transparent;
+    outline-offset: 10px;
+  }
+}
+
+/* the card of a selected echo */
+.radar-card {
+  position: absolute;
+  z-index: 3;
+  background: var(--bg-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  box-sizing: border-box;
+}
+
+.radar-echo {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.radar-echo__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.radar-echo__title {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+
+.radar-echo__name {
+  font: 600 16px/22px var(--font-serif);
+  color: var(--text-primary);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-echo__name:hover {
+  text-decoration: underline;
+}
+
+.radar-echo__meta {
+  font: 400 12px/16px var(--font-sans);
+  color: var(--text-muted);
+}
+
+.radar-echo__asin {
+  font-family: var(--font-mono);
+}
+
+.radar-echo__close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  position: relative;
+}
+
+.radar-echo__close::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.radar-echo__close:hover {
+  color: var(--text-primary);
+  background: var(--bg-card);
+}
+
+.radar-echo__price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.radar-echo__figure {
+  font: 600 20px/26px var(--font-serif);
+  font-variant-numeric: tabular-nums;
+}
+
+.radar-echo__line {
+  margin: 0;
+  font: 400 13px/18px var(--font-sans);
+  color: var(--text-secondary);
+}
+
+.radar-echo__muted {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.radar-echo__own {
+  color: var(--brass);
+}
+
+.radar-echo__go {
+  margin-top: var(--space-2);
+  text-decoration: none;
+}
+
+/* ---------- contacts list ---------- */
+
+.radar-contacts {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  padding-left: var(--space-4);
+}
+
+.radar-contacts__title {
+  margin: 0 0 var(--space-2);
+  font: 600 20px/26px var(--font-serif);
+  color: var(--text-primary);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.radar-contacts__hint {
+  font: 400 12px/16px var(--font-sans);
+  color: var(--text-muted);
+}
+
+.radar-contacts__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  position: relative;
+  min-height: 0;
+  flex: 1;
+}
+
+.radar-contact {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.radar-contact--skeleton {
+  padding: var(--space-3) 0;
+}
+
+.radar-contact__link {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  margin: 0 calc(var(--space-2) * -1);
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.radar-contact__link:hover,
+.radar-contact__link:focus-visible,
+.radar-contact.is-active .radar-contact__link {
+  background: var(--bg-card);
+}
+
+.radar-contact__icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radar-contact__icon--future {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.radar-contact--urgent .radar-contact__icon {
+  border: 2px solid var(--text-primary);
+  color: var(--text-primary);
+}
+
+.radar-contact__text {
+  display: grid;
+  min-width: 0;
+}
+
+.radar-contact__meta {
+  font: 600 11px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.radar-contact__name {
+  font: 600 15px/20px var(--font-serif);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-contact__detail {
+  font: 400 13px/18px var(--font-sans);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- medium: contacts under the scope would push it too small – keep the column, narrower ---------- */
+@media (max-width: 1100px) {
+  .radar__body {
+    grid-template-columns: minmax(0, 1fr) 260px;
+  }
+}
+
+/* ---------- phone ---------- */
+
+.radar--phone.page {
+  padding: var(--space-2) var(--space-4) var(--space-3);
+}
+
+.radar--phone .radar__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.radar--phone .radar__stage {
+  container-type: normal;
+  flex: none;
+}
+
+.radar--phone .radar__grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: none;
+}
+
+.radar--phone .radar-scope {
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.radar--phone .radar-legend {
+  justify-items: center;
+  gap: 0;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.radar--phone .radar-contacts {
+  flex: 1;
+  min-height: 96px;
+  border-left: 0;
+  padding-left: 0;
+}
+
+.radar--phone .radar-contacts__title {
+  font-size: 16px;
+  line-height: 22px;
+  margin-bottom: var(--space-1);
+}
+
+.radar--phone .radar-contacts__list {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+}
+
+.radar--phone .radar-contact {
+  flex: none;
+  width: 72%;
+  max-width: 280px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+.radar--phone .radar-contact--skeleton {
+  padding: var(--space-3);
+}
+
+.radar--phone .radar-contact__link {
+  margin: 0;
+  height: 100%;
+  padding: var(--space-3);
+}
+
+.radar--phone .radar-contact__detail {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.radar--phone .ph-stats {
+  flex: none;
+}
+
+.radar--phone .radar-hot__name {
+  font: inherit;
+}
+
+.radar-blip__count {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  background: var(--text-primary);
+  color: var(--bg-page);
+  font: 600 10px/16px var(--font-sans);
+  text-align: center;
+}
+
+.radar--phone .radar-contacts__list {
+  align-items: flex-start;
+}
+
+.radar-contact--empty {
+  padding: var(--space-3) 0;
+  font: 400 13px/18px var(--font-sans);
+  color: var(--text-muted);
+}
+
+.radar--phone .radar-contact {
+  overflow: hidden;
+}
+
+.radar--phone .radar-contact__link,
+.radar--phone .radar-contact__text {
+  overflow: hidden;
+}
+
+/* the loading note hangs below the change, so it can go without moving the value */
+.radar-depot {
+  position: relative;
+}
+
+.radar-depot__load {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% + 2.4em);
+}
+
+.radar--phone .radar-hot {
+  position: relative;
+}
+
+.radar--phone .radar-hot::before {
+  content: '';
+  position: absolute;
+  inset: -10px 0;
+}
+
+/* with the chat sidebar docked the column is 340 px narrower */
+@media (max-width: 1440px) {
+  .shell--chat .radar__body {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+}
+
+/* ring names along the 12 o'clock line, right of „jetzt“ (the oldest, faintest minute): a click focuses the class */
+.radar-ringlabel {
+  position: absolute;
+  transform: translateY(-50%);
+  z-index: 2;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  /* a pill in the scope's colour keeps the name readable over the echoes */
+  background: var(--bg-card);
+  font: 600 10px/14px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.radar-ringlabel::before {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
+}
+
+.radar--phone .radar-ringlabel::before {
+  inset: -15px 0;
+}
+
+.radar-ringlabel:hover,
+.radar-ringlabel:focus-visible {
+  color: var(--text-primary);
+}
+
+.radar-ringlabel:focus-visible {
+  outline: 2px solid var(--brass);
+}
+
+.radar-ringlabel.is-on {
+  color: var(--on-brass);
+  background: var(--brass);
+}
+
+.radar-ringlabel.is-off {
+  color: var(--text-disabled);
+}
+
+.radar-dial__next {
+  fill: none;
+  stroke: var(--brass);
+  stroke-width: 2;
+}
+
+.radar-change {
+  font: 500 12px/16px var(--font-mono);
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.radar-change--up {
+  color: var(--gain);
+}
+
+.radar-change--down {
+  color: var(--loss);
+}

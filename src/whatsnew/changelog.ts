@@ -32,6 +32,17 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-09-30-2',
+    title: 'Neue Startseite – sechs Entwürfe, du entscheidest',
+    items: [
+      {
+        text: 'Unter „Start“ findest du sechs Entwürfe für die Startseite: Bühne, Radar, Börsensaal, Skyline, Zeitung und Mein Tag. Die Leiste unten führt dich durch alle, bewerte jeden und sag am Ende, welcher bleiben soll.',
+        href: '/start',
+      },
+    ],
+    shot: { path: '/start?variante=skyline', alt: 'Entwurf „Skyline“: der Markt als Stadt, Schlagzeilen am Himmel', wait: 6000 },
+  },
+  {
     id: '2026-09-30',
     title: 'Markt: mehr Wege, Wertpapiere zu finden',
     items: [
