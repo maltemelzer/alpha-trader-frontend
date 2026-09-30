@@ -1,0 +1,575 @@
+/* Start page „Börsensaal“ – prefix saal-. The board: flap cells in IBM Plex Mono on the dark page ground,
+   set in a card frame; the hall clock and the depot above, the running text below. Colours only from tokens. */
+
+.page.saal {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  /* flap cell for the figures above the board; the board sets its own from its width */
+  --cw: 15px;
+  --ch: 24px;
+  --cg: 2px;
+}
+
+/* ------------------------------------------------------------------ flap cells */
+
+.saal-flap {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.saal-flap__cells {
+  display: flex;
+  gap: var(--cg);
+}
+
+.saal-c {
+  position: relative;
+  flex: none;
+  width: var(--cw);
+  height: var(--ch);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  border-radius: 1px;
+  font-family: var(--font-mono);
+  font-size: calc(var(--cw) * 1.3);
+  font-weight: 500;
+  perspective: calc(var(--ch) * 5);
+}
+
+.saal-c > span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  background: var(--bg-page);
+  backface-visibility: hidden;
+}
+
+.saal-c b {
+  display: block;
+  height: var(--ch);
+  line-height: var(--ch);
+  text-align: center;
+  font-weight: inherit;
+}
+
+.saal-c__t,
+.saal-c__lt {
+  top: 0;
+}
+
+.saal-c__b,
+.saal-c__lb {
+  top: 50%;
+}
+
+.saal-c__b b,
+.saal-c__lb b {
+  transform: translateY(-50%);
+}
+
+.saal-c__lt {
+  transform-origin: 50% 100%;
+  z-index: 2;
+}
+
+.saal-c__lb {
+  transform-origin: 50% 0;
+  z-index: 2;
+}
+
+.saal-c__lt,
+.saal-c__lb {
+  visibility: hidden;
+}
+
+.saal-c--flip > .saal-c__lt,
+.saal-c--flip > .saal-c__lb {
+  visibility: visible;
+}
+
+/* the hinge between the two leaves */
+.saal-c::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - 0.5px);
+  height: 1px;
+  background: var(--bg-card);
+  z-index: 3;
+}
+
+.saal-c--up {
+  color: var(--gain);
+}
+
+.saal-c--down {
+  color: var(--loss);
+}
+
+/* the depot value: brass tiles */
+.saal-c--brass,
+.saal-c--brass > span {
+  background: var(--brass-tint);
+}
+
+.saal-c--brass {
+  color: var(--brass-hover);
+}
+
+/* ------------------------------------------------------------------ top: title, hall clock, depot */
+
+.saal-top {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-6);
+  min-height: 72px;
+}
+
+.saal-top__name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.saal-meta {
+  margin: 2px 0 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saal-hall {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.saal-clock {
+  flex: none;
+}
+
+.saal-clock__face {
+  fill: var(--bg-card);
+  stroke: var(--line-strong);
+  stroke-width: 2;
+}
+
+.saal-clock__bar,
+.saal-clock__hand {
+  stroke: var(--text-primary);
+}
+
+.saal-clock__tick {
+  stroke: var(--text-muted);
+}
+
+.saal-clock__sec {
+  stroke: var(--brass);
+}
+
+.saal-clock__dot {
+  fill: var(--brass);
+}
+
+.saal-hall__figs {
+  display: flex;
+  gap: var(--space-6);
+}
+
+.saal-fig {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.saal-fig:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: 4px;
+}
+
+.saal-fig__label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.saal-fig:hover .saal-fig__label {
+  color: var(--text-primary);
+}
+
+.saal-fig__value {
+  --cw: 19px;
+  --ch: 30px;
+}
+
+.saal-fig__value--sm {
+  --cw: 14px;
+  --ch: 22px;
+}
+
+.saal-fig__row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.saal-fig--depot {
+  justify-self: end;
+  align-items: flex-end;
+}
+
+/* ------------------------------------------------------------------ the board */
+
+/* the boards share one tile size: the width of a half holds the fixed columns and the shortest name */
+.saal-hallwrap {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  container-type: inline-size;
+  --colgap: 14px;
+  --cg: 2px;
+  --half: calc((100cqw - var(--space-3)) / 2 - 26px);
+  --cw: clamp(8px, calc((var(--half) - 6px - 3 * var(--colgap)) / 40 - var(--cg)), 19px);
+  --ch: calc(var(--cw) * 1.6);
+  --p: calc(var(--cw) + var(--cg));
+}
+
+.saal-hallwrap--one {
+  --half: calc(100cqw - 26px);
+}
+
+.saal-halves {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.saal-halves--one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.saal-board {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: var(--border) solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-3) var(--space-2);
+}
+
+.saal-board__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  row-gap: calc(var(--ch) * 0.42);
+  overflow: hidden;
+}
+
+/* a board with a fixed number of lines takes their height */
+.saal-board--fixed .saal-board__body {
+  flex: none;
+  height: calc(var(--lines) * var(--ch) + (var(--lines) - 1) * var(--ch) * 0.42);
+}
+
+.saal-line {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--colgap);
+  height: var(--ch);
+  margin: 0;
+  padding-left: 6px;
+  position: relative;
+}
+
+.saal-probe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.saal-col {
+  flex: none;
+}
+
+.saal-col--name {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.saal-col--price,
+.saal-col--vol {
+  width: calc(var(--p) * 9 - var(--cg));
+}
+.saal-col--chg {
+  width: calc(var(--p) * 8 - var(--cg));
+  display: inline-flex;
+  gap: var(--cg);
+}
+.saal-col--time {
+  width: calc(var(--p) * 6 - var(--cg));
+}
+.saal-col--kind {
+  width: calc(var(--p) * 7 - var(--cg));
+}
+
+.saal-row--news .saal-col--kind .saal-c {
+  color: var(--text-secondary);
+}
+
+.saal-row--news .saal-col--time .saal-c {
+  color: var(--text-secondary);
+}
+
+/* a trade came in: the line lights up once */
+.saal-row__flash {
+  position: absolute;
+  inset: -2px 0;
+  z-index: 4;
+  pointer-events: none;
+  border-radius: var(--radius-sm);
+  background: var(--text-primary);
+  opacity: 0;
+  animation: saal-flash 1.6s ease-out;
+}
+
+.saal-row__flash--up {
+  background: var(--gain);
+}
+
+.saal-row__flash--down {
+  background: var(--loss);
+}
+
+@keyframes saal-flash {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saal-row__flash {
+    display: none;
+  }
+}
+
+.saal-row {
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+a.saal-row[href]:hover {
+  background: var(--bg-raised);
+}
+
+a.saal-row[href]:focus-visible {
+  outline: var(--rule) solid var(--brass);
+  outline-offset: 1px;
+}
+
+/* your own papers: a brass mark at the left and the name in brass */
+.saal-row--mine::after {
+  z-index: 5;
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  background: var(--brass);
+}
+
+.saal-row--mine .saal-col--name .saal-c {
+  color: var(--brass);
+}
+
+.saal-head {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  align-items: flex-end;
+  padding-bottom: 2px;
+  border-bottom: var(--border) solid var(--line);
+}
+
+.saal-head .saal-col {
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saal-head .saal-col--name {
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.saal-head__cont {
+  color: var(--text-muted);
+}
+
+.saal-note {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.saal-board__pages {
+  flex: none;
+  min-height: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  padding-top: var(--space-1);
+}
+
+.saal-board__dot {
+  width: 24px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.saal-board__dot::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: var(--border) solid var(--line-control);
+}
+
+.saal-board__dot.is-on::before {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+.saal-board__dot:focus-visible {
+  outline: var(--rule) solid var(--brass);
+}
+
+/* ------------------------------------------------------------------ mid widths */
+
+@media (max-width: 1279.98px) {
+  .saal-top {
+    gap: var(--space-4);
+  }
+  .saal-top__name {
+    font-size: 26px;
+    line-height: 32px;
+  }
+  .saal-fig__value {
+    --cw: 14px;
+    --ch: 23px;
+  }
+  .saal-fig__value--sm {
+    --cw: 12px;
+    --ch: 19px;
+  }
+  .saal-clock {
+    width: 60px;
+    height: 60px;
+  }
+  .saal-hall__figs {
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 999.98px) {
+  .saal-top {
+    grid-template-columns: auto auto;
+  }
+  .saal-top__title {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ phone */
+
+.page.saal--phone {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  container-type: inline-size;
+  --colgap: 8px;
+  --cg: 1px;
+  --half: calc(100cqw - 2 * var(--space-4) - 18px);
+  --cw: clamp(8px, calc((var(--half) - 6px - 2 * var(--colgap)) / 28 - var(--cg)), 16px);
+  --ch: calc(var(--cw) * 1.7);
+  --p: calc(var(--cw) + var(--cg));
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-2);
+}
+
+.saal--phone .saal-meta {
+  margin: 0;
+}
+
+.saal--phone .saal-board {
+  padding: var(--space-2);
+}
+
+/* rows are links: at least 32 px high on touch, the flaps stay their size */
+.saal--phone .saal-line {
+  height: 32px;
+}
+
+.saal--phone .saal-board__body {
+  row-gap: 0;
+}
+
+.saal--phone .saal-board__dot {
+  width: 44px;
+  height: 44px;
+}
+
+
+
+.saal-mini {
+  --cw: 11px;
+  --ch: 18px;
+  --cg: 1px;
+}
+
+.saal-up {
+  color: var(--gain);
+}
+
+.saal-down {
+  color: var(--loss);
+}

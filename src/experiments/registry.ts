@@ -39,7 +39,23 @@ export interface Experiment {
 //     until: '2026-10-31',
 //     fallback: 'puls',
 //   },
-export const EXPERIMENTS: Experiment[] = [];
+export const EXPERIMENTS: Experiment[] = [
+  {
+    id: 'start',
+    title: 'Neue Startseite',
+    question: 'Wie gefällt dir diese Startseite – würdest du sie offen lassen?',
+    variants: [
+      { id: 'buehne', label: 'Bühne', description: 'Ein großes Motiv: was den Markt gerade am meisten bewegt, wechselt von selbst.' },
+      { id: 'radar', label: 'Radar', description: 'Die letzte Stunde als Radarschirm, jeder Trade ein Echo, dein Depot in der Mitte.' },
+      { id: 'saal', label: 'Börsensaal', description: 'Die große Anzeigetafel mit Klappziffern, Nachrichten als Laufschrift.' },
+      { id: 'skyline', label: 'Skyline', description: 'Der Markt als Stadt: Umsatz baut Türme, jeder Trade zündet ein Fenster.' },
+      { id: 'zeitung', label: 'Zeitung', description: 'Die Titelseite des Tages: Schlagzeile, Spalten und Kurszettel wie in einer Wirtschaftszeitung.' },
+      { id: 'meintag', label: 'Mein Tag', description: 'Alles, was dich betrifft: deine Papiere, deine Nachrichten, was zu tun ist.' },
+    ],
+    until: '2026-10-31',
+    fallback: 'buehne',
+  },
+];
 
 export function experimentOf(id: string): Experiment | undefined {
   return EXPERIMENTS.find((e) => e.id === id);

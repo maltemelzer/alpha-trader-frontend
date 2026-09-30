@@ -50,6 +50,7 @@ export const AREAS: Area[] = [
 
 /** Pages outside the areas, shown in the phone's „Mehr“ sheet. */
 export const EXTRA_PAGES = [
+  { label: 'Start', href: '/start', description: 'Was gerade im Spiel und bei dir passiert' },
   { label: 'Einstellungen', href: '/einstellungen', description: 'Konto, Gold, Werben, Notizen' },
   { label: 'Impressum', href: '/impressum' },
   { label: 'Datenschutz', href: '/datenschutz', description: 'Was mit deinen Daten passiert' },
@@ -85,6 +86,7 @@ export function pageOf(pathname: string): { label: string; href: string } | unde
 /** Title for the phone header: the page's name, or the kind of detail page. */
 export function titleOf(pathname: string): string {
   if (pathname === '/') return 'Meine Organisation';
+  if (pathname === '/start') return 'Start';
   if (pathname === '/experimente') return 'Experimente';
   const detail = DETAIL_TITLES.find(([prefix]) => pathname.startsWith(prefix))?.[1];
   return detail ?? pageOf(pathname)?.label ?? 'Alpha-Trader';

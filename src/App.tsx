@@ -8,6 +8,7 @@ import { LoginPage } from './pages/LoginPage';
 import { ImpressumPage } from './legal/ImpressumPage';
 import { DatenschutzPage } from './legal/DatenschutzPage';
 import { MarketPage } from './market/MarketPage';
+import { StartPage } from './home/StartPage';
 import { ExperimentsPage } from './experiments/ExperimentsPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SecurityPage } from './security/SecurityPage';
@@ -58,7 +59,8 @@ export function App() {
                 </RequireAuth>
               }
             >
-              <Route index element={<Navigate to="/markt" replace />} />
+              <Route index element={<Navigate to="/start" replace />} />
+              <Route path="start" element={<StartPage />} />
               <Route path="markt" element={<MarketPage />} />
               <Route path="experimente" element={<ExperimentsPage />} />
               <Route path="wertpapier/:asin" element={<SecurityPage />} />

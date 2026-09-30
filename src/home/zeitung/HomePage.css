@@ -1,0 +1,1029 @@
+/* Start page „Zeitung“ – prefix ztg-. The front page of a financial paper on the dark ground: Source Serif
+   for headlines and lede, Libre Franklin for kickers and meta, Plex Mono for prices. Rules in ink
+   (text colours), hairlines between columns, flat, colours only from tokens. */
+
+.page.ztg {
+  /* body text and true italics: Source Serif 4 in 400 under its own family name (public/fonts/fonts.css) */
+  --ztg-text: 'Source Serif 4 Text', var(--font-serif);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 0;
+  padding: var(--space-3) var(--space-6) var(--space-3);
+  color: var(--text-primary);
+  background: var(--bg-page);
+}
+
+.ztg a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.ztg a:hover .ztg-lead__title,
+.ztg h2 a:hover,
+.ztg h3 a:hover,
+.ztg-short a:hover .ztg-short__text {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.ztg a:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+.ztg-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.ztg-muted {
+  color: var(--text-muted);
+}
+
+.ztg-up {
+  color: var(--gain);
+}
+
+.ztg-down {
+  color: var(--loss);
+}
+
+/* ------------------------------------------------------------------ masthead */
+
+.ztg-mast {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) auto minmax(200px, 1fr);
+  align-items: stretch;
+  gap: var(--space-6);
+  padding-bottom: var(--space-2);
+  /* the double rule: thick over thin */
+  border-bottom: 3px solid var(--text-primary);
+  position: relative;
+}
+
+.ztg-mast::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -7px;
+  border-bottom: 1px solid var(--text-primary);
+}
+
+.ztg-mast__center {
+  text-align: center;
+}
+
+.ztg-mast__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: clamp(34px, 5.2vh, 50px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'opsz' 60;
+}
+
+.ztg-mast__motto {
+  margin: 6px 0 0;
+  font-family: var(--ztg-text);
+  font-weight: 400;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* The ears left and right of the title: a thin box each, like the weather box of a paper. */
+.ztg-ear {
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  justify-self: start;
+  min-width: 200px;
+  max-width: 260px;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ztg-ear--right {
+  justify-self: end;
+  text-align: right;
+}
+
+.ztg-ear__label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ztg-ear__word {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.ztg-ear__word.ztg-mono {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.ztg-ear__line {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ztg-ear__post {
+  margin-top: 3px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+
+.ztg-ear__post b {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.ztg-split {
+  display: flex;
+  height: 3px;
+  gap: 1px;
+  margin-top: 3px;
+}
+
+.ztg-split i {
+  display: block;
+  min-width: 0;
+}
+
+.ztg-split__up {
+  background: var(--gain);
+}
+
+.ztg-split__flat {
+  background: var(--line-strong);
+}
+
+.ztg-split__down {
+  background: var(--loss);
+}
+
+/* ------------------------------------------------------------------ dateline */
+
+.ztg-dateline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: 9px;
+  min-height: 30px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line-strong);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ztg-dateline > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ztg-dateline__live a:hover {
+  color: var(--text-primary);
+}
+
+/* Breaking news: ink on paper turned round – the one inverted element of the page. */
+.ztg-flash {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  animation: ztg-in 0.6s ease-out;
+}
+
+.ztg-flash--inline {
+  flex: 1;
+}
+
+.ztg-flash__tag {
+  flex: none;
+  padding: 2px 8px;
+  background: var(--text-primary);
+  color: var(--bg-page);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ztg-flash__time {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.ztg-flash__text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+@keyframes ztg-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------ body grid */
+
+.ztg-body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(270px, 22vw, 320px);
+  column-gap: var(--space-6);
+  padding-top: var(--space-4);
+}
+
+.ztg-main {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(280px, 1.3fr) minmax(0, 1fr);
+  row-gap: var(--space-4);
+}
+
+.ztg-side {
+  min-height: 0;
+  padding-left: var(--space-6);
+  border-left: 1px solid var(--line-strong);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ------------------------------------------------------------------ type */
+
+.ztg-kicker {
+  margin: 0 0 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ztg-byline {
+  margin: 0 0 6px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------------ lead */
+
+.ztg-lead {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.ztg-lead__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: clamp(28px, 4.6vh, 44px);
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+  font-variation-settings: 'opsz' 60;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ztg-lead__dek {
+  margin: 8px 0 0;
+  font-family: var(--ztg-text);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(16px, 2.2vh, 19px);
+  line-height: 1.3;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ztg-lead__body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  column-gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+
+.ztg-lead--text .ztg-lead__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ztg-lead__text {
+  container-type: inline-size;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ztg-lede {
+  margin: 0;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  font-family: var(--ztg-text);
+  font-weight: 400;
+  font-size: clamp(16px, 2.1vh, 19px);
+  line-height: 1.5;
+  hyphens: auto;
+  text-align: justify;
+}
+
+/* a lead without graphic: the text set in two columns filling the room (the overflow ends at the edge) */
+.ztg-lead--text .ztg-lede {
+  flex: 1 1 0;
+  columns: 2;
+  column-fill: auto;
+  column-gap: var(--space-6);
+  column-rule: 1px solid var(--line);
+}
+
+/* justified only where the measure is wide enough – narrow justified lines open holes */
+@container (max-width: 440px) {
+  .ztg-lede {
+    text-align: left;
+  }
+}
+
+/* Initial: three lines high, set into the lede */
+.ztg-lede::first-letter {
+  float: left;
+  margin: 4px 8px 0 0;
+  font-family: var(--font-serif);
+  font-size: 58px;
+  line-height: 0.82;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ztg-lead__more {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ztg-lead__more a {
+  display: inline-block;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--text-secondary);
+}
+
+.ztg-lead__more a::after {
+  content: ' →';
+}
+
+.ztg-lead__more a + a,
+.ztg-lead__more a:hover {
+  border-bottom-color: var(--text-primary);
+}
+
+/* ------------------------------------------------------------------ graphic */
+
+.ztg-fig {
+  margin: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 2px solid var(--text-primary);
+  padding-top: 6px;
+}
+
+.ztg-fig__title {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ztg-fig__title b {
+  color: var(--text-primary);
+}
+
+.ztg-fig__plot {
+  flex: 1;
+  min-height: 90px;
+  position: relative;
+}
+
+.ztg-fig__plot > * {
+  position: absolute;
+  inset: 0;
+}
+
+.ztg-fig__empty {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-size: 13px;
+}
+
+.ztg-fig__source {
+  margin: 4px 0 0;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------------ columns */
+
+.ztg-cols {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ztg-col {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 var(--space-4);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+}
+
+.ztg-cols > .ztg-col:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.ztg-cols > .ztg-col:last-child {
+  padding-right: 0;
+}
+
+.ztg-col__title {
+  margin: 0 0 4px;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.18;
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: none;
+}
+
+.ztg-col__text {
+  margin: 0;
+  min-height: 0;
+  font-family: var(--ztg-text);
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  hyphens: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: var(--ztg-lines, 7);
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ztg-col__dek {
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+.ztg-col.is-new,
+.ztg-short li.is-new {
+  animation: ztg-slide 0.9s ease-out;
+}
+
+@keyframes ztg-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Kurz notiert: a narrow wire column – time in the margin, one sentence each */
+.ztg-short__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ztg-short__list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.ztg-short__list a {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: 6px 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.ztg-short__stamp {
+  font-size: 11px;
+  padding-top: 2px;
+  color: var(--text-muted);
+}
+
+.ztg-short__text {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------ price list */
+
+.ztg-kz {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* wide: the experiment's floating test bar sits over the bottom right – the price list ends above it */
+.ztg-side .ztg-kz {
+  padding-bottom: 52px;
+}
+
+.ztg-side .ztg-kz__sec--most .ztg-kz__row:nth-child(n + 8) {
+  display: none;
+}
+
+.ztg-kz__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ztg-kz__unit {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.ztg-kz__sec {
+  flex: none;
+  margin-top: var(--space-2);
+}
+
+.ztg-kz__title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--line-strong);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ztg-kz__note {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ztg-kz__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ztg-kz__row a,
+.ztg-kz__row--wait {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 64px;
+  align-items: baseline;
+  column-gap: var(--space-2);
+  min-height: 21px;
+  padding: 1px 4px 1px 8px;
+  font-size: 12.5px;
+  border-bottom: 1px dotted var(--line);
+  position: relative;
+}
+
+.ztg-kz__row a:hover {
+  background: var(--bg-card);
+}
+
+.ztg-kz__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-sans);
+}
+
+.ztg-kz__rownote {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.ztg-kz__price {
+  text-align: right;
+  padding: 0 2px;
+  border-radius: var(--radius-sm);
+}
+
+.ztg-kz__chg {
+  text-align: right;
+  font-size: 12px;
+}
+
+/* your own papers: a brass bar in the margin, the name in full ink */
+.ztg-kz__row.is-mine a::before,
+.ztg-kz__mark {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background: var(--brass);
+}
+
+.ztg-kz__row.is-mine .ztg-kz__name {
+  font-weight: 600;
+}
+
+.ztg-kz__mark {
+  position: static;
+  display: inline-block;
+  width: 3px;
+  height: 11px;
+  vertical-align: -1px;
+}
+
+.ztg-kz__none {
+  padding: 2px 8px;
+  color: var(--text-muted);
+}
+
+.ztg-kz__foot {
+  margin: auto 0 0;
+  padding-top: var(--space-2);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* short screens: fewer lines in the columns, fewer rows in the price list, a slimmer masthead */
+@media (max-height: 820px) {
+  .ztg {
+    --ztg-lines: 5;
+  }
+
+  .ztg-ear__post {
+    display: none;
+  }
+
+  .ztg-mast__title {
+    font-size: 38px;
+  }
+
+  .ztg-lead__title {
+    font-size: 32px;
+  }
+
+  .ztg-kz__sec--most .ztg-kz__row:nth-child(n + 6) {
+    display: none;
+  }
+
+  .ztg-mast__motto {
+    display: none;
+  }
+}
+
+@media (max-height: 760px) {
+  .ztg {
+    --ztg-lines: 3;
+  }
+
+  .ztg-kz__sec--most .ztg-kz__row:nth-child(n + 5) {
+    display: none;
+  }
+
+  .ztg-kz__foot {
+    display: none;
+  }
+
+  .ztg-lede {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .ztg-col__title {
+    font-size: 18px;
+  }
+}
+
+/* ------------------------------------------------------------------ phone: the single-column edition */
+
+.page.ztg--phone {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) 0;
+}
+
+.ztg-pmast {
+  border-bottom: 3px solid var(--text-primary);
+  padding-bottom: 4px;
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.ztg-pmast::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  border-bottom: 1px solid var(--text-primary);
+}
+
+.ztg-pmast__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.ztg-pmast__line {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ztg-pscroll {
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+  padding-bottom: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ztg-pscroll > * {
+  flex: none;
+}
+
+.ztg--phone .ztg-lead {
+  padding-bottom: var(--space-3);
+}
+
+.ztg--phone .ztg-lead__title {
+  font-size: 26px;
+  -webkit-line-clamp: 3;
+}
+
+.ztg--phone .ztg-lead__dek {
+  font-size: 16px;
+}
+
+.ztg--phone .ztg-lead__body {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--space-3);
+}
+
+.ztg--phone .ztg-lead__text {
+  order: 2;
+}
+
+.ztg--phone .ztg-fig {
+  order: 1;
+  height: 110px;
+}
+
+.ztg--phone .ztg-lede {
+  font-size: 15px;
+  text-align: left;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.ztg--phone .ztg-lead--text .ztg-lede {
+  columns: 1;
+}
+
+.ztg--phone .ztg-lead__more a {
+  padding: 12px 0;
+}
+
+.ztg-pcols {
+  display: grid;
+}
+
+.ztg-pcols .ztg-col {
+  padding: var(--space-3) 0;
+  border-left: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ztg-pcols .ztg-col:first-child {
+  padding-top: 0;
+}
+
+.ztg--phone .ztg-col__text {
+  -webkit-line-clamp: 4;
+}
+
+.ztg--phone .ztg-short {
+  padding: 0;
+  border-left: 0;
+}
+
+.ztg--phone .ztg-short__list a {
+  min-height: 44px;
+  align-items: start;
+}
+
+.ztg--phone .ztg-kz__row a {
+  min-height: 40px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.ztg--phone .ztg-kz__sec {
+  margin-top: var(--space-4);
+}
+
+/* the depot and the letters as a small ruled box */
+.ztg-box {
+  border: 1px solid var(--line-strong);
+  padding: 0 var(--space-3);
+}
+
+.ztg-box__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.ztg-box__row + .ztg-box__row {
+  border-top: 1px solid var(--line);
+}
+
+.ztg-box__letter {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ztg-flash,
+  .ztg-col.is-new,
+  .ztg-short li.is-new {
+    animation: none;
+  }
+}
+
+.ztg-fig__title {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ztg-fig__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ztg-fig__value {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* loading: a flat bar the height of the line it stands for (no jump when the text comes) */
+.ztg-wait {
+  width: 70%;
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+}
+
+.ztg-wait--short {
+  width: 45%;
+}
+
+.ztg-pmast__line .ztg-flash__tag {
+  padding: 1px 6px;
+  font-size: 10px;
+}
+
+.ztg-pmast__line .ztg-flash__text {
+  font-size: 13px;
+}
+
+.ztg--phone .ztg-kz__title a {
+  display: inline-flex;
+  align-items: flex-end;
+  min-height: 44px;
+}
+
+/* 720 px high: the list keeps its AlphaCoin line above the test bar */
+@media (max-height: 760px) {
+  .ztg-side .ztg-kz__sec--most .ztg-kz__row:nth-child(n + 4),
+  .ztg-side .ztg-kz__sec--bonds .ztg-kz__row:nth-child(n + 3),
+  .ztg-side .ztg-kz__sec--move .ztg-kz__row:nth-child(n + 3) {
+    display: none;
+  }
+}
