@@ -71,6 +71,6 @@ describe('ReservesCard', () => {
     others = [{ id: 'c2', name: 'Kleinfirma', securityIdentifier: 'STKLEIN001', cash: 2_500_000 }];
     renderCard();
     expect(screen.getByText(/keins deiner Unternehmen hat eine Banklizenz/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Kleinfirma' })).toHaveAttribute('href', '/unternehmen/STKLEIN001?ansicht=fuehren&aktion=bank');
+    expect(screen.getByRole('link', { name: 'Kleinfirma' })).toHaveAttribute('href', '/wertpapier/STKLEIN001?ansicht=fuehren&aktion=bank');
   });
 });

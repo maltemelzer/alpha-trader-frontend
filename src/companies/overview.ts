@@ -1,9 +1,10 @@
-// Pure logic for the company overview („Überblick“, /unternehmen/:asin): price against book value
+// Pure logic for the company overview („Überblick“ on the stock page): price against book value
 // per share, the bonds the company issued, and what happens next (polls, capital measures,
 // dividends, mergers, bond maturities).
 import type { CapitalMeasureView, CompanyHistoryPoint, DividendPaymentView, MergerView } from '../api/queries';
 import type { HistorizedListingDataView, PricePoint } from '../api/types';
 import { withoutSpikes } from '../security/derive';
+import { companyHref } from './views';
 
 const DAY = 86_400_000;
 const NBSP = String.fromCharCode(0xa0);
@@ -171,7 +172,7 @@ export function upcoming(
       date: p.endDate,
       label: `Abstimmung: ${kinds[pollKind(p)] ?? 'Abstimmung'}`,
       detail: p.castVotesPercentage != null ? `${Math.round(p.castVotesPercentage)}${NBSP}% abgestimmt` : undefined,
-      href: src.asin ? `/unternehmen/${src.asin}?ansicht=abstimmungen` : undefined,
+      href: src.asin ? companyHref(src.asin, 'abstimmungen') : undefined,
     });
   }
   const measure = (m: CapitalMeasureView, kind: 'increase' | 'reduction') => {

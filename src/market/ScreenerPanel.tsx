@@ -42,6 +42,7 @@ import {
   type Screen,
   type ScreenRow,
 } from './screener';
+import { companyHref } from '../companies/views';
 
 type SetParam = (changes: Record<string, string | null>) => void;
 const href = (asin: string) => `/wertpapier/${asin}`;
@@ -599,7 +600,7 @@ function cellFor(k: ColKey, now: number, maxVolume: number): DataTableColumn<Scr
         ...base,
         type: 'text',
         render: (r) =>
-          r.issuer == null ? '–' : r.issuerAsin ? <a className="scr-issuer" href={`/unternehmen/${r.issuerAsin}`}>{r.issuer}</a> : r.issuer,
+          r.issuer == null ? '–' : r.issuerAsin ? <a className="scr-issuer" href={companyHref(r.issuerAsin)}>{r.issuer}</a> : r.issuer,
       };
     case 'gr':
       return { ...base, type: 'number', unit: 'm²', compact: false, accessor: (r) => r.size };

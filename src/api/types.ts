@@ -46,7 +46,7 @@ export interface ListingProfile {
     marketMakerPolicy?: string;
     achievementCount?: number;
     achievementTotal?: number;
-    ceo?: { id: string; username: string };
+    ceo?: { id: string; username: string; myUser?: boolean };
     ceoEmploymentAgreement?: { dailyWage?: number };
     companyCapabilities?: {
       bookValue?: number;

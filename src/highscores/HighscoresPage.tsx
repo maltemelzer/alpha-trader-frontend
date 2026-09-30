@@ -10,6 +10,7 @@ import { ViewList } from '../app/phone';
 import { positionChart } from './charts';
 import type { HighscoreType } from '../../design-system/components';
 import './HighscoresPage.css';
+import { companyHref } from '../companies/views';
 
 const PAGE = 50;
 
@@ -29,7 +30,7 @@ const hrefFor = (e: { username?: string; securityIdentifier?: string; id?: strin
   kind === 'user'
     ? `/spieler/${encodeURIComponent(e.username ?? '')}`
     : kind === 'company'
-      ? `/unternehmen/${e.securityIdentifier}`
+      ? companyHref(e.securityIdentifier ?? '')
       : `/allianz/${e.id}`;
 
 /** Highscores: players, companies or alliances by category; own place and its history on the side. */

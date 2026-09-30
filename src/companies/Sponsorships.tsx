@@ -22,6 +22,7 @@ import {
   type SponsorRating,
   type Sponsorship,
 } from './derive';
+import { companyHref } from './views';
 
 const typeLabel = (t: string) => (DS.LISTING_TYPES as Record<string, string>)[t] ?? t;
 
@@ -69,7 +70,7 @@ export function SponsorshipRows({
             {side === 'sponsor' ? (
               <a
                 className="mm-row__name"
-                href={s.designatedSponsor.securityIdentifier ? `/unternehmen/${s.designatedSponsor.securityIdentifier}` : undefined}
+                href={s.designatedSponsor.securityIdentifier ? companyHref(s.designatedSponsor.securityIdentifier) : undefined}
               >
                 <span className="mm-row__title">{s.designatedSponsor.name}</span>
                 <span className="mm-row__meta">
@@ -160,7 +161,7 @@ export function MarketMakerFacts({
         Sponsor pro Tag quotet (A am meisten).{' '}
         {isCeo && (
           <>
-            Verwalten unter <a href={`/unternehmen/${c.securityIdentifier}?ansicht=fuehren&aktion=marketmaker`}>Führen → Market Maker</a>.
+            Verwalten unter <a href={companyHref(c.securityIdentifier, 'fuehren', { aktion: 'marketmaker' })}>Führen → Market Maker</a>.
           </>
         )}
       </p>

@@ -13,6 +13,7 @@ import {
 import { useInternalLinks } from '../lib/useInternalLinks';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import './CompanyPage.css';
+import { companyHref } from './views';
 
 /** Own companies (as CEO) with their development since yesterday; employments with salary; founding a new one. */
 export function CompaniesPage() {
@@ -56,7 +57,7 @@ export function CompaniesPage() {
           ) : (
             <DS.CompanyDevelopment
               companies={list}
-              hrefFor={(c) => `/unternehmen/${c.securityIdentifier}`}
+              hrefFor={(c) => companyHref(c.securityIdentifier)}
               onFound={() => openFounding(true)}
               empty={
                 <DS.EmptyState
@@ -91,7 +92,7 @@ export function CompaniesPage() {
                   employments={jobs}
                   density="sm"
                   hrefFor={(e) =>
-                    e.company.securityIdentifier ? `/unternehmen/${e.company.securityIdentifier}` : '/unternehmen'
+                    e.company.securityIdentifier ? companyHref(e.company.securityIdentifier) : '/unternehmen'
                   }
                 />
               )}
@@ -114,7 +115,7 @@ export function CompaniesPage() {
           onCancel={() => openFounding(false)}
           onSubmit={(q) =>
             found.mutate(q, {
-              onSuccess: (c) => navigate(c.securityIdentifier ? `/unternehmen/${c.securityIdentifier}` : '/unternehmen'),
+              onSuccess: (c) => navigate(c.securityIdentifier ? companyHref(c.securityIdentifier) : '/unternehmen'),
               onError: (e) => setError(e.message),
             })
           }

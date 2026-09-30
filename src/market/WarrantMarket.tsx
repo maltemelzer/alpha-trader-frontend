@@ -8,6 +8,7 @@ import { useMostTraded, useWarrantsOnMany, type MarketRow } from '../api/queries
 import { Plot } from '../charts/Plot';
 import { corridorHeight, underlyingWarrantsChart } from '../security/warrantCharts';
 import { callPutCount, mergeWarrants, toWarrantView, underlyingsOf, warrantsByUnderlying } from '../security/warrants';
+import { companyHref } from '../companies/views';
 
 const TOP = 25;
 const FOUND = 12;
@@ -52,7 +53,7 @@ export function WarrantMarket({ searching, found }: { searching: boolean; found:
         warrants={rows}
         showUnderlying
         density="sm"
-        issuerHref={(c) => (c.securityIdentifier ? `/unternehmen/${c.securityIdentifier}` : '#')}
+        issuerHref={(c) => (c.securityIdentifier ? companyHref(c.securityIdentifier) : '#')}
         empty={
           <DS.EmptyState compact symbol={false} title="Keine laufenden Optionsscheine">
             {searching ? 'Auf die gefundenen Basiswerte läuft gerade kein Schein.' : 'Auf die meistgehandelten Aktien läuft gerade kein Schein – such nach einem Basiswert.'}

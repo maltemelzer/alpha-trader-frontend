@@ -116,7 +116,7 @@ describe('upcoming', () => {
       ['merger-m3', 'Fusion mit Big AG'],
       ['bond-next', 'Nächste Anleihe fällig'],
     ]);
-    expect(items[0]).toMatchObject({ detail: '42 % abgestimmt', href: '/unternehmen/STME?ansicht=abstimmungen' });
+    expect(items[0]).toMatchObject({ detail: '42 % abgestimmt', href: '/wertpapier/STME?ansicht=abstimmungen' });
     expect(items.find((i) => i.id === 'reduction-r1')).toMatchObject({ date: NOW + 3 * DAY, until: NOW + 4 * DAY });
   });
 });

@@ -9,6 +9,7 @@ import { MiniStats } from '../app/phone';
 import { short } from '../lib/format';
 import { reservesMoveChart } from './charts';
 import { BANK_LICENSE_MIN_CASH, QUICK_SHARES, daysToEarnBack, licenseProgress, reservesAmountError, reservesEffect, shareOfCash } from './reserves';
+import { companyHref } from '../companies/views';
 
 const NBSP = String.fromCharCode(0xa0);
 const eur = (n: number | undefined) => (n == null ? '–' : `${short(n)}${NBSP}€`);
@@ -200,7 +201,7 @@ function NoBank({ others }: { others: MyNonBank[] }) {
           return (
             <li key={c.id}>
               <div className="cb__row">
-                <a href={`/unternehmen/${c.securityIdentifier}?ansicht=fuehren&aktion=bank`}>{c.name}</a>
+                <a href={companyHref(c.securityIdentifier, 'fuehren', { aktion: 'bank' })}>{c.name}</a>
                 <span>{ready ? 'Lizenz möglich' : `${eur(c.cash)} von ${eur(BANK_LICENSE_MIN_CASH)}`}</span>
               </div>
               <DS.ProgressBar

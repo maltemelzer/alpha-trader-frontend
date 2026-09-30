@@ -92,7 +92,7 @@ describe('LogoForm', () => {
 describe('MarketMakerFacts', () => {
   it('lists the sponsors of the share and the mandates of the company', () => {
     render(<MarketMakerFacts company={company} isCeo={false} />);
-    expect(screen.getByRole('link', { name: /\$4You/ })).toHaveAttribute('href', '/unternehmen/STSPONSOR1');
+    expect(screen.getByRole('link', { name: /\$4You/ })).toHaveAttribute('href', '/wertpapier/STSPONSOR1?ansicht=ueberblick');
     expect(screen.getByRole('link', { name: /Iftar/ })).toHaveAttribute('href', '/wertpapier/STS821B8E3');
     expect(screen.getAllByRole('img', { name: 'Rating B von A bis D' })).toHaveLength(2);
     expect(screen.queryByRole('button')).toBeNull();

@@ -15,10 +15,6 @@
   gap: var(--space-4);
 }
 
-.sec--wide .sec__body {
-  grid-template-columns: minmax(0, 1fr) 380px;
-}
-
 .sec__main {
   min-height: 0;
   display: grid;
@@ -33,17 +29,8 @@
   gap: var(--space-4);
 }
 
-.sec__ticket {
-  min-height: 0;
-  overflow: auto;
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-}
-
 /* Absolutely positioned screen-reader text (.bnk-sr) must stay inside scroll boxes,
    otherwise it stretches the document and the page scrolls. */
-.sec__ticket,
 .sec__phone-panel {
   position: relative;
 }
@@ -354,8 +341,7 @@
   line-height: 18px;
 }
 
-.class__note a,
-.sec__side a {
+.class__note a {
   color: var(--text-primary);
 }
 
@@ -393,12 +379,6 @@
   color: var(--text-secondary);
   font: 500 12px/16px var(--font-mono);
   white-space: nowrap;
-}
-
-.sec__side {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
 }
 
 /* Phone: the four yield figures in one row without hints (the chart below needs the height). */
@@ -808,4 +788,35 @@
   color: var(--text-muted);
   font-size: 11px;
   line-height: 14px;
+}
+
+/* ---------- stock = company: view tabs under the header, one card per company view ---------- */
+.sec__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.sec__main--one {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* Phone: the tab row names the view – company cards need no title, only their presentation switch. */
+.sec--phone .cv .bnk-card__heading {
+  display: none;
+}
+
+.sec__phone-panel > .cv {
+  height: auto;
+}
+
+/* Short windows (1280×720) with the tab row: the two chart rows give up some minimum height. */
+@media (max-height: 800px) {
+  .sec__head:has(.pnav) {
+    gap: 0;
+  }
+  .sec__head:has(.pnav) + .sec__body .sec__main:not(.sec__main--one) {
+    grid-template-rows: minmax(160px, 1.15fr) minmax(160px, 1fr);
+  }
 }

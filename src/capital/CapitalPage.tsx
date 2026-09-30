@@ -21,6 +21,7 @@ import {
   type MergerRow,
 } from './derive';
 import './CapitalPage.css';
+import { companyHref } from '../companies/views';
 
 const STATUS = { planned: 'pending', running: 'partial', ended: 'filled' } as const;
 
@@ -123,7 +124,7 @@ function Measures() {
               caption="Kapitalmaßnahmen"
               rows={rows}
               rowKey="id"
-              getRowHref={(r: MeasureRow) => `/unternehmen/${r.asin}`}
+              getRowHref={(r: MeasureRow) => companyHref(r.asin)}
               empty="Keine Kapitalmaßnahmen."
               columns={[
                 { key: 'name', label: 'Unternehmen', mobile: 'title', sticky: true },
@@ -160,7 +161,7 @@ function Measures() {
             {rows.map((r) => (
               <Row
                 key={r.id}
-                href={`/unternehmen/${r.asin}`}
+                href={companyHref(r.asin)}
                 name={r.name}
                 // the countdown's label says the status (Beginn in = geplant, Ende in = läuft, beendet)
                 meta={
@@ -204,7 +205,7 @@ function useOpenCompany(index: number) {
   const navigate = useNavigate();
   return (p: PlotPoint) => {
     const asin = p.customdata?.[index];
-    if (asin) navigate(`/unternehmen/${asin}`);
+    if (asin) navigate(companyHref(asin));
   };
 }
 
@@ -254,7 +255,7 @@ function Dividends() {
               caption="Angekündigte Gewinnausschüttungen"
               rows={rows}
               rowKey="id"
-              getRowHref={(r: DividendRow) => `/unternehmen/${r.asin}`}
+              getRowHref={(r: DividendRow) => companyHref(r.asin)}
               empty="Keine Ausschüttungen angekündigt."
               columns={[{ key: 'name', label: 'Unternehmen', mobile: 'title', sticky: true }, termColumn, capColumn]}
             />
@@ -267,7 +268,7 @@ function Dividends() {
             {rows.map((r) => (
               <Row
                 key={r.id}
-                href={`/unternehmen/${r.asin}`}
+                href={companyHref(r.asin)}
                 name={r.name}
                 meta={dateText(r.startDate)}
                 value={<DS.Amount value={r.maximalCashVolume} compact />}
@@ -325,7 +326,7 @@ function Mergers() {
               caption="Angekündigte Fusionen"
               rows={rows}
               rowKey="id"
-              getRowHref={(r: MergerRow) => `/unternehmen/${r.asin}`}
+              getRowHref={(r: MergerRow) => companyHref(r.asin)}
               empty="Keine Fusionen angekündigt."
               columns={[
                 { key: 'name', label: 'Unternehmen', mobile: 'title', sticky: true },
@@ -334,7 +335,7 @@ function Mergers() {
                   label: 'Geht auf in',
                   render: (r: MergerRow) =>
                     r.acquirerAsin ? (
-                      <a className="capital__link" href={`/unternehmen/${r.acquirerAsin}`}>
+                      <a className="capital__link" href={companyHref(r.acquirerAsin)}>
                         → {r.acquirer}
                       </a>
                     ) : (
@@ -354,11 +355,11 @@ function Mergers() {
             {rows.map((r) => (
               <Row
                 key={r.id}
-                href={`/unternehmen/${r.asin}`}
+                href={companyHref(r.asin)}
                 name={r.name}
                 meta={
                   r.acquirerAsin ? (
-                    <a className="capital__link" href={`/unternehmen/${r.acquirerAsin}`}>
+                    <a className="capital__link" href={companyHref(r.acquirerAsin)}>
                       → {r.acquirer}
                     </a>
                   ) : (

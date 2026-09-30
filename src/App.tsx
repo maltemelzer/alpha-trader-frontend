@@ -25,7 +25,7 @@ import { BankPage } from './me/BankPage';
 import { SettingsPage } from './me/SettingsPage';
 import { PollsPage } from './polls/PollsPage';
 import { ForumPage } from './forum/ForumPage';
-import { CompanyPage } from './companies/CompanyPage';
+import { CompanyRedirect } from './companies/CompanyRedirect';
 import { CompaniesPage } from './companies/CompaniesPage';
 import { CapitalPage } from './capital/CapitalPage';
 import { CentralBankPage } from './centralbank/CentralBankPage';
@@ -66,7 +66,7 @@ export function App() {
               <Route path="portfolio" element={<Navigate to="/organisation" replace />} />
               <Route path="unternehmen" element={<CompaniesPage />} />
               <Route path="unternehmen/gruenden" element={<Navigate to="/unternehmen?gruenden=1" replace />} />
-              <Route path="unternehmen/:asin" element={<CompanyPage />} />
+              <Route path="unternehmen/:asin" element={<CompanyRedirect />} />
               <Route path="kapitalmassnahmen" element={<CapitalPage />} />
               <Route path="zentralbank" element={<CentralBankPage />} />
               <Route path="stroeme" element={<FlowsPage />} />

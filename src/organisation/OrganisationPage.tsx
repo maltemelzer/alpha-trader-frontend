@@ -22,6 +22,7 @@ import { QuickTransfer } from '../me/TransferSheet';
 import { translate } from '../lib/messages';
 import type { PortfolioView } from '../../design-system/components';
 import './OrganisationPage.css';
+import { companyHref } from '../companies/views';
 
 const empty = (title: string, text?: string) => (
   <DS.EmptyState compact as="h3" title={title}>
@@ -140,7 +141,7 @@ export function OrganisationPage() {
         <DS.CompanyDevelopment
           companies={development.data?.content ?? []}
           density="sm"
-          hrefFor={(c) => `/unternehmen/${c.securityIdentifier}`}
+          hrefFor={(c) => companyHref(c.securityIdentifier)}
           onFound={() => navigate('/unternehmen/gruenden')}
           empty={empty('Kein Unternehmen', 'Als CEO geführte Unternehmen erscheinen hier.')}
         />
