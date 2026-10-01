@@ -1,12 +1,15 @@
 // Start page „Bühne“: one lead on a big stage – whatever moves the market most right now. Scenes change by
-// themselves (12 s, progress like stories), hover/focus/the pause button hold them, arrows and swiping move
-// on. Underneath a slim programme of the next scenes and one quiet line with depot and unread messages.
+// themselves (8 s, progress like stories); the mouse over the text or the programme, keyboard focus and the
+// pause button hold them, arrows and swiping move on. Underneath a slim programme of the next scenes and one
+// quiet line with depot and unread messages.
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { DS } from '../../ds';
 import {
+  useBoardNews,
   useCapitalMeasures,
   useChatUnread,
+  useMyPolls,
   useDividendPayments,
   useInterestTender,
   useListings,
@@ -30,6 +33,12 @@ import {
   eventScenes,
   eyebrowOf,
   followScene,
+  forumScenes,
+  ipoScenes,
+  pollKindLabel,
+  pollScenes,
+  sceneTitle,
+  withRecord,
   lastClose,
   sinceClose,
   stripLead,
@@ -49,7 +58,9 @@ import {
   MIN,
   HOUR,
   type EventInput,
+  type ForumInput,
   type NewsInput,
+  type PollInput,
   type Scene,
 } from './derive';
 import { useCloses, useMoverBoard, useStageTrades } from './queries';
@@ -69,6 +80,8 @@ function useProgramme(now: number) {
   const mergers = useMergers();
   const increases = useCapitalMeasures('increase');
   const portfolio = usePortfolio();
+  const threads = useBoardNews();
+  const polls = useMyPolls('NOT_VOTED');
 
   const positions = useMemo(
     () => (portfolio.data?.positions ?? []).map((p) => ({ asin: p.securityIdentifier, shares: p.numberOfShares, value: p.volume ?? 0 })),
@@ -103,6 +116,7 @@ function useProgramme(now: number) {
         asin: m.company.securityIdentifier,
         date: m.startDate,
         acquirer: m.acquiringCompany?.name,
+        acquirerAsin: m.acquiringCompany?.securityIdentifier,
       })),
       ...(increases.data?.content ?? []).map((c) => ({
         id: c.id,
@@ -114,10 +128,36 @@ function useProgramme(now: number) {
         price: c.price,
       })),
     ];
+    const forum: ForumInput[] = (threads.data?.pages[0]?.content ?? []).slice(0, 10).map((p) => ({
+      id: p.id,
+      boardId: p.messageBoard?.id ?? '',
+      board: p.messageBoard?.name ?? 'Forum',
+      title: p.title,
+      text: htmlToText(p.content),
+      author: p.author?.username,
+      date: p.dateCreated ?? 0,
+      likes: p.numberOfLikes ?? 0,
+      comments: p.numberOfComments ?? 0,
+    }));
+    const open: PollInput[] = (polls.data?.content ?? []).map((p) => ({
+      id: p.id,
+      company: p.company?.name ?? 'Abstimmung',
+      asin: p.company?.securityIdentifier,
+      label: pollKindLabel(p),
+      motion: p.motion,
+      endDate: p.endDate ?? 0,
+      voices: (p.group ?? []).filter((g) => g.groupMember?.myUser).reduce((n, g) => n + g.numberOfVoices, 0),
+    }));
+    const moving = moverScenes(movers.data?.movers ?? [], positions);
+    const onStage = new Set(moving.flatMap((m) => (m.kind === 'mover' ? [m.line.asin] : [])));
     const candidates: Scene[] = [
-      ...moverScenes(movers.data ?? [], positions),
+      ...moving,
       ...newsScenes(articles, now),
       ...eventScenes(events, now),
+      ...forumScenes(forum, now),
+      ...pollScenes(open, now),
+      // a new listing that also moves is told as the move
+      ...ipoScenes(movers.data?.listed ?? [], now).filter((s) => s.kind !== 'ipo' || !onStage.has(s.line.asin)),
     ];
     const t = tradeScene(biggestTrade(trades.data, now - 15 * MIN), now);
     if (t) candidates.push(t);
@@ -128,7 +168,7 @@ function useProgramme(now: number) {
     );
     if (td) candidates.push(td);
     return programme(candidates);
-  }, [movers.data, positions, news.data, dividends.data, mergers.data, increases.data, trades.data, tender.data, rate.data, now]);
+  }, [movers.data, positions, news.data, dividends.data, mergers.data, increases.data, threads.data, polls.data, trades.data, tender.data, rate.data, now]);
 
   const loading = movers.isPending || news.isPending || trades.isPending || tender.isPending || mergers.isPending || dividends.isPending;
   return { list, loading, trades: trades.data, portfolio: portfolio.data };
@@ -139,6 +179,7 @@ function actionOf(s: Scene, type?: string): { href: string; label: string; secon
   const security = type === 'COIN' ? 'Zum Coin · handeln' : type === 'STOCK' || !type ? 'Zur Aktie · handeln' : 'Zum Wertpapier';
   switch (s.kind) {
     case 'mover':
+    case 'ipo':
       return { href: `/wertpapier/${s.line.asin}`, label: security };
     case 'trade':
       return { href: `/wertpapier/${s.trade.asin}`, label: security, second: { href: '/stroeme', label: 'Geldflüsse' } };
@@ -156,24 +197,23 @@ function actionOf(s: Scene, type?: string): { href: string; label: string; secon
         label: 'Alle Termine',
         second: s.event.asin ? { href: `/wertpapier/${s.event.asin}`, label: 'Zur Aktie' } : undefined,
       };
+    case 'forum':
+      return {
+        href: `/forum/${s.forum.boardId}/${s.forum.id}`,
+        label: 'Zum Thema',
+        second: s.forum.boardId ? { href: `/forum/${s.forum.boardId}`, label: s.forum.board } : undefined,
+      };
+    case 'poll':
+      return {
+        href: '/abstimmungen',
+        label: 'Abstimmen',
+        second: s.poll.asin ? { href: `/wertpapier/${s.poll.asin}`, label: 'Zur Aktie' } : undefined,
+      };
   }
 }
 
 /** Title of a scene; trades need the security's name first. */
-function titleOf(s: Scene, names: Record<string, string>): string {
-  switch (s.kind) {
-    case 'mover':
-      return s.line.name;
-    case 'trade':
-      return names[s.trade.asin] ?? s.trade.asin;
-    case 'news':
-      return s.news.title;
-    case 'tender':
-      return 'Der Leitzins wird ausgehandelt';
-    case 'event':
-      return s.event.company;
-  }
-}
+const titleOf = (s: Scene, names: Record<string, string>) => sceneTitle(s, s.kind === 'trade' ? names[s.trade.asin] : undefined);
 
 const titleSize = (t: string) => (t.length <= 22 ? 'xl' : t.length <= 44 ? 'lg' : 'md');
 
@@ -227,8 +267,28 @@ function Figure({ s, now, parties }: { s: Scene; now: number; parties?: { buyer?
           {s.news.author ? `von ${s.news.author} · ` : ''}
           {ago(s.news.date, now)}
           {s.news.comments ? ` · ${s.news.comments} Kommentar${s.news.comments === 1 ? '' : 'e'}` : ''}
-          {s.news.likes ? ` · ${s.news.likes} Likes` : ''}
+          {s.news.likes ? ` · ${s.news.likes} ${s.news.likes === 1 ? 'Like' : 'Likes'}` : ''}
         </p>
+      );
+    case 'forum':
+      return (
+        <p className="buehne-byline">
+          {s.forum.author ? `von ${s.forum.author} · ` : ''}
+          {ago(s.forum.date, now)}
+          {s.forum.comments ? ` · ${s.forum.comments} ${s.forum.comments === 1 ? 'Antwort' : 'Antworten'}` : ''}
+        </p>
+      );
+    case 'poll':
+      return (
+        <div className="buehne-figure">
+          <span className="buehne-figure__num">noch {(s.poll.endDate - now < 3 * HOUR ? countdown : countdownShort)(s.poll.endDate - now)}</span>
+        </div>
+      );
+    case 'ipo':
+      return (
+        <div className="buehne-figure">
+          <span className="buehne-figure__num">{s.line.price != null ? DS.format.price(s.line.price, s.line.type) : '–'}</span>
+        </div>
       );
     case 'tender':
       return (
@@ -271,10 +331,16 @@ function TileFigure({ s, now }: { s: Scene; now: number }) {
       return <span className="buehne-tile__fig">noch {countdownShort(s.endDate - now)}</span>;
     case 'event':
       return <span className="buehne-tile__fig">in {countdownShort(s.event.date - now)}</span>;
+    case 'forum':
+      return <span className="buehne-tile__fig">{ago(s.forum.date, now)}</span>;
+    case 'poll':
+      return <span className="buehne-tile__fig">noch {countdownShort(s.poll.endDate - now)}</span>;
+    case 'ipo':
+      return <span className="buehne-tile__fig">{ago(s.line.listed, now)}</span>;
   }
 }
 
-const KINDS = ['mover', 'trade', 'news', 'tender', 'event'];
+const KINDS = ['mover', 'trade', 'news', 'tender', 'event', 'forum', 'poll', 'ipo'];
 
 export function HomePage() {
   const phone = useIsPhone();
@@ -317,7 +383,9 @@ export function HomePage() {
   const list = useMemo(
     () =>
       rawList.map((s) =>
-        s.kind === 'mover' ? sinceClose(s, lastClose(closes.data[s.line.asin], now), closes.settled[s.line.asin]) : s,
+        s.kind === 'mover'
+          ? withRecord(sinceClose(s, lastClose(closes.data[s.line.asin], now), closes.settled[s.line.asin]), closes.data[s.line.asin], now)
+          : s,
       ),
     [rawList, closes, now],
   );
@@ -344,10 +412,11 @@ export function HomePage() {
   const next = useCallback(() => go(index + 1), [go, index]);
   const prev = useCallback(() => go(index - 1), [go, index]);
 
-  // Hold: hover or focus on stage/programme, the pause button, a hidden tab; reduced motion starts held.
+  // Hold: the mouse over text or programme, keyboard focus in them, the pause button, a hidden tab.
   const [hover, setHover] = useState(false);
   const [focus, setFocus] = useState(false);
-  const [paused, setPaused] = useState(reduced);
+  // Reduced motion turns the animations off, not the programme: scenes still change, ⏸ holds them.
+  const [paused, setPaused] = useState(false);
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.visibilityState === 'hidden');
   useEffect(() => {
     const on = () => setHidden(document.visibilityState === 'hidden');
@@ -398,7 +467,7 @@ export function HomePage() {
         }
       : undefined;
 
-  const tick = useSeconds(!!scene && (scene.kind === 'tender' || scene.kind === 'event'));
+  const tick = useSeconds(!!scene && (scene.kind === 'tender' || scene.kind === 'event' || scene.kind === 'poll'));
   const clock = Math.max(now, tick);
 
   // The stage keeps the left part free for the text when it is wide enough to overlap.
@@ -460,16 +529,18 @@ export function HomePage() {
   // No scene yet: the market's pace holds the stage.
   const quietNews = !scene;
   const newsStage =
-    scene?.kind === 'news' ? (
+    scene?.kind === 'news' || scene?.kind === 'forum' ? (
       <NewsStage
         key={`news-${scene.id}`}
-        quote={pullQuote(scene.news.text)}
-        likes={scene.news.likes}
-        comments={scene.news.comments}
-        tags={scene.news.tags ?? []}
+        quote={pullQuote(scene.kind === 'news' ? scene.news.text : scene.forum.text)}
+        likes={scene.kind === 'news' ? scene.news.likes : scene.forum.likes}
+        comments={scene.kind === 'news' ? scene.news.comments : scene.forum.comments}
+        tags={scene.kind === 'news' ? (scene.news.tags ?? []) : []}
         inset={inset}
       />
     ) : undefined;
+  // Deadlines without a line to draw get the clock.
+  const deadline = scene?.kind === 'event' ? scene.event.date : scene?.kind === 'poll' ? scene.poll.endDate : undefined;
   const nextAsin = list[(index + 1) % Math.max(1, list.length)] ? stageAsin(list[(index + 1) % list.length]) : undefined;
 
   return (
@@ -478,9 +549,13 @@ export function HomePage() {
       {quiet}
       <div
         className="buehne-main"
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        onFocus={() => setFocus(true)}
+        // Hover holds only where one reads or picks (the text, the programme) – the backdrop chart covers most of
+        // the page, a resting mouse there held the stage for good.
+        // The text lets the pointer through to the chart (pointer-events: none) – so its box is checked by position.
+        onPointerMove={(e) => e.pointerType === 'mouse' && setHover(overTextOrProgramme(e.currentTarget, e.clientX, e.clientY))}
+        onPointerLeave={() => setHover(false)}
+        // Only keyboard focus holds: a clicked tile or arrow keeps focus and held the stage until the next click elsewhere.
+        onFocus={(e) => setFocus(focusVisible(e.target))}
         onBlur={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocus(false);
         }}
@@ -495,17 +570,25 @@ export function HomePage() {
         >
           {!quietNews && <PaceFloor bars={pace} />}
           {quietNews && <PaceFloor bars={pace} tall inset={inset} />}
-          {scene?.kind === 'news' && !asin && newsStage}
-          {scene?.kind === 'event' && (
+          {(scene?.kind === 'news' || scene?.kind === 'forum') && !asin && newsStage}
+          {scene && deadline != null && (
             <ClockStage
               key={`clock-${scene.id}`}
-              to={scene.event.date}
+              to={deadline}
               now={clock}
               inset={inset}
-              caption={scene.event.kind === 'merger' && scene.event.acquirer ? `${scene.event.company} → ${scene.event.acquirer}` : undefined}
+              caption={
+                scene.kind === 'poll'
+                  ? `${scene.poll.label} · Ende`
+                  : scene.kind === 'event' && scene.event.companies
+                    ? `${scene.event.companies.length} Firmen → ${scene.event.company}`
+                    : scene.kind === 'event' && scene.event.kind === 'merger' && scene.event.acquirer
+                      ? `${scene.event.company} → ${scene.event.acquirer}`
+                      : undefined
+              }
             />
           )}
-          {scene && scene.kind !== 'event' && (asin || scene.kind === 'tender') && (
+          {scene && deadline == null && (asin || scene.kind === 'tender') && (
             <StageChart
               key={`chart-${asin ?? 'rate'}`}
               asin={asin}
@@ -606,7 +689,10 @@ export function HomePage() {
                         <span className="buehne-tile__fill buehne-tile__fill--done" />
                       ) : null}
                     </span>
-                    <span className="buehne-tile__kind">{kindLabel(s)}</span>
+                    <span className="buehne-tile__kind">
+                      {kindLabel(s)}
+                      {s.kind === 'mover' && s.family ? ` · +${s.family.others}` : ''}
+                    </span>
                     <span className="buehne-tile__name">{titleOf(s, names)}</span>
                     <TileFigure s={s} now={clock} />
                   </button>
@@ -623,6 +709,21 @@ export function HomePage() {
       </div>
     </div>
   );
+}
+
+function overTextOrProgramme(main: Element, x: number, y: number): boolean {
+  return [...main.querySelectorAll('.buehne-text, .buehne-programme')].some((el) => {
+    const r = el.getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  });
+}
+
+function focusVisible(el: Element): boolean {
+  try {
+    return el.matches(':focus-visible');
+  } catch {
+    return false;
+  }
 }
 
 function CtlIcon({ d, fill }: { d: string; fill?: boolean }) {

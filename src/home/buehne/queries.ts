@@ -11,7 +11,7 @@ const KEEP_MS = 30 * 60_000;
 
 type Page<T> = { content: T[] };
 interface Row {
-  listing: { name: string; securityIdentifier: string; type: string };
+  listing: { name: string; securityIdentifier: string; type: string; startDate?: number };
   lastPrice?: { value: number } | null;
   priceChangeInPercent?: number;
   volume?: number;
@@ -46,12 +46,13 @@ export function useStageTrades() {
 
 /**
  * Moves against the last daily close (both directions, 150 each) joined with the 24 h turnover of the
- * 400 most traded stocks and the coins – a move only counts with turnover behind it.
+ * 400 most traded stocks and the coins – a move only counts with turnover behind it. `listed`: the traded
+ * stocks with their listing date, for new listings (no extra request).
  */
 export function useMoverBoard() {
   return useQuery({
     queryKey: ['home-buehne', 'movers'],
-    queryFn: async (): Promise<MarketLine[]> => {
+    queryFn: async (): Promise<{ movers: MarketLine[]; listed: MarketLine[] }> => {
       const [up, down, stocks, coins] = await Promise.all([
         page<Row>('/api/v2/securitieswithbigpricechanges', { losersFirst: false, page: 0, size: 150 }),
         page<Row>('/api/v2/securitieswithbigpricechanges', { losersFirst: true, page: 0, size: 150 }),
@@ -60,7 +61,7 @@ export function useMoverBoard() {
       ]);
       const volume = new Map<string, number>();
       for (const r of [...stocks.content, ...coins.content]) volume.set(r.listing.securityIdentifier, r.volume ?? 0);
-      return [...up.content, ...down.content].map((r) => ({
+      const movers = [...up.content, ...down.content].map((r) => ({
         asin: r.listing.securityIdentifier,
         name: r.listing.name,
         type: r.listing.type,
@@ -68,6 +69,15 @@ export function useMoverBoard() {
         change: r.priceChangeInPercent,
         volume: volume.get(r.listing.securityIdentifier),
       }));
+      const listed = stocks.content.map((r) => ({
+        asin: r.listing.securityIdentifier,
+        name: r.listing.name,
+        type: r.listing.type,
+        price: r.lastPrice?.value,
+        volume: r.volume,
+        listed: r.listing.startDate,
+      }));
+      return { movers, listed };
     },
     refetchInterval: SLOW,
   });

@@ -19,6 +19,17 @@ import {
   atText,
   withoutBlips,
   breakingNews,
+  bundleMergers,
+  eyebrowOf,
+  familyKey,
+  familyName,
+  forumScenes,
+  ipoScenes,
+  pollKindLabel,
+  pollScenes,
+  recordSince,
+  sceneTitle,
+  SCENE_MS,
   pullQuote,
   accountLabel,
   lastClose,
@@ -93,11 +104,21 @@ describe('biggestTrade / tradeScene', () => {
 });
 
 describe('newsScenes', () => {
-  const news = (id: string, age: number, likes = 0): NewsInput => ({ id, title: id, text: 'Text', date: NOW - age, likes, comments: 0 });
-  it('keeps the three newest, pinned, freshest first', () => {
+  const long = 'Ein Satz mit genug Inhalt für eine Szene auf der Bühne. '.repeat(5);
+  const news = (id: string, age: number, likes = 0, text = long): NewsInput => ({ id, title: id, text, date: NOW - age, likes, comments: 0 });
+  it('keeps the two newest, pinned, freshest first', () => {
     const s = newsScenes([news('alt', 10 * HOUR), news('neu', 5 * MIN), news('uralt', 30 * HOUR), news('mittel', 2 * HOUR)], NOW);
-    expect(s.map((x) => x.id)).toEqual(['news-neu', 'news-mittel', 'news-alt']);
+    expect(s.map((x) => x.id)).toEqual(['news-neu', 'news-mittel']);
     expect(s.every((x) => x.pinned)).toBe(true);
+  });
+  it('leaves out one-liners', () => {
+    const s = newsScenes([news('kurz', 5 * MIN, 0, 'Ein reicher Geldsack will ich sein...'), news('lang', 2 * HOUR)], NOW);
+    expect(s.map((x) => x.id)).toEqual(['news-lang']);
+  });
+  it('is „frisch“ for six hours only', () => {
+    const [a, b] = newsScenes([news('neu', 2 * HOUR), news('alt', 8 * HOUR)], NOW);
+    expect(eyebrowOf(a)).toBe('Frisch in der Zeitung');
+    expect(eyebrowOf(b)).toBe('In der Zeitung');
   });
   it('counts reactions a little', () => {
     const [a, b] = newsScenes([news('still', HOUR), news('laut', HOUR, 5)], NOW);
@@ -123,7 +144,8 @@ describe('pullQuote / accountLabel', () => {
     const a = 'Kurz. ' + 'Erster langer Satz, der im Auszug schon zu lesen ist und nicht noch einmal. ';
     const text = a + 'Ein zweiter Satz, der weiter hinten im Artikel steht und etwas Neues sagt. Noch ein Satz mit genug Länge für ein Zitat.';
     expect(pullQuote(text, 60)).toBe('Ein zweiter Satz, der weiter hinten im Artikel steht und etwas Neues sagt.');
-    expect(pullQuote('Nur ein einziger Satz mit genug Zeichen für ein Zitat hier.', 220)).toBe('Nur ein einziger Satz mit genug Zeichen für ein Zitat hier.');
+    // a short article: the excerpt shows every sentence already – no quote saying it twice
+    expect(pullQuote('Nur ein einziger Satz mit genug Zeichen für ein Zitat hier.')).toBeUndefined();
     expect(pullQuote('Zu kurz.')).toBeUndefined();
   });
   it('names accounts for people', () => {
@@ -333,5 +355,81 @@ describe('stripLead / thinDots', () => {
     const t = thinDots(dots, ['7'], 5, 10);
     expect(t.map((d) => d.id)).toEqual(['4', '7', '9']);
     expect(thinDots(dots, [], 20)).toBe(dots);
+  });
+});
+
+describe('families, bundles and new scenes', () => {
+  it('runs eight seconds per scene', () => {
+    expect(SCENE_MS).toBe(8000);
+  });
+
+  it('names a family without its number blocks', () => {
+    expect(familyName('zFloat Vault 010')).toBe('zFloat Vault');
+    expect(familyKey('zFloat Vault 010')).toBe(familyKey('zFloat Vault 007'));
+    expect(familyKey('Spare 4534924915')).toBe('spare');
+    expect(familyKey('Alpha Post AG')).toBe('alpha post');
+    expect(familyKey('john62 Inc.')).not.toBe(familyKey('john17 Inc.'));
+  });
+
+  it('keeps one move per family and counts the others', () => {
+    const named = (asin: string, name: string, change: number) => ({ ...line(asin, change, 1e9), name });
+    const s = moverScenes([named('STV10', 'zFloat Vault 010', 12), named('STV07', 'zFloat Vault 007', 8), named('STV04', 'zFloat Vault 004', 5), named('STX', 'Fortune', 4)]);
+    expect(s.map((x) => x.id)).toEqual(['mover-STV10', 'mover-STX']);
+    expect(s[0].kind === 'mover' && s[0].family).toEqual({ name: 'zFloat Vault', others: 2 });
+    expect(s[1].kind === 'mover' && s[1].rank).toBe(1);
+    expect(reasonOf(s[0], NOW)).toContain('2 weitere aus der Reihe „zFloat Vault“');
+  });
+
+  it('keeps own positions apart from their family', () => {
+    const named = (asin: string, change: number) => ({ ...line(asin, change, 1e9), name: `zFloat Vault ${asin}` });
+    const s = moverScenes([named('010', 12), named('007', 8)], [{ asin: '007', shares: 1, value: 10 }]);
+    expect(s).toHaveLength(2);
+  });
+
+  it('bundles mergers into the same company', () => {
+    const merger = (id: string, company: string, inH: number) => ({ id, kind: 'merger' as const, company, acquirer: 'Fortune', acquirerAsin: 'STFORTUNE', date: NOW + inH * HOUR });
+    const out = bundleMergers([merger('a', 'john62 Inc.', 5), merger('b', 'kendra47 Inc.', 2), { ...merger('c', 'Alpha Post AG', 3), acquirer: 'Capitol' }]);
+    const bundle = out.find((e) => e.companies)!;
+    expect(bundle.companies).toEqual(['kendra47 Inc.', 'john62 Inc.']);
+    expect(bundle.date).toBe(NOW + 2 * HOUR);
+    expect(out).toHaveLength(2);
+    const [scene] = eventScenes([merger('a', 'john62 Inc.', 5), merger('b', 'kendra47 Inc.', 2)], NOW);
+    expect(sceneTitle(scene)).toBe('Fortune übernimmt 2 Firmen');
+    expect(reasonOf(scene, NOW)).toMatch(/^kendra47 Inc\. und john62 Inc\. gehen in Fortune auf – die erste heute/);
+  });
+
+  it('takes the freshest forum thread of three days', () => {
+    const t = (id: string, age: number, comments = 0) => ({ id, boardId: 'b', board: 'Forum', title: id, text: 'x', date: NOW - age, likes: 0, comments });
+    expect(forumScenes([t('alt', 4 * 24 * HOUR)], NOW)).toEqual([]);
+    expect(forumScenes([t('a', 30 * HOUR, 5), t('b', HOUR)], NOW).map((s) => s.id)).toEqual(['forum-b']);
+  });
+
+  it('ranks open polls by their end', () => {
+    const p = (id: string, inH: number) => ({ id, company: id, label: 'Fusion', endDate: NOW + inH * HOUR, voices: 10 });
+    const s = pollScenes([p('spaet', 20), p('bald', 1), p('vorbei', -1)], NOW);
+    expect(s.map((x) => x.id)).toEqual(['poll-bald', 'poll-spaet']);
+    expect(reasonOf(s[0], NOW)).toContain('du hast 10 Stimmen');
+  });
+
+  it('names the kind of a poll like the design system', () => {
+    expect(pollKindLabel({ acquiringCompany: {} })).toBe('Fusion');
+    expect(pollKindLabel({ capitalIncreaseType: 'WITH_SUBSCRIPTION_RIGHTS' })).toBe('Kapitalerhöhung');
+    expect(pollKindLabel({})).toBe('Abstimmung');
+  });
+
+  it('shows new listings with turnover, not batches of shells', () => {
+    const l = (asin: string, name: string, volume: number, ageH: number): MarketLine => ({ asin, name, type: 'STOCK', price: 1, volume, listed: NOW - ageH * HOUR });
+    const shells = ['1', '2', '3', '4'].map((n) => l(`SP${n}`, `Spare ${n}000000`, 5e6, 30));
+    const s = ipoScenes([l('STKOL', 'Kolosseum AG', 5.6e7, 11), l('STOLD', 'Alt AG', 1e9, 100), l('STTHIN', 'Dünn AG', 5000, 5), ...shells], NOW);
+    expect(s.map((x) => x.id)).toEqual(['ipo-STKOL']);
+    expect(reasonOf(s[0], NOW)).toMatch(/^Vor 11\xa0Std\. an die Börse gegangen/);
+  });
+
+  it('finds records of two weeks and more', () => {
+    const closes = [30, 20, 10, 5, 1].map((d, i) => ({ date: NOW - d * 24 * HOUR, closePrice: [12, 9, 8, 9.5, 9.8][i] }));
+    expect(recordSince(closes, 11, true, NOW)).toEqual({ high: true, days: 30, all: undefined });
+    expect(recordSince(closes, 9.6, true, NOW)).toBeUndefined(); // yesterday closed at 9,8 – no record
+    expect(recordSince(closes, 13, true, NOW)).toEqual({ high: true, days: 30, all: true });
+    expect(recordSince(closes, 7, false, NOW)).toEqual({ high: false, days: 30, all: true });
   });
 });

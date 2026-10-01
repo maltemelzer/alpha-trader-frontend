@@ -9,9 +9,9 @@ export const DAY = 24 * HOUR;
 const NBSP = String.fromCharCode(0xa0);
 
 /** How long one scene stays on stage before the next one comes. */
-export const SCENE_MS = 12_000;
-/** At most this many scenes in the programme. */
-export const MAX_SCENES = 8;
+export const SCENE_MS = 8_000;
+/** At most this many scenes in the programme (a round of ~80 s). */
+export const MAX_SCENES = 10;
 /** Trades at or below this price are transfers, never a market price. */
 const TRANSFER_PRICE = 0.01;
 /** Moves beyond this are spot-price trades or new listings, not news (the screener uses the same bound). */
@@ -35,6 +35,17 @@ export interface MarketLine {
   volume?: number;
   /** what `change` is measured against: the daily close we draw, the server's reference, or not known yet */
   basis?: 'close' | 'server' | 'pending';
+  /** listed since (ms) – new listings */
+  listed?: number;
+  /** the price is the highest (or lowest) daily close for `days` days – see recordSince */
+  record?: Record_;
+}
+
+export interface Record_ {
+  high: boolean;
+  days: number;
+  /** no close in the loaded history came near: „for more than `days` days“ */
+  all?: boolean;
 }
 
 export interface NewsInput {
@@ -60,6 +71,35 @@ export interface EventInput {
   shares?: number;
   price?: number;
   acquirer?: string;
+  acquirerAsin?: string;
+  /** a bundle of mergers into the same acquirer: the companies taken over, soonest first */
+  companies?: string[];
+}
+
+/** A forum thread (the boards the player is a member of). */
+export interface ForumInput {
+  id: string;
+  boardId: string;
+  board: string;
+  title: string;
+  text: string;
+  author?: string;
+  date: number;
+  likes: number;
+  comments: number;
+}
+
+/** A poll the player can still vote in. */
+export interface PollInput {
+  id: string;
+  company: string;
+  asin?: string;
+  /** „Kapitalerhöhung“, „Fusion“ … (pollKindLabel) */
+  label: string;
+  motion?: string;
+  endDate: number;
+  /** the player's voices in it */
+  voices: number;
 }
 
 export interface PositionInput {
@@ -79,11 +119,21 @@ interface SceneBase {
 }
 
 export type Scene =
-  | (SceneBase & { kind: 'mover'; line: MarketLine & { change: number; volume: number }; mine?: PositionInput; rank: number })
+  | (SceneBase & {
+      kind: 'mover';
+      line: MarketLine & { change: number; volume: number };
+      mine?: PositionInput;
+      rank: number;
+      /** more moves of the same family („zFloat Vault 007, 010 …“) left out for this one */
+      family?: { name: string; others: number };
+    })
   | (SceneBase & { kind: 'trade'; trade: BigTrade })
-  | (SceneBase & { kind: 'news'; news: NewsInput })
+  | (SceneBase & { kind: 'news'; news: NewsInput; fresh?: boolean })
   | (SceneBase & { kind: 'tender'; asin: string; endDate: number; rate?: number })
-  | (SceneBase & { kind: 'event'; event: EventInput });
+  | (SceneBase & { kind: 'event'; event: EventInput })
+  | (SceneBase & { kind: 'forum'; forum: ForumInput })
+  | (SceneBase & { kind: 'poll'; poll: PollInput })
+  | (SceneBase & { kind: 'ipo'; line: MarketLine & { volume: number; listed: number } });
 
 export type SceneKind = Scene['kind'];
 
@@ -135,7 +185,39 @@ export function moverScenes(lines: MarketLine[], positions: PositionInput[] = []
     out.push({ id: `mover-${l.asin}`, kind: 'mover', line: { ...l, change, volume }, mine: own, score, rank: 0 });
   }
   out.sort((a, b) => b.score - a.score);
-  return out.map((s, i) => (s.kind === 'mover' ? { ...s, rank: i } : s));
+  // One move per family: „zFloat Vault 010“ and „zFloat Vault 007“ are one story, not two scenes. Own positions stay apart.
+  const best = new Map<string, Scene & { kind: 'mover' }>();
+  const kept: (Scene & { kind: 'mover' })[] = [];
+  for (const s of out) {
+    if (s.kind !== 'mover') continue;
+    const key = s.mine ? `mine-${s.line.asin}` : familyKey(s.line.name);
+    const head = best.get(key);
+    if (head) {
+      head.family = { name: familyName(head.line.name), others: (head.family?.others ?? 0) + 1 };
+      continue;
+    }
+    best.set(key, s);
+    kept.push(s);
+  }
+  return kept.map((s, i) => ({ ...s, rank: i }));
+}
+
+const LEGAL = new Set(['inc', 'inc.', 'ag', 'se', 'corp', 'corp.', 'gmbh', 'kg', 'ltd', 'ltd.', 'llc', 'co.', '&', 'kgaa', 'ug', 'sa']);
+const NUMBERISH = /^[\d.,%/()#-]+$/;
+
+/** A name without its number blocks: „zFloat Vault 010“ → „zFloat Vault“, „Spare 4534924915“ → „Spare“. Glued numbers („john62“) stay. */
+export function familyName(name: string): string {
+  const words = name.trim().split(/\s+/).filter((w) => !NUMBERISH.test(w));
+  return words.join(' ') || name.trim();
+}
+
+/** Key of a name's family: familyName without legal forms, lower case. */
+export function familyKey(name: string): string {
+  const words = familyName(name)
+    .toLowerCase()
+    .split(' ')
+    .filter((w) => !LEGAL.has(w));
+  return words.join(' ') || name.trim().toLowerCase();
 }
 
 /**
@@ -174,13 +256,20 @@ export function tradeScene(trade: BigTrade | undefined, now: number): Scene | un
 
 /** An article counts as breaking news this long – it jumps the queue of the running programme. */
 export const FRESH_NEWS_MS = 30 * MIN;
+/** „Frisch in der Zeitung“ only this long, „In der Zeitung“ afterwards. */
+export const RECENT_NEWS_MS = 6 * HOUR;
+/** Articles with less text than this (one-liners) are no scene. */
+export const MIN_NEWS_TEXT = 200;
+/** Characters of an article's text the stage shows – a sentence in them is no pull quote. */
+export const NEWS_EXCERPT = 160;
 
 /**
  * The newest articles, always in the programme (pinned): relevance from freshness (half-life 3 h) and a
  * little from reactions; breaking news (< 30 min) on top of everything else.
  */
-export function newsScenes(news: NewsInput[], now: number, max = 3): Scene[] {
-  return [...news]
+export function newsScenes(news: NewsInput[], now: number, max = 2): Scene[] {
+  return news
+    .filter((n) => n.text.replace(/\s+/g, ' ').trim().length >= MIN_NEWS_TEXT)
     .sort((a, b) => b.date - a.date)
     .slice(0, max)
     .map((n): Scene => {
@@ -190,6 +279,7 @@ export function newsScenes(news: NewsInput[], now: number, max = 3): Scene[] {
         id: `news-${n.id}`,
         kind: 'news',
         news: n,
+        fresh: now - n.date < RECENT_NEWS_MS,
         pinned: true,
         score: clamp01(0.1 + 0.55 * freshness(now - n.date, 3 * HOUR) + talk + breaking),
       };
@@ -205,9 +295,10 @@ export function breakingNews(ranked: Scene[], held: Scene[], now: number): Scene
 
 /**
  * A sentence from further down the article for the stage – the part the excerpt does not show: the longest
- * sentence of 40–200 characters that starts after `skip` characters, else the first such sentence.
+ * sentence of 40–200 characters that starts after `skip` characters. None in a short article: the excerpt
+ * already holds every sentence, a quote would say it twice.
  */
-export function pullQuote(text: string, skip = 220): string | undefined {
+export function pullQuote(text: string, skip = NEWS_EXCERPT): string | undefined {
   const clean = text.replace(/\s+/g, ' ').trim();
   const out: { s: string; at: number }[] = [];
   const re = /[^.!?]+[.!?]+(?=\s|$)/g;
@@ -217,8 +308,7 @@ export function pullQuote(text: string, skip = 220): string | undefined {
     if (t.length >= 40 && t.length <= 200) out.push({ s: t, at: m.index });
   }
   const later = out.filter((x) => x.at >= skip);
-  if (later.length) return later.reduce((a, b) => (b.s.length > a.s.length ? b : a)).s;
-  return out[0]?.s;
+  return later.length ? later.reduce((a, b) => (b.s.length > a.s.length ? b : a)).s : undefined;
 }
 
 /** Name of a securities account for people: firms without „(ASIN) | CEO“, ETF funds as such. */
@@ -241,13 +331,133 @@ export function tenderScene(tender: { asin: string; endDate: number } | undefine
   };
 }
 
-/** Dividends, mergers and capital measures due within two days, soonest first. */
+/**
+ * Mergers into the same company within the window as one event („Fortune übernimmt 4 Firmen“) – shells are
+ * often merged by the dozen. Single mergers and other events stay as they are.
+ */
+export function bundleMergers(events: EventInput[]): EventInput[] {
+  const groups = new Map<string, EventInput[]>();
+  const rest: EventInput[] = [];
+  for (const e of events) {
+    if (e.kind !== 'merger' || !e.acquirer) rest.push(e);
+    else groups.set(e.acquirer, [...(groups.get(e.acquirer) ?? []), e]);
+  }
+  for (const [acquirer, list] of groups) {
+    if (list.length === 1) {
+      rest.push(list[0]);
+      continue;
+    }
+    const sorted = [...list].sort((a, b) => a.date - b.date);
+    rest.push({
+      id: `bundle-${acquirer}`,
+      kind: 'merger',
+      company: acquirer,
+      asin: sorted[0].acquirerAsin,
+      acquirer,
+      acquirerAsin: sorted[0].acquirerAsin,
+      date: sorted[0].date,
+      companies: sorted.map((e) => e.company),
+    });
+  }
+  return rest;
+}
+
+/** Dividends, mergers (bundled per acquirer) and capital measures due within two days, soonest first. */
 export function eventScenes(events: EventInput[], now: number, max = 2): Scene[] {
-  return events
-    .filter((e) => e.date > now && e.date - now < 2 * DAY)
+  return bundleMergers(events.filter((e) => e.date > now && e.date - now < 2 * DAY))
     .map((e): Scene => ({ id: `event-${e.kind}-${e.id}`, kind: 'event', event: e, score: clamp01(0.15 + 0.5 * urgency(e.date - now, DAY)) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, max);
+}
+
+/** The newest forum thread of the last three days (half-life 12 h, a little from the replies). */
+export function forumScenes(threads: ForumInput[], now: number, max = 1): Scene[] {
+  return threads
+    .filter((t) => now - t.date < 3 * DAY && t.date <= now)
+    .map((t): Scene => ({
+      id: `forum-${t.id}`,
+      kind: 'forum',
+      forum: t,
+      score: clamp01(0.1 + 0.45 * freshness(now - t.date, 12 * HOUR) + Math.min(0.1, (t.comments + t.likes) * 0.02)),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, max);
+}
+
+/** Polls the player has not voted in yet – the closer the end, the higher (horizon one day). */
+export function pollScenes(polls: PollInput[], now: number, max = 2): Scene[] {
+  return polls
+    .filter((p) => p.endDate > now)
+    .map((p): Scene => ({ id: `poll-${p.id}`, kind: 'poll', poll: p, score: clamp01(0.2 + 0.6 * urgency(p.endDate - now, DAY)) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, max);
+}
+
+/** A new listing needs this much 24 h turnover (€) to be news. */
+export const MIN_IPO_VOLUME = 1_000_000;
+
+/**
+ * Shares listed within three days with real turnover. Batches of shells („Spare 4534924915“, a dozen at once)
+ * are no listing worth a scene: a family of more than three new listings is left out.
+ */
+export function ipoScenes(lines: MarketLine[], now: number, max = 1): Scene[] {
+  const fresh = lines.filter((l) => l.listed != null && l.listed <= now && now - l.listed < 3 * DAY);
+  const families = new Map<string, number>();
+  for (const l of fresh) families.set(familyKey(l.name), (families.get(familyKey(l.name)) ?? 0) + 1);
+  return fresh
+    .filter((l) => (l.volume ?? 0) >= MIN_IPO_VOLUME && (families.get(familyKey(l.name)) ?? 0) <= 3)
+    .map((l): Scene => {
+      const volume = l.volume ?? 0;
+      const listed = l.listed as number;
+      return {
+        id: `ipo-${l.asin}`,
+        kind: 'ipo',
+        line: { ...l, volume, listed },
+        score: clamp01(0.15 + 0.5 * volumeWeight(volume) * freshness(now - listed, DAY)),
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, max);
+}
+
+/** Label of a poll's kind, as the design system's PollCard names it. */
+export function pollKindLabel(p: {
+  kind?: string;
+  capitalIncreaseType?: unknown;
+  acquiringCompany?: unknown;
+  dailyWage?: number | null;
+  name?: string | null;
+  company?: unknown;
+  numberOfShares?: number | null;
+  price?: number | null;
+  maximalCashVolume?: number | null;
+}): string {
+  const LABELS: Record<string, string> = {
+    CAPITAL_INCREASE: 'Kapitalerhöhung',
+    CAPITAL_REDUCTION: 'Kapitalherabsetzung',
+    DIVIDEND_PAYMENT: 'Gewinnausschüttung',
+    MERGER: 'Fusion',
+    CHANGE_NAME: 'Namenswechsel',
+    CASH_OUT: 'Depotabverkauf',
+    LIQUIDATION: 'Liquidation',
+    EMPLOY_CEO: 'CEO einstellen',
+  };
+  const kind =
+    p.kind ??
+    (p.capitalIncreaseType
+      ? 'CAPITAL_INCREASE'
+      : p.acquiringCompany
+        ? 'MERGER'
+        : p.dailyWage != null
+          ? 'EMPLOY_CEO'
+          : p.name != null && p.company
+            ? 'CHANGE_NAME'
+            : p.numberOfShares != null && p.price != null
+              ? 'CAPITAL_REDUCTION'
+              : p.maximalCashVolume != null
+                ? 'DIVIDEND_PAYMENT'
+                : 'OTHER');
+  return LABELS[kind] ?? 'Abstimmung';
 }
 
 /**
@@ -351,11 +561,17 @@ export function eyebrowOf(s: Scene): string {
     case 'trade':
       return 'Größter Trade der letzten Minuten';
     case 'news':
-      return 'Frisch in der Zeitung';
+      return s.fresh ? 'Frisch in der Zeitung' : 'In der Zeitung';
     case 'tender':
       return 'Zinstender';
     case 'event':
-      return EVENT_LABEL[s.event.kind];
+      return s.event.companies ? 'Fusionen' : EVENT_LABEL[s.event.kind];
+    case 'forum':
+      return `Im Forum · ${s.forum.board}`;
+    case 'poll':
+      return `Deine Stimme fehlt · ${s.poll.label}`;
+    case 'ipo':
+      return 'Neu an der Börse';
   }
 }
 
@@ -371,9 +587,52 @@ export function kindLabel(s: Scene): string {
     case 'tender':
       return 'Zinstender';
     case 'event':
-      return EVENT_LABEL[s.event.kind];
+      return s.event.companies ? 'Fusionen' : EVENT_LABEL[s.event.kind];
+    case 'forum':
+      return 'Forum';
+    case 'poll':
+      return 'Abstimmung';
+    case 'ipo':
+      return 'Börsengang';
   }
 }
+
+/** Title of a scene (trades need the security's name from elsewhere – `tradeName`). */
+export function sceneTitle(s: Scene, tradeName?: string): string {
+  switch (s.kind) {
+    case 'mover':
+    case 'ipo':
+      return s.line.name;
+    case 'trade':
+      return tradeName ?? s.trade.asin;
+    case 'news':
+      return s.news.title;
+    case 'tender':
+      return 'Der Leitzins wird ausgehandelt';
+    case 'event':
+      return s.event.companies ? `${s.event.company} übernimmt ${s.event.companies.length} Firmen` : s.event.company;
+    case 'forum':
+      return s.forum.title;
+    case 'poll':
+      return s.poll.company;
+  }
+}
+
+/** „Höchster Schlusskurs seit 21 Tagen.“ – for a record of at least two weeks. */
+export function recordText(r: Record_ | undefined): string {
+  if (!r) return '';
+  return ` ${r.high ? 'Höchster' : 'Tiefster'} Stand ${r.all ? 'seit über' : 'seit'} ${r.days}${NBSP}Tagen.`;
+}
+
+/** Text of an article or thread, cut to what the stage shows. */
+const excerpt = (text: string) => {
+  const t = text.replace(/\s+/g, ' ').trim();
+  return t.length > NEWS_EXCERPT ? `${t.slice(0, NEWS_EXCERPT - 1).replace(/\s+\S*$/, '')} …` : t;
+};
+
+/** „a, b, c und 2 weitere“ */
+const listNames = (names: string[], n = 3) =>
+  names.length <= n ? names.join(', ').replace(/, ([^,]*)$/, ' und $1') : `${names.slice(0, n).join(', ')} und ${names.length - n} weitere`;
 
 /** Why the scene is on stage – one sentence. */
 export function reasonOf(s: Scene, now: number): string {
@@ -389,16 +648,26 @@ export function reasonOf(s: Scene, now: number): string {
         : s.rank === 0
           ? ` – bei ${money(volume)} Umsatz in 24${NBSP}Std. die stärkste Bewegung mit echtem Handel.`
           : ` – bei ${money(volume)} Umsatz in 24${NBSP}Std.`;
-      return head + why;
+      const family = s.family ? ` Dazu ${s.family.others === 1 ? 'ein weiteres' : `${s.family.others} weitere`} aus der Reihe „${s.family.name}“.` : '';
+      return head + why + recordText(s.line.record) + family;
     }
     case 'trade': {
       const t = s.trade;
       const when = ago(t.date, now);
       return `${count(t.shares)} Stück zu ${priceText(t.price)} in einem Zug – ${when}${when.endsWith('.') ? '' : '.'}`;
     }
-    case 'news': {
-      const text = s.news.text.replace(/\s+/g, ' ').trim();
-      return text.length > 220 ? `${text.slice(0, 219).replace(/\s+\S*$/, '')} …` : text;
+    case 'news':
+      return excerpt(s.news.text);
+    case 'forum':
+      return excerpt(s.forum.text) || `Neues Thema von ${s.forum.author ?? 'unbekannt'}.`;
+    case 'poll': {
+      const p = s.poll;
+      const motion = p.motion?.replace(/\s+/g, ' ').trim();
+      return `${p.label}${motion ? `: „${motion.length > 90 ? `${motion.slice(0, 89).replace(/\s+\S*$/, '')} …` : motion}“` : ''} – du hast ${count(p.voices)} ${p.voices === 1 ? 'Stimme' : 'Stimmen'}, die Abstimmung endet ${atText(p.endDate, now)}.`;
+    }
+    case 'ipo': {
+      const l = s.line;
+      return `${ago(l.listed, now).replace(/^vor/, 'Vor')} an die Börse gegangen – schon ${money(l.volume)} Umsatz in 24${NBSP}Std.`;
     }
     case 'tender': {
       const rate = s.rate != null ? ` Leitzins zurzeit ${pct(s.rate, 2)}.` : '';
@@ -411,6 +680,7 @@ export function reasonOf(s: Scene, now: number): string {
         case 'dividend':
           return `${e.company} schüttet ${when} aus${e.amount ? ` – bis zu ${money(e.amount)} laut Beschluss` : ''}.`;
         case 'merger':
+          if (e.companies) return `${listNames(e.companies)} gehen in ${e.company} auf – die erste ${when}.`;
           return `${e.company} geht ${when} in ${e.acquirer ?? 'einem anderen Unternehmen'} auf.`;
         case 'increase':
           return `${e.company} gibt ${e.shares ? `${count(e.shares)} neue Aktien` : 'neue Aktien'}${e.price ? ` zu ${priceText(e.price)}` : ''} aus – Zeichnung endet ${when}.`;
@@ -447,6 +717,7 @@ export function aheadText(ms: number, now: number): string {
 export function stageAsin(s: Scene): string | undefined {
   switch (s.kind) {
     case 'mover':
+    case 'ipo':
       return s.line.asin;
     case 'trade':
       return s.trade.asin;
@@ -455,7 +726,10 @@ export function stageAsin(s: Scene): string | undefined {
     case 'event':
       return s.event.asin;
     case 'tender':
+    case 'forum':
       return undefined;
+    case 'poll':
+      return s.poll.asin;
   }
 }
 
@@ -490,6 +764,37 @@ export function sinceClose(s: Scene, close: StagePoint | undefined, settled = tr
   if (!settled) return { ...s, line: { ...s.line, basis: 'pending' } };
   if (!close || !(s.line.price && s.line.price > 0)) return { ...s, line: { ...s.line, basis: 'server' } };
   return { ...s, line: { ...s.line, change: (s.line.price / close.price - 1) * 100, basis: 'close' } };
+}
+
+/** A record counts from this many days on. */
+export const RECORD_DAYS = 14;
+
+/**
+ * Whether `price` is the highest (`high`) or lowest daily close for at least two weeks: days back to the
+ * latest close at or beyond it. No such close in the history: the whole history (`all`).
+ */
+export function recordSince(
+  history: { date?: string | number | null; closePrice?: number | null }[] | undefined,
+  price: number | undefined,
+  high: boolean,
+  now: number,
+): Record_ | undefined {
+  if (!(price && price > 0)) return undefined;
+  const closes = (history ?? [])
+    .map((h) => ({ date: dayOf(h), price: h.closePrice ?? 0 }))
+    .filter((c) => c.price > 0 && Number.isFinite(c.date) && c.date <= now)
+    .sort((a, b) => b.date - a.date);
+  if (!closes.length) return undefined;
+  const beyond = closes.find((c) => (high ? c.price >= price : c.price <= price));
+  const days = Math.floor((now - (beyond ?? closes[closes.length - 1]).date) / DAY);
+  return days >= RECORD_DAYS ? { high, days, all: !beyond || undefined } : undefined;
+}
+
+/** A mover with its record (if any), in the direction of its move. */
+export function withRecord(s: Scene, history: Parameters<typeof recordSince>[0], now: number): Scene {
+  if (s.kind !== 'mover') return s;
+  const record = recordSince(history, s.line.price, s.line.change > 0, now);
+  return record ? { ...s, line: { ...s.line, record } } : s;
 }
 
 /**

@@ -65,8 +65,11 @@ function StageLine({ points, box, refPrice, refLabel, tone, label, now, sceneKey
   const first = points[0];
   const right = box.width - pr;
   const labelX = right + 12;
-  // Hi/lo marks only where they do not collide with the last price's label.
-  const marks = [g.top, g.bottom].filter((v, i, all) => all.indexOf(v) === i && (!g.last || Math.abs(g.yOf(v) - g.last.y) > 20));
+  // Hi/lo marks only where they do not collide with the last price's or the close's label.
+  const marks = [g.top, g.bottom].filter(
+    (v, i, all) =>
+      all.indexOf(v) === i && (!g.last || Math.abs(g.yOf(v) - g.last.y) > 20) && (!g.close || Math.abs(g.yOf(v) - g.close.y) > 30),
+  );
   const timeY = box.height - pb + 20;
   const hl = highlight ? g.dots.find((d) => d.id === highlight.id) : undefined;
   return (
@@ -101,9 +104,20 @@ function StageLine({ points, box, refPrice, refLabel, tone, label, now, sceneKey
       {g.close && (
         <g>
           <circle className="buehne-close" cx={g.close.x} cy={g.close.y} r={5} />
-          <text className="buehne-axis buehne-axis--ref" x={g.close.x} y={g.close.y - 14}>
-            {refLabel} {label(g.close.price)}
-          </text>
+          {/* named on the right axis like the other marks – next to the marker it lay on the line; left out
+              where it would collide with the last price */}
+          {(!g.last || Math.abs(g.close.y - g.last.y) > 30) && (
+            <>
+              <line className="buehne-ref" x1={g.close.x} x2={right + 6} y1={g.close.y} y2={g.close.y} />
+              <text className="buehne-axis buehne-axis--ref" x={labelX} y={g.close.y + 4}>
+                {label(g.close.price)}
+              </text>
+              {/* „Tagesschluss“ does not fit the right column (72–100 px) */}
+              <text className="buehne-axis buehne-axis--ref" x={labelX} y={g.close.y + 18}>
+                Schluss
+              </text>
+            </>
+          )}
         </g>
       )}
       <path key={sceneKey} className="buehne-line" d={g.line} pathLength={1} />
