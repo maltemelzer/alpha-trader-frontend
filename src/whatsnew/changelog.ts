@@ -32,6 +32,17 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-10-01-2',
+    title: 'Startseite: „Mein Tag“ ist zurück – als Zeitstrahl',
+    items: [
+      {
+        text: 'Viele von euch mochten „Mein Tag“. Jetzt steht in der Mitte dein Tag als Zeitstrahl: links, was seit deinem letzten Besuch passiert ist (deine Trades, Gehalt, Anleiherückzahlungen, Artikel über deine Papiere, neue Nachrichten, Forenthemen), rechts, was ansteht (Abstimmungen, Fälligkeiten, Dividenden, Fusionen).',
+        href: '/start?variante=meintag',
+      },
+      { text: 'Darunter: was zu tun ist, die Zeitung mit Artikeln über deine Papiere zuerst, und wie sich dein Depot heute bewegt. Am Handy als vier Ansichten.' },
+    ],
+  },
+  {
     id: '2026-10-01',
     title: 'Startseite „Bühne“: schneller und mit mehr Themen',
     items: [

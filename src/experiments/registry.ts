@@ -47,6 +47,7 @@ export const EXPERIMENTS: Experiment[] = [
     variants: [
       { id: 'buehne', label: 'Bühne', description: 'Ein großes Motiv nach dem anderen, alle 8 Sekunden: Kursbewegungen, Zeitung, Forum, Abstimmungen, Börsengänge.' },
       { id: 'saal', label: 'Börsensaal', description: 'Die große Anzeigetafel mit Klappziffern, Nachrichten als Laufschrift.' },
+      { id: 'meintag', label: 'Mein Tag', description: 'Dein Tag als Zeitstrahl: was seit deinem Besuch passiert ist und was ansteht, darunter Zu tun, Zeitung und Depot.' },
       { id: 'zeitung', label: 'Zeitung', description: 'Die Titelseite des Tages: Schlagzeile, Spalten und Kurszettel wie in einer Wirtschaftszeitung.' },
     ],
     until: '2026-10-31',
