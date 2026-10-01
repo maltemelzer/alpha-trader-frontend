@@ -32,6 +32,35 @@ export interface UiChange {
 
 export const UI_CHANGES: UiChange[] = [
   {
+    id: '2026-10-01',
+    title: 'Startseite „Bühne“: schneller und mit mehr Themen',
+    items: [
+      { text: 'Jede Szene steht jetzt 8 statt 12 Sekunden. Mit der Maus darüber oder ⏸ hält sie an.', href: '/start?variante=buehne' },
+      {
+        text: 'Weniger Rauschen: Einzeiler aus der Zeitung fehlen, von einer Reihe gleichnamiger Papiere („zFloat Vault 007, 010 …“) kommt nur die stärkste Bewegung, und viele Fusionen in dieselbe Firma stehen als eine Szene („Fortune übernimmt 4 Firmen“).',
+      },
+      {
+        text: 'Neu auf der Bühne: Themen aus deinen Foren, Abstimmungen, in denen deine Stimme noch fehlt, neue Aktien mit echtem Umsatz – und bei Kursbewegungen, wenn der Kurs so hoch oder tief steht wie seit Wochen nicht.',
+        href: '/start?variante=buehne&szene=ipo',
+      },
+    ],
+    shot: { path: '/start?variante=buehne&szene=mover', alt: 'Startseite „Bühne“: eine Kursbewegung als großes Motiv, darunter das Programm der nächsten Szenen', wait: 6000 },
+  },
+  {
+    id: '2026-09-30-3',
+    title: 'Startseite: drei Entwürfe bleiben',
+    items: [
+      {
+        text: 'Radar, Skyline und Mein Tag sind raus – es bleiben Bühne, Börsensaal und Zeitung. Hattest du einen davon gewählt, entscheide bitte neu (Leiste unten → „Ändern“).',
+        href: '/start',
+      },
+      {
+        text: 'Der Börsensaal lädt schneller: die Tafel wartet nicht mehr auf eine langsame Abfrage, und die Klappziffern belasten den Browser nur noch, während sie sich drehen.',
+        href: '/start?variante=saal',
+      },
+    ],
+  },
+  {
     id: '2026-09-30-2',
     title: 'Neue Startseite – sechs Entwürfe, du entscheidest',
     items: [

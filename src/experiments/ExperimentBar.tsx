@@ -181,6 +181,8 @@ function FeedbackSheet({ x, open, onClose }: { x: ExperimentState; open: boolean
   const decisionKey = `${mine.data?.favorite ?? ''}:${mine.data?.favoriteNote ?? ''}`;
   const [pick, setPick] = useState<{ key: string; variant: string | null; note: string } | null>(null);
   const ownPick = pick?.key === decisionKey ? pick : null;
+  // a favourite whose variant was dropped from the experiment has no label – then nothing is said
+  const favoriteLabel = x.exp.variants.find((v) => v.id === mine.data?.favorite)?.label;
   const pickVariant = ownPick ? ownPick.variant : (mine.data?.favorite ?? null);
   const pickNote = ownPick ? ownPick.note : (mine.data?.favoriteNote ?? '');
   const editPick = (patch: { variant?: string | null; note?: string }) => setPick({ key: decisionKey, variant: pickVariant, note: pickNote, ...patch });
@@ -295,9 +297,7 @@ function FeedbackSheet({ x, open, onClose }: { x: ExperimentState; open: boolean
                 {mine.data?.favorite ? 'Entscheidung ändern' : 'Entscheidung senden'}
               </DS.Button>
               {favorite.error && <span className="expsheet__err">{favorite.error.message}</span>}
-              {!ownPick && mine.data?.favorite && (
-                <span className="expsheet__note">Du siehst jetzt „{x.exp.variants.find((v) => v.id === mine.data!.favorite)?.label}“.</span>
-              )}
+              {!ownPick && favoriteLabel && <span className="expsheet__note">Du siehst jetzt „{favoriteLabel}“.</span>}
             </div>
           </div>
         ) : (

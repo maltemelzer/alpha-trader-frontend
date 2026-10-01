@@ -31,7 +31,7 @@ import { changeLookup } from '../../market/screener';
 import { Board } from './Board';
 import { HallClock } from './Clock';
 import { Flap } from './Flap';
-import { useTradingMatrix } from './queries';
+import { useMostTraded } from './queries';
 import {
   bestYields,
   bigTrades,
@@ -74,7 +74,7 @@ function useHall() {
   const now = useNow(30_000);
   // trades after the opening light their line up; the ones loaded with the page are history
   const [opened] = useState(() => Date.now());
-  const matrix = useTradingMatrix();
+  const matrix = useMostTraded();
   const moves = useAllPriceChanges();
   const trades = useRecentTrades();
   const bonds = useBondUniverse();

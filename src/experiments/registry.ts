@@ -45,12 +45,9 @@ export const EXPERIMENTS: Experiment[] = [
     title: 'Neue Startseite',
     question: 'Wie gefällt dir diese Startseite – würdest du sie offen lassen?',
     variants: [
-      { id: 'buehne', label: 'Bühne', description: 'Ein großes Motiv: was den Markt gerade am meisten bewegt, wechselt von selbst.' },
-      { id: 'radar', label: 'Radar', description: 'Die letzte Stunde als Radarschirm, jeder Trade ein Echo, dein Depot in der Mitte.' },
+      { id: 'buehne', label: 'Bühne', description: 'Ein großes Motiv nach dem anderen, alle 8 Sekunden: Kursbewegungen, Zeitung, Forum, Abstimmungen, Börsengänge.' },
       { id: 'saal', label: 'Börsensaal', description: 'Die große Anzeigetafel mit Klappziffern, Nachrichten als Laufschrift.' },
-      { id: 'skyline', label: 'Skyline', description: 'Der Markt als Stadt: Umsatz baut Türme, jeder Trade zündet ein Fenster.' },
       { id: 'zeitung', label: 'Zeitung', description: 'Die Titelseite des Tages: Schlagzeile, Spalten und Kurszettel wie in einer Wirtschaftszeitung.' },
-      { id: 'meintag', label: 'Mein Tag', description: 'Alles, was dich betrifft: deine Papiere, deine Nachrichten, was zu tun ist.' },
     ],
     until: '2026-10-31',
     fallback: 'buehne',

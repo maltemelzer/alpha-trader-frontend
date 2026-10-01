@@ -34,7 +34,6 @@
   font-family: var(--font-mono);
   font-size: calc(var(--cw) * 1.3);
   font-weight: 500;
-  perspective: calc(var(--ch) * 5);
 }
 
 .saal-c > span {
@@ -44,7 +43,6 @@
   height: 50%;
   overflow: hidden;
   background: var(--bg-page);
-  backface-visibility: hidden;
 }
 
 .saal-c b {
@@ -85,9 +83,16 @@
   visibility: hidden;
 }
 
+/* 3D only while a cell turns: perspective and backface-visibility on all ~1.400 cells made the browser
+   composite thousands of layers on every frame (long tasks up to 0,5 s while loading) */
+.saal-c--flip {
+  perspective: calc(var(--ch) * 5);
+}
+
 .saal-c--flip > .saal-c__lt,
 .saal-c--flip > .saal-c__lb {
   visibility: visible;
+  backface-visibility: hidden;
 }
 
 /* the hinge between the two leaves */
