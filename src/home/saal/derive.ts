@@ -259,7 +259,7 @@ function shareRow(
   };
 }
 
-/** Most traded in 24 h (trading matrix): shares and the coin by € volume. */
+/** Most traded in 24 h (useMostTraded, shape of the trading matrix): shares and the coin by € volume. */
 export function mostTraded(matrix: TradingMatrixItemView[] | undefined, ctx: RowContext, n = 12): BoardRow[] {
   return (matrix ?? [])
     .filter((m) => m.securityIdentifier && onBoard(m.securityIdentifier))
