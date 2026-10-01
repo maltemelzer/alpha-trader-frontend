@@ -45,7 +45,7 @@ Inoffizielles Web-Frontend für die Börsensimulation [Alpha-Trader](https://alp
 ## API
 - Spec: https://stable.alpha-trader.com/v3/api-docs (Swagger UI: https://stable.alpha-trader.com/swagger-ui/index.html). Server: `stable` (Standard), `nightly`, `dev`.
 - CORS ist offen (Origin wird gespiegelt) – kein Proxy nötig.
-- Login: `POST /user/token?username=…&password=…&partnerId=…` → Antwort `{ code, message, … }`, das JWT steht in `message`.
+- Login: `POST /user/token` mit `username`, `password`, `partnerId` als **Form-Body** (`application/x-www-form-urlencoded`, geprüft 01.10.2026) – die Spec nennt Query-Parameter, aber Passwörter gehören nicht in URLs (Zugriffs-Logs). Antwort `{ code, message, … }`, das JWT steht in `message`.
 - Authentifizierte Requests: `Authorization: Bearer <JWT>` (verifiziert). `X-Authorization` ist **nicht** der Token-Header, darüber kann die Partner-ID mitgeschickt werden. Token im `sessionStorage` des Tabs (`at.token`), nie loggen. Neue Tabs holen ihn per `BroadcastChannel('at.auth')` von offenen Tabs (`requestTokenFromOtherTabs`, `RequireAuth` wartet solange mit `checking`), Abmelden meldet alle Tabs ab. „Angemeldet bleiben“ legt ihn zusätzlich 30 Tage in `localStorage` (`at.remember`) – das JWT hat selbst kein `exp`. Kein Cookie: die API liegt auf einer anderen Domain und will `Authorization: Bearer`.
 - `PARTNER_ID` ist öffentlich und kommt als `VITE_PARTNER_ID` in den Build; Basis-URL als `VITE_API_BASE`.
 - Neuere Endpunkte unter `/api/v2/...` bevorzugen, wenn es beide gibt. Zeitstempel sind Millisekunden.

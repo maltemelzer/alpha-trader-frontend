@@ -43,7 +43,7 @@ async function token(e, base) {
   if (!e.AT_USERNAME || !e.AT_PASSWORD) throw new Error('no account: AT_USERNAME/AT_PASSWORD in .env or the environment (or USERNAME/PASSWORD)');
   const q = new URLSearchParams({ username: e.AT_USERNAME, password: e.AT_PASSWORD });
   if (e.PARTNER_ID) q.set('partnerId', e.PARTNER_ID);
-  const res = await fetch(`${base}/user/token?${q}`, { method: 'POST' });
+  const res = await fetch(`${base}/user/token`, { method: 'POST', body: q });
   const body = await res.json();
   if (!res.ok || typeof body.message !== 'string') throw new Error(`login failed (HTTP ${res.status})`);
   return body.message;
