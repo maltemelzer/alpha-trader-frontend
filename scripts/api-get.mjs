@@ -50,7 +50,7 @@ async function login(base, env) {
   if (!AT_USERNAME || !AT_PASSWORD) fail('AT_USERNAME / AT_PASSWORD missing in .env');
   const q = new URLSearchParams({ username: AT_USERNAME, password: AT_PASSWORD });
   if (PARTNER_ID) q.set('partnerId', PARTNER_ID);
-  const res = await fetch(`${base}/user/token?${q}`, { method: 'POST' });
+  const res = await fetch(`${base}/user/token`, { method: 'POST', body: q });
   const body = await res.json().catch(() => ({}));
   if (!res.ok || typeof body.message !== 'string') fail(`login failed (HTTP ${res.status})`);
   return body.message;
