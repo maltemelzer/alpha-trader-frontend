@@ -133,11 +133,14 @@ export async function unwrap<T>(p: Promise<{ data?: unknown; error?: unknown; re
   return data as T;
 }
 
-/** POST /user/token – the JWT is returned in `message`. */
+/**
+ * POST /user/token – the JWT is returned in `message`. The spec lists the credentials as query
+ * parameters, but the server also reads them from a form body; keep them out of the URL (access logs).
+ */
 export async function login(username: string, password: string, remember = false): Promise<string> {
   const q = new URLSearchParams({ username, password });
   if (PARTNER_ID) q.set('partnerId', PARTNER_ID);
-  const res = await fetch(`${API_BASE}/user/token?${q}`, { method: 'POST' });
+  const res = await fetch(`${API_BASE}/user/token`, { method: 'POST', body: q });
   const body: { message?: unknown } = await res.json().catch(() => ({}));
   if (!res.ok || typeof body.message !== 'string') throw new Error(`Login fehlgeschlagen (${res.status})`);
   setToken(body.message, remember);

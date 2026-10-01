@@ -63,7 +63,7 @@ function env() {
 async function token(e, base) {
   const q = new URLSearchParams({ username: e.AT_USERNAME, password: e.AT_PASSWORD });
   if (e.PARTNER_ID) q.set('partnerId', e.PARTNER_ID);
-  const res = await fetch(`${base}/user/token?${q}`, { method: 'POST' });
+  const res = await fetch(`${base}/user/token`, { method: 'POST', body: q });
   const body = await res.json();
   if (!res.ok || typeof body.message !== 'string') throw new Error(`login failed (HTTP ${res.status})`);
   return body.message;
