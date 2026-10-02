@@ -5,7 +5,7 @@ import { LegalLayout, Operator } from './LegalLayout';
 import { STORAGE } from './storage';
 
 /** Last change of this text – update it with every change of what the site does with data. */
-const AS_OF = '29. September 2026';
+const AS_OF = '1. Oktober 2026';
 
 export function DatenschutzPage() {
   const { data } = useLegalConfig();

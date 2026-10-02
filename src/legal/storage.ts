@@ -34,6 +34,12 @@ export const STORAGE: StorageEntry[] = [
     purpose: 'Bei Tests von Varianten: welche du gesehen und gewählt hast und wie lange (nur für den Hinweis zum Bewerten, bleibt im Browser).',
     lasts: 'bis du den Speicher leerst',
   },
+  {
+    key: 'at.home.visit',
+    where: 'localStorage',
+    purpose: 'Startseite „Mein Tag“: wann du sie zuletzt offen hattest, damit sie zeigen kann, was seitdem passiert ist.',
+    lasts: 'bis du den Speicher leerst',
+  },
   { key: 'at.exp.collapsed', where: 'localStorage', purpose: 'Ob die Leiste „Test“ eingeklappt ist.', lasts: 'bis du es änderst oder den Speicher leerst' },
   { key: 'at.exp.usage', where: 'localStorage', purpose: 'Ob du dem Mitzählen der Nutzung bei Tests zugestimmt hast.', lasts: 'bis du es änderst oder den Speicher leerst' },
 ];
